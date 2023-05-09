@@ -1,0 +1,2 @@
+add_subdirectory(coraxlib EXCLUDE_FROM_ALL)
+add_subdirectory(logger EXCLUDE_FROM_ALL)
