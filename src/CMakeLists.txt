@@ -1,5 +1,6 @@
 add_executable(biogeosim
     main.cpp
+    cli.cpp
 )
 
 target_link_libraries(biogeosim corax logger)

@@ -10,14 +10,14 @@
 #include <cctype>
 #include <cstring>
 #include <exception>
+#include <filesystem>
 #include <functional>
+#include <logger.hpp>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-
-#include "debug.hpp"
 
 /** @defgroup cli_errors CLI Parser Error Types
  */
@@ -217,49 +217,20 @@ auto option_with_argument(const char *name, const char *desc) -> cli_option_t {
 }
 
 template <>
-auto option_with_argument<std::string>(const char *name, const char *desc)
-    -> cli_option_t {
-  return cli_option_t{
-      name, desc, true, [](const char *o) -> std::string { return {o}; }};
-}
-
-template <>
 auto option_with_argument<double>(const char *name, const char *desc)
-    -> cli_option_t {
-  return cli_option_t{
-      name, desc, true, [](const char *o) -> double { return std::stod(o); }};
-}
+    -> cli_option_t;
 
 template <>
 auto option_with_argument<size_t>(const char *name, const char *desc)
-    -> cli_option_t {
-  return cli_option_t{
-      name, desc, true, [](const char *o) -> size_t { return std::stoull(o); }};
-}
+    -> cli_option_t;
 
 template <>
 auto option_with_argument<unsigned long long>(const char *name,
-                                              const char *desc)
-    -> cli_option_t {
-  return cli_option_t{
-      name, desc, true, [](const char *o) -> size_t { return std::stoull(o); }};
-}
+                                              const char *desc) -> cli_option_t;
 
 template <>
 auto option_with_argument<bool>(const char *name, const char *desc)
-    -> cli_option_t {
-  return cli_option_t{name, desc, true, [](const char *o) -> bool {
-                        std::string arg(o);
-                        std::transform(arg.begin(),
-                                       arg.end(),
-                                       arg.begin(),
-                                       [](char c) { return tolower(c); });
-                        if (arg == "off") { return false; }
-                        if (arg == "on") { return true; }
-                        throw cli_option_argument_not_found{
-                            "Argument should be ieither on or off"};
-                      }};
-}
+    -> cli_option_t;
 
 static auto option_flag(const char *name, const char *desc) -> cli_option_t {
   return cli_option_t{
@@ -273,32 +244,8 @@ static auto option_flag(const char *name, const char *desc) -> cli_option_t {
  * Actual CLI options for the program.
  */
 static cli_option_t args[] = {
-    option_with_argument<std::string>("teams", "File with the team names")
-        .required(),
-    option_with_argument<std::string>("prefix", "Output files prefix")
-        .required(),
-    option_with_argument<uint64_t>("seed", "Random engine seed"),
-    option_with_argument<std::string>("matches", "Match history as a csv file"),
-    option_with_argument<std::string>("odds",
-                                      "Odds of teams winning as a csv file"),
-    option_with_argument<std::string>(
-        "probs", "Pairwise win probabilities as a csv file"),
-    option_flag("single", "Compute the tournament in single mode."),
-    option_flag("sim", "Compute the tournament in simulation mode."),
-    option_with_argument<size_t>("sim-iters",
-                                 "Number of simulation iterations to run"),
-    option_with_argument<bool>("dynamic",
-                               "Enable or disable dynamic computation"),
-    option_with_argument<size_t>(
-        "samples", "Number of samples to take for the MCMC exploration"),
-    option_with_argument<double>(
-        "burnin", "Number of samples to discard for MCMC burnin"),
-    option_with_argument<bool>(
-        "poisson", "Use a Poisson based liklihood model for the MCMC search"),
-    option_with_argument<size_t>(
-        "bestof", "Set the number of matches for each round of the tournament"),
-    option_flag("sample-matrix", "Sample the matrix during the MCMC search"),
-    option_flag("dummy", "Make dummy data"),
+    option_with_argument<std::filesystem::path>(
+        "tree", "Tree used to simulate the regions"),
     option_flag("verbose", "Enable more output"),
     option_flag("debug", "Enable debug output"),
 };
@@ -315,7 +262,7 @@ public:
 
     for (int i = 1; i < argc; ++i) {
       const char *cur_arg = argv[i];
-      debug_print(EMIT_LEVEL_DEBUG, "working on argument: %s", cur_arg);
+      LOG_DEBUG("working on argument: %s", cur_arg);
       if (!(cur_arg[0] == '-' && cur_arg[1] == '-')) {
         throw cli_option_not_recognized{std::string{"Failed to recognize "} +
                                         cur_arg};
@@ -337,9 +284,7 @@ public:
         args[k].set_flag();
       }
       if (!found) {
-        debug_print(EMIT_LEVEL_IMPORTANT,
-                    "Failed to recognize command line argument: %s",
-                    argv[i]);
+        LOG_IMPORTANT("Failed to recognize command line argument: %s", argv[i]);
       }
     }
 
