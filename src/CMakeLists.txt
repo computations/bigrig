@@ -1,9 +1,10 @@
 add_executable(biogeosim
     main.cpp
-    cli.cpp
+    dist.cpp
+    util.cpp
 )
 
-target_link_libraries(biogeosim corax logger)
+target_link_libraries(biogeosim corax logger CLI11)
 
 set_target_properties(biogeosim
     PROPERTIES
