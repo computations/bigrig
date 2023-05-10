@@ -35,7 +35,7 @@ public:
     return sizeof(_dist) * BITS_IN_BYTE - clz();
   }
 
-  constexpr uint64_t operator[](size_t i) const { return (_dist >> i) & 1ull; }
+  constexpr uint64_t operator[](size_t i) const { return bextr(i); }
 
   biogeosim_dist_t operator^(biogeosim_dist_t d) const {
     return _dist ^ d._dist;
@@ -47,9 +47,13 @@ public:
     return _dist & d._dist;
   }
 
+  biogeosim_dist_t negate_bit(size_t index) const {
+    return _dist ^ (_dist & (1ull << index));
+  }
+
   biogeosim_dist_t operator+(uint64_t d) const { return _dist + d; }
 
-  size_t index(size_t max_areas) {
+  size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
     return _dist - skips;
   }
@@ -61,6 +65,10 @@ public:
   }
 
 private:
+  constexpr uint64_t bextr(size_t index) const {
+    return (_dist >> index) & 1ull;
+  }
+
   static auto compute_skips_power_of_2(size_t k, size_t n) -> size_t {
     size_t skips = 0;
     for (size_t i = n + 1; i < k; ++i) { skips += combinations(k - 1, i); }
