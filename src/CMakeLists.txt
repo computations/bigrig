@@ -3,6 +3,7 @@ add_executable(biogeosim
     dist.cpp
     util.cpp
     node.cpp
+    tree.cpp
 )
 
 target_link_libraries(biogeosim corax logger CLI11)
