@@ -1,0 +1,1 @@
+add_subdirectory(Catch2 EXCLUDE_FROM_ALL)
