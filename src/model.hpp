@@ -5,6 +5,9 @@
 namespace biogeosim {
 class substitution_model_t {
 public:
+  substitution_model_t(double d, double e, size_t r)
+      : _dis{d}, _ext{e}, _region_count{r} {}
+
   /**
    * Returns the pair (e,d) for a simple 2 parameter dec model.
    */
@@ -21,8 +24,8 @@ public:
   }
 
 private:
-  double _ext;
   double _dis;
+  double _ext;
   size_t _region_count;
 };
 } // namespace biogeosim

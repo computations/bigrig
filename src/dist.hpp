@@ -4,8 +4,8 @@
 #include "util.hpp"
 
 #include <cstdint>
+#include <format>
 #include <logger.hpp>
-#include <optional>
 #include <random>
 #include <string>
 #include <vector>
@@ -47,9 +47,9 @@ public:
   dist_t operator|(dist_t d) const { return _dist | d._dist; }
   dist_t operator&(dist_t d) const { return _dist & d._dist; }
 
-  dist_t negate_bit(size_t index) const {
-    return _dist ^ (_dist & (1ull << index));
-  }
+  bool operator==(dist_t d) const { return d._dist == _dist; }
+
+  dist_t negate_bit(size_t index) const { return _dist ^ (1ull << index); }
 
   dist_t operator+(uint64_t d) const { return _dist + d; }
 
@@ -64,6 +64,11 @@ public:
       d = d + 1;
     }
     return d;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, dist_t dist) {
+    os << std::format("{:b}", dist._dist);
+    return os;
   }
 
 private:
@@ -99,16 +104,62 @@ class transition_t {
 public:
   transition_t() = default;
   transition_t(double t, dist_t i, dist_t f)
-      : _t{t}, _initial_state{i}, _final_state{f} {}
+      : waiting_time{t}, initial_state{i}, final_state{f} {}
 
-private:
-  double _t;
-  dist_t _initial_state;
-  dist_t _final_state;
+  double waiting_time;
+  dist_t initial_state;
+  dist_t final_state;
 };
 
-std::optional<transition_t> sample(double t, dist_t init_dist,
-                                   const substitution_model_t &model,
-                                   std::uniform_random_bit_generator auto &gen);
+transition_t sample(dist_t init_dist, const substitution_model_t &model,
+                    std::uniform_random_bit_generator auto &gen) {
+
+  auto [e, d] = model.rates();
+
+  double sum = model.compute_denominator(init_dist.popcount());
+  bool singleton = init_dist.popcount() == 1;
+
+  std::uniform_real_distribution<double> die;
+  auto roll = die(gen) * sum;
+  LOG_DEBUG("roll: %d", roll);
+
+  /* The order is important, we MUST traverse the same way each time, or else
+   * the distribution gets messed up. Additionally, if popcount == 1, then we
+   * can't loose a region, since that would constitute an extinction. */
+  [[assume(model.region_count() != 0)]];
+  for (size_t i = 0; i < model.region_count(); ++i) {
+    /* If we have a single region, and _this_ is the active region, we skip
+     * this loop iteration */
+    if (singleton && init_dist[i]) {
+      continue;
+    }
+
+    double rate = init_dist[i] ? e : d;
+    roll -= rate;
+
+    if (roll < 0.0) {
+      LOG_DEBUG("Roll resulted in region %d flipping", i);
+      auto next_state = init_dist.negate_bit(i);
+      std::exponential_distribution<double> exp(rate);
+      double waiting_time = exp(gen);
+      return transition_t{waiting_time, init_dist, next_state};
+    }
+  }
+  return {};
+}
+
+std::vector<transition_t>
+generate_samples(double brlen, const substitution_model_t &model,
+                 std::uniform_random_bit_generator auto &gen) {
+  std::vector<transition_t> results;
+  while (true) {
+    auto r = sample(brlen, model, gen);
+    brlen -= r.waiting_time;
+    if (brlen < 0.0) {
+      return results;
+    }
+    results.push_back(r);
+  }
+}
 
 } // namespace biogeosim
