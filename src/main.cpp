@@ -1,4 +1,5 @@
 #include "node.hpp"
+#include "tree.hpp"
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
@@ -41,10 +42,14 @@ int main(int argc, char **argv) {
 
   MESSAGE_DEBUG("this is the debug message");
 
-  auto tree =
-      corax_utree_parse_newick_rooted(cli_options.tree_filename.c_str());
+  auto tree = biogeosim::tree_t(cli_options.tree_filename.c_str());
 
-  biogeosim::node_t biogeo_tree(tree->vroot);
+  std::random_device rd;
+  std::minstd_rand gen(rd());
+  biogeosim::substitution_model_t model(1.0, 1.0, 6);
+
+  tree.sample(0110011, model, gen);
+  std::cout << tree.to_newick() << std::endl;
 
   return 0;
 }
