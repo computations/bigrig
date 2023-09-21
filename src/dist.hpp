@@ -121,7 +121,7 @@ transition_t sample(dist_t init_dist, const substitution_model_t &model,
 
   std::uniform_real_distribution<double> die;
   auto roll = die(gen) * sum;
-  LOG_DEBUG("roll: %d", roll);
+  LOG_DEBUG("roll: %f", roll);
 
   /* The order is important, we MUST traverse the same way each time, or else
    * the distribution gets messed up. Additionally, if popcount == 1, then we
@@ -158,6 +158,8 @@ generate_samples(double brlen, const substitution_model_t &model,
     if (brlen < 0.0) {
       return results;
     }
+    LOG_DEBUG("adding transition from %b to %b", r.initial_state,
+              r.final_state);
     results.push_back(r);
   }
 }
