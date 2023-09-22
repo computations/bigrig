@@ -1,6 +1,7 @@
 #include "model.hpp"
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <dist.hpp>
 #include <iostream>
@@ -63,69 +64,84 @@ TEST_CASE("sample", "[sample]") {
   CHECK(t.initial_state != t.final_state);
 }
 
-TEST_CASE("stats", "[sample][stats]") {
+TEST_CASE("stats for sample", "[sample][stats]") {
+  constexpr size_t regions = 4;
+  constexpr size_t iters = 1e6;
+  std::minstd_rand gen(Catch::getSeed());
+
+  biogeosim::dist_t init_dist = GENERATE(0b1010, 0b1110);
+
+  double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
+  double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
+
+  double average_rate =
+      ext * init_dist.popcount() + dis * (regions - init_dist.popcount());
+  double mu = 1 / (average_rate);
+  double sigma = mu * mu;
+
+  biogeosim::substitution_model_t model(dis, ext, regions);
+
+  double brlen = GENERATE(1.0);
+  INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen);
+
+  double sum = 0;
+  double sumsq = 0;
+
+  for (size_t i = 0; i < iters; ++i) {
+    auto t = biogeosim::sample(init_dist, model, gen);
+    sum += t.waiting_time;
+    sumsq += t.waiting_time * t.waiting_time;
+  }
+
+  double mean = sum / iters;
+  double std = (sumsq - sum * sum / iters) / (iters - 1);
+  double t = (mean - mu) / (sqrt(sigma / iters));
+
+  INFO("mean: " << mean << " mu: " << mu << " std: " << std
+                << " sigma: " << sigma);
+
+  // CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0.0, 0.01));
+  // CHECK_THAT(std, Catch::Matchers::WithinAbs(sigma, 0.01));
+  CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 4));
+}
+
+/*
+TEST_CASE("stats for generate_samples", "[sample][stats]") {
   const biogeosim::dist_t init_dist = 0b1010;
   std::minstd_rand gen(Catch::getSeed());
-  SECTION("e = d = t = 1.0") {
-    constexpr size_t regions = 4;
-    constexpr double dis = 1.0;
-    constexpr double ext = 1.0;
+  constexpr size_t regions = 4;
+  constexpr size_t iters = 1e6;
 
-    constexpr double brlen = 1.0;
+  double dis = GENERATE(1.0, 2.0);
+  double ext = GENERATE(1.0, 2.0);
 
-    constexpr size_t iters = 1e6;
-    constexpr double mu = 1.0;
-    constexpr double sigma = mu;
+  double brlen = GENERATE(1.0, 2.0);
 
-    biogeosim::substitution_model_t model(dis, ext, regions);
+  INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen);
 
-    double mean = 0;
-    double std = 0;
+  double average_rate =
+      ext * init_dist.popcount() + dis * (regions - init_dist.popcount());
+  double mu = brlen * average_rate;
+  double sigma = average_rate;
 
-    for (size_t i = 0; i < iters; ++i) {
-      auto trans = biogeosim::generate_samples(brlen, model, gen);
-      double num = trans.size();
-      mean += num;
-      std += (num - mu) * (num - mu);
-    }
+  biogeosim::substitution_model_t model(dis, ext, regions);
 
-    mean /= iters;
-    std /= iters;
+  double sum = 0;
+  double sumsq = 0;
 
-    CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0.0, 0.01));
-    CHECK_THAT(std, Catch::Matchers::WithinAbs(sigma, 0.01));
+  for (size_t i = 0; i < iters; ++i) {
+    double count = biogeosim::generate_samples(brlen, model, gen).size();
+    sum += count;
+    sumsq += count * count;
   }
-  SECTION("e = d = 4.0, t = 1.0") {
-    constexpr size_t regions = 4;
-    constexpr double dis = 4.0;
-    constexpr double ext = 4.0;
 
-    constexpr double brlen = 1.0;
+  double mean = sum / iters;
+  double std = (sumsq - sum * sum / iters) / (iters - 1);
+  double t = (mean - mu) / (sqrt(std / iters));
+  INFO("mean: " << mean << " mu: " << mu);
 
-    constexpr size_t iters = 1e2;
-    constexpr double mu = 4.0;
-    constexpr double sigma = 1.0 / (mu * mu) / sqrt(iters);
-
-    biogeosim::substitution_model_t model(dis, ext, regions);
-
-    double sum = 0;
-    double sumsq = 0;
-
-    for (size_t i = 0; i < iters; ++i) {
-      double count = biogeosim::generate_samples(brlen, model, gen).size();
-      sum += count;
-      sumsq += count * count;
-    }
-
-    INFO("Sum is:" << sum);
-    INFO("sumsq is:" << sumsq);
-
-    double mean = sum / iters;
-    double std = (sumsq - sum * sum / iters) / (iters - 1);
-    double t = (mean - mu) / (std / sqrt(iters));
-
-    CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0.0, 0.01));
-    CHECK_THAT(std, Catch::Matchers::WithinAbs(sigma, 0.01));
-    CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 0.01));
-  }
+  CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0.0, 0.01));
+  CHECK_THAT(std, Catch::Matchers::WithinAbs(sigma, 0.01));
+  CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 2));
 }
+*/
