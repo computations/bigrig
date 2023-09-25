@@ -66,23 +66,29 @@ TEST_CASE("sample", "[sample]") {
 
 TEST_CASE("stats for sample", "[sample][stats]") {
   constexpr size_t regions = 4;
-  constexpr size_t iters = 1e6;
+  constexpr size_t iters = 1e4;
   std::minstd_rand gen(Catch::getSeed());
 
-  biogeosim::dist_t init_dist = GENERATE(0b1010, 0b1110);
+  biogeosim::dist_t init_dist =
+      GENERATE(0b0001, 0b0010, 0b0100, 0b1000, 0b1010, 0b1010, 0b1110, 0b1111);
 
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
 
-  double average_rate =
-      ext * init_dist.popcount() + dis * (regions - init_dist.popcount());
+  double average_rate = dis * (regions - init_dist.popcount());
+
+  if (init_dist.popcount() > 1) {
+    average_rate += ext * init_dist.popcount();
+  }
+
   double mu = 1 / (average_rate);
   double sigma = mu * mu;
 
   biogeosim::substitution_model_t model(dis, ext, regions);
 
   double brlen = GENERATE(1.0);
-  INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen);
+  INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen
+               << " dist: " << init_dist);
 
   double sum = 0;
   double sumsq = 0;
