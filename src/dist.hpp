@@ -172,9 +172,14 @@ split_dist(dist_t init_dist, const substitution_model_t &model,
   }
 
   std::bernoulli_distribution coin(model.splitting_prob());
-  std::uniform_int_distribution<size_t> die(init_dist.popcount());
+  std::uniform_int_distribution<size_t> die(0, init_dist.popcount() - 1);
   size_t flipped_index = die(gen);
-  dist_t new_dist;
+  for (size_t i = 0; i < flipped_index + 1; ++i) {
+    if (!init_dist[i]) {
+      flipped_index++;
+    }
+  }
+  dist_t new_dist = 0;
   new_dist = new_dist.negate_bit(flipped_index);
   /* In the allopatric case, we need to remove the index from the init dist. */
   if (coin(gen)) {

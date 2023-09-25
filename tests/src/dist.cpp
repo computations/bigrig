@@ -123,6 +123,29 @@ TEST_CASE("splitting", "[sample]") {
     auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
     CHECK(d1 == d2);
   }
+  SECTION("allopatry") {
+    biogeosim::dist_t init_dist = GENERATE(0b1110, 0b1100, 0b1011, 0b1111);
+    model.set_splitting_prob(1.0);
+    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
+
+    INFO("init: " << init_dist);
+    INFO("d1: " << d1);
+    INFO("d2: " << d2);
+    CHECK(d1 != d2);
+    CHECK((d1 | d2) == init_dist);
+  }
+  SECTION("sympatry") {
+    biogeosim::dist_t init_dist = GENERATE(0b1110, 0b1100, 0b1011, 0b1111);
+    model.set_splitting_prob(0.0);
+    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
+
+    INFO("init: " << init_dist);
+    INFO("d1: " << d1);
+    INFO("d2: " << d2);
+    CHECK(d1 != d2);
+    CHECK((d1 | d2) == init_dist);
+    CHECK((d1 & d2).popcount() == 1);
+  }
 }
 
 /*
