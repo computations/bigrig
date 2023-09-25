@@ -37,7 +37,12 @@ public:
   void sample(dist_t initial_distribution, const substitution_model_t &model,
               std::uniform_random_bit_generator auto &gen) {
     _transitions = generate_samples(_brlen, model, gen);
-    auto final_state = _transitions.back().final_state;
+    dist_t final_state;
+    if (_transitions.size() == 0) {
+      final_state = initial_distribution;
+    } else {
+      final_state = _transitions.back().final_state;
+    }
     for (auto &child : _children) {
       child->sample(final_state, model, gen);
     }
