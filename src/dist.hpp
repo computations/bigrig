@@ -114,7 +114,7 @@ public:
 transition_t sample(dist_t init_dist, const substitution_model_t &model,
                     std::uniform_random_bit_generator auto &gen) {
 
-  auto [e, d] = model.rates();
+  auto [d, e] = model.rates();
 
   double sum = model.compute_denominator(init_dist.popcount());
   bool singleton = init_dist.popcount() == 1;
@@ -150,6 +150,42 @@ generate_samples(double brlen, const substitution_model_t &model,
     LOG_DEBUG("adding transition from %b to %b", r.initial_state,
               r.final_state);
     results.push_back(r);
+  }
+}
+
+/*
+ * There are three types of splitting:
+ *  - Singleton
+ *  - Allopatric
+ *  - Sympatric
+ *  Allopatric and Sympatric are not the names used in the original Ree paper,
+ *  and they shouldn't be used in user facing descriptions, as they are very
+ *  misleading. Regions are large enough that both Allopatry and Sympatry can
+ *  occur, but the idea maps well, so I use it internally.
+ */
+std::pair<dist_t, dist_t>
+split_dist(dist_t init_dist, const substitution_model_t &model,
+           std::uniform_random_bit_generator auto &gen) {
+  // Singleton case
+  if (init_dist.popcount() == 1) {
+    return {init_dist, init_dist};
+  }
+
+  std::bernoulli_distribution coin(model.splitting_prob());
+  std::uniform_int_distribution<size_t> die(init_dist.popcount());
+  size_t flipped_index = die(gen);
+  dist_t new_dist;
+  new_dist = new_dist.negate_bit(flipped_index);
+  /* In the allopatric case, we need to remove the index from the init dist. */
+  if (coin(gen)) {
+    init_dist = init_dist.negate_bit(flipped_index);
+  }
+
+  std::bernoulli_distribution left_or_right(0.5);
+  if (left_or_right(gen)) {
+    return {new_dist, init_dist};
+  } else {
+    return {init_dist, new_dist};
   }
 }
 

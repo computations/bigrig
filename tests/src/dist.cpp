@@ -111,6 +111,20 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 4));
 }
 
+TEST_CASE("splitting", "[sample]") {
+  constexpr size_t regions = 4;
+  std::minstd_rand gen(Catch::getSeed());
+
+  biogeosim::substitution_model_t model;
+  model.set_params(1.0, 1.0).set_splitting_prob(0.5).set_region_count(4);
+
+  SECTION("singleton") {
+    biogeosim::dist_t init_dist = 0b1000;
+    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
+    CHECK(d1 == d2);
+  }
+}
+
 /*
 TEST_CASE("stats for generate_samples", "[sample][stats]") {
   const biogeosim::dist_t init_dist = 0b1010;
