@@ -1,4 +1,5 @@
 #include "model.hpp"
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -62,6 +63,8 @@ TEST_CASE("sample", "[sample]") {
   auto t = biogeosim::sample(init_dist, model, gen);
   CHECK(t.initial_state == init_dist);
   CHECK(t.initial_state != t.final_state);
+
+  BENCHMARK("sample") { return biogeosim::sample(init_dist, model, gen); };
 }
 
 TEST_CASE("stats for sample", "[sample][stats]") {
@@ -133,6 +136,7 @@ TEST_CASE("splitting", "[sample]") {
     INFO("d2: " << d2);
     CHECK(d1 != d2);
     CHECK((d1 | d2) == init_dist);
+    CHECK((d1 & d2).popcount() == 0);
   }
   SECTION("sympatry") {
     biogeosim::dist_t init_dist = GENERATE(0b1110, 0b1100, 0b1011, 0b1111);
@@ -146,8 +150,22 @@ TEST_CASE("splitting", "[sample]") {
     CHECK((d1 | d2) == init_dist);
     CHECK((d1 & d2).popcount() == 1);
   }
-}
+  SECTION("benchmark") {
+    // biogeosim::dist_t init_dist = GENERATE(0b1110, 0b1100, 0b1011, 0b1111);
+    biogeosim::dist_t init_dist = 0b1110;
+    model.set_splitting_prob(0.5);
+    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
 
+    BENCHMARK("split_dist") {
+      return biogeosim::split_dist(init_dist, model, gen);
+    };
+
+    init_dist = 0b1000;
+    BENCHMARK("split_dist singleton") {
+      return biogeosim::split_dist(init_dist, model, gen);
+    };
+  }
+}
 /*
 TEST_CASE("stats for generate_samples", "[sample][stats]") {
   const biogeosim::dist_t init_dist = 0b1010;

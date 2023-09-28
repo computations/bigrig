@@ -3,8 +3,10 @@
 #include "model.hpp"
 #include "util.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <format>
+#include <limits>
 #include <logger.hpp>
 #include <random>
 #include <string>
@@ -106,7 +108,7 @@ public:
   transition_t(double t, dist_t i, dist_t f)
       : waiting_time{t}, initial_state{i}, final_state{f} {}
 
-  double waiting_time;
+  double waiting_time = std::numeric_limits<double>::infinity();
   dist_t initial_state;
   dist_t final_state;
 };
@@ -119,22 +121,23 @@ transition_t sample(dist_t init_dist, const substitution_model_t &model,
   double sum = model.compute_denominator(init_dist.popcount());
   bool singleton = init_dist.popcount() == 1;
 
-  transition_t current_transition;
-  current_transition.waiting_time = std::numeric_limits<double>::infinity();
+  std::exponential_distribution<double> exp_die(e);
+  std::exponential_distribution<double> dis_die(d);
+
+  std::vector<transition_t> rolls(model.region_count());
 
   for (size_t i = 0; i < model.region_count(); ++i) {
-    if (singleton && init_dist[i]) {
+    if (init_dist[i] && singleton) {
       continue;
     }
-    double rate = init_dist[i] ? e : d;
-    std::exponential_distribution<double> die(rate);
-    double waiting_time = die(gen);
+    double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
     dist_t final_dist = init_dist.negate_bit(i);
-    if (waiting_time < current_transition.waiting_time) {
-      current_transition = transition_t{waiting_time, init_dist, final_dist};
-    }
+    rolls[i] = transition_t{waiting_time, init_dist, final_dist};
   }
-  return current_transition;
+
+  return *std::min_element(rolls.begin(), rolls.end(), [](auto a, auto b) {
+    return a.waiting_time < b.waiting_time;
+  });
 }
 
 std::vector<transition_t>
