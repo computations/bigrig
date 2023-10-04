@@ -1,4 +1,5 @@
 #include "node.hpp"
+#include "pcg_random.hpp"
 #include "tree.hpp"
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -44,8 +45,9 @@ int main(int argc, char **argv) {
 
   auto tree = biogeosim::tree_t(cli_options.tree_filename.c_str());
 
-  std::random_device rd;
-  std::minstd_rand gen(rd());
+  pcg_extras::seed_seq_from<std::random_device> seed_source;
+  pcg64_fast gen(seed_source);
+
   biogeosim::substitution_model_t model(1.0, 1.0, 6);
 
   tree.sample(0110011, model, gen);

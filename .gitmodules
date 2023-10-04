@@ -13,3 +13,6 @@
 [submodule "tests/lib/Catch2"]
 	path = tests/lib/Catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "lib/pcg"]
+	path = lib/pcg
+	url = https://github.com/imneme/pcg-cpp.git

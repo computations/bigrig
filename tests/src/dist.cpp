@@ -1,4 +1,5 @@
 #include "model.hpp"
+#include "pcg_random.hpp"
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -58,7 +59,7 @@ TEST_CASE("sample", "[sample]") {
   biogeosim::substitution_model_t model(dis, ext, regions);
   biogeosim::dist_t init_dist = 0b0101;
 
-  std::minstd_rand gen(Catch::getSeed());
+  pcg64_fast gen(Catch::getSeed());
 
   auto t = biogeosim::sample(init_dist, model, gen);
   CHECK(t.initial_state == init_dist);
@@ -70,7 +71,8 @@ TEST_CASE("sample", "[sample]") {
 TEST_CASE("stats for sample", "[sample][stats]") {
   constexpr size_t regions = 4;
   constexpr size_t iters = 1e4;
-  std::minstd_rand gen(Catch::getSeed());
+
+  pcg64 gen(Catch::getSeed());
 
   biogeosim::dist_t init_dist =
       GENERATE(0b0001, 0b0010, 0b0100, 0b1000, 0b1010, 0b1010, 0b1110, 0b1111);
@@ -89,7 +91,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
 
   biogeosim::substitution_model_t model(dis, ext, regions);
 
-  double brlen = GENERATE(1.0);
+  double brlen = GENERATE(0.5, 1.0, 1.5);
   INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen
                << " dist: " << init_dist);
 
@@ -116,7 +118,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
 
 TEST_CASE("splitting", "[sample]") {
   constexpr size_t regions = 4;
-  std::minstd_rand gen(Catch::getSeed());
+  pcg64_fast gen(Catch::getSeed());
 
   biogeosim::substitution_model_t model;
   model.set_params(1.0, 1.0).set_splitting_prob(0.5).set_region_count(4);

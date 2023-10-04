@@ -191,11 +191,13 @@ split_dist(dist_t init_dist, const substitution_model_t &model,
   }
 
   dist_t left_dist = init_dist;
-  dist_t right_dist = left_dist.negate_bit(flipped_index);
+  dist_t right_dist = 0;
+  right_dist = right_dist.negate_bit(flipped_index);
+
   /* In the allopatric case, we need to remove the index from the init dist. */
   if (coin(gen)) {
     LOG_DEBUG("%s", "Allopatric Split");
-    init_dist = init_dist.negate_bit(flipped_index);
+    left_dist = left_dist.negate_bit(flipped_index);
   }
 
   std::bernoulli_distribution left_or_right(0.5);
