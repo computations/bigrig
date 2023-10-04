@@ -1,10 +1,13 @@
 #pragma once
+#include "dist.hpp"
+#include "exceptions.hpp"
 #include "model.hpp"
 #include "node.hpp"
 #include <corax/corax.hpp>
 #include <filesystem>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 namespace biogeosim {
@@ -28,6 +31,10 @@ public:
 
   void sample(dist_t initial_distribution, const substitution_model_t &model,
               std::uniform_random_bit_generator auto &gen) {
+    if (!valid_dist(initial_distribution, model)) {
+      throw invalid_dist{"Invalid dist provided as a start dist"};
+    }
+    LOG_DEBUG("Starting sample with init dist = %b", initial_distribution);
     _tree->sample(initial_distribution, model, gen);
   }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -52,6 +53,14 @@ public:
   substitution_model_t &set_region_count(size_t regions) {
     _region_count = regions;
     return *this;
+  }
+
+  uint64_t valid_mask() const {
+    uint64_t mask = 0;
+    for (size_t i = 0; i < _region_count; ++i) {
+      mask |= 1ul << i;
+    }
+    return mask;
   }
 
 private:

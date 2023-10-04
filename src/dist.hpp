@@ -49,6 +49,11 @@ public:
   dist_t operator|(dist_t d) const { return _dist | d._dist; }
   dist_t operator&(dist_t d) const { return _dist & d._dist; }
 
+  explicit operator uint64_t() const { return _dist; }
+
+  dist_t operator&(uint64_t d) const { return _dist & d; }
+  dist_t operator~() const { return ~_dist; }
+
   bool operator==(dist_t d) const { return d._dist == _dist; }
 
   dist_t negate_bit(size_t index) const { return _dist ^ (1ull << index); }
@@ -102,6 +107,8 @@ private:
   uint64_t _dist;
 };
 
+bool valid_dist(dist_t d, const substitution_model_t &model);
+
 class transition_t {
 public:
   transition_t() = default;
@@ -118,7 +125,6 @@ transition_t sample(dist_t init_dist, const substitution_model_t &model,
 
   auto [d, e] = model.rates();
 
-  double sum = model.compute_denominator(init_dist.popcount());
   bool singleton = init_dist.popcount() == 1;
 
   std::exponential_distribution<double> exp_die(e);
@@ -131,8 +137,7 @@ transition_t sample(dist_t init_dist, const substitution_model_t &model,
       continue;
     }
     double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
-    dist_t final_dist = init_dist.negate_bit(i);
-    rolls[i] = transition_t{waiting_time, init_dist, final_dist};
+    rolls[i] = transition_t{waiting_time, init_dist, init_dist.negate_bit(i)};
   }
 
   return *std::min_element(rolls.begin(), rolls.end(), [](auto a, auto b) {
@@ -171,30 +176,35 @@ split_dist(dist_t init_dist, const substitution_model_t &model,
            std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (init_dist.popcount() == 1) {
+    LOG_DEBUG("Splitting a singleton: %b", init_dist);
     return {init_dist, init_dist};
   }
 
   std::bernoulli_distribution coin(model.splitting_prob());
   std::uniform_int_distribution<size_t> die(0, init_dist.popcount() - 1);
+
   size_t flipped_index = die(gen);
   for (size_t i = 0; i < flipped_index + 1; ++i) {
     if (!init_dist[i]) {
       flipped_index++;
     }
   }
-  dist_t new_dist = 0;
-  new_dist = new_dist.negate_bit(flipped_index);
+
+  dist_t left_dist = init_dist;
+  dist_t right_dist = left_dist.negate_bit(flipped_index);
   /* In the allopatric case, we need to remove the index from the init dist. */
   if (coin(gen)) {
+    LOG_DEBUG("%s", "Allopatric Split");
     init_dist = init_dist.negate_bit(flipped_index);
   }
 
   std::bernoulli_distribution left_or_right(0.5);
   if (left_or_right(gen)) {
-    return {new_dist, init_dist};
-  } else {
-    return {init_dist, new_dist};
+    std::swap(left_dist, right_dist);
   }
+
+  LOG_DEBUG("Spilt %b into: %b, %b", init_dist, left_dist, right_dist);
+  return {left_dist, right_dist};
 }
 
 } // namespace biogeosim
