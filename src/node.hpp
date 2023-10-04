@@ -36,6 +36,8 @@ public:
 
   void sample(dist_t initial_distribution, const substitution_model_t &model,
               std::uniform_random_bit_generator auto &gen) {
+    LOG_DEBUG("Node sampling with initial_distribution = %b",
+              initial_distribution);
     _transitions = generate_samples(_brlen, model, gen);
     dist_t final_state;
     if (_transitions.size() == 0) {
@@ -43,6 +45,8 @@ public:
     } else {
       final_state = _transitions.back().final_state;
     }
+    auto [left_dist, right_dist] = split_dist(final_state, model, gen);
+
     for (auto &child : _children) {
       child->sample(final_state, model, gen);
     }
