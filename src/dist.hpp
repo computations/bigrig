@@ -73,6 +73,13 @@ public:
     return d;
   }
 
+  std::ostream &to_formatted_str(std::ostream &os, size_t regions) const {
+    for (int i = regions - 1; i >= 0; --i) {
+      os << bextr(i);
+    }
+    return os;
+  }
+
   friend std::ostream &operator<<(std::ostream &os, dist_t dist) {
     os << std::format("{:b}", dist._dist);
     return os;
@@ -105,9 +112,11 @@ private:
   }
 
   uint64_t _dist;
+  uint8_t _regions;
 };
 
 bool valid_dist(dist_t d, const substitution_model_t &model);
+bool valid_dist(dist_t d, size_t regions);
 
 class transition_t {
 public:
@@ -146,17 +155,19 @@ transition_t sample(dist_t init_dist, const substitution_model_t &model,
 }
 
 std::vector<transition_t>
-generate_samples(double brlen, const substitution_model_t &model,
+generate_samples(dist_t init_dist, double brlen,
+                 const substitution_model_t &model,
                  std::uniform_random_bit_generator auto &gen) {
   std::vector<transition_t> results;
   while (true) {
-    auto r = sample(brlen, model, gen);
+    auto r = sample(init_dist, model, gen);
     brlen -= r.waiting_time;
     if (brlen < 0.0) {
       return results;
     }
     LOG_DEBUG("adding transition from %b to %b", r.initial_state,
               r.final_state);
+    init_dist = r.final_state;
     results.push_back(r);
   }
 }

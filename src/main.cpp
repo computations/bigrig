@@ -1,3 +1,4 @@
+#include "model.hpp"
 #include "node.hpp"
 #include "pcg_random.hpp"
 #include "tree.hpp"
@@ -8,11 +9,24 @@
 #include <filesystem>
 #include <logger.hpp>
 #include <optional>
+#include <sstream>
+#include <string>
 
 struct cli_options_t {
   std::filesystem::path tree_filename;
   std::optional<std::filesystem::path> debug_filename;
 };
+
+std::string to_phylip(const biogeosim::tree_t &tree,
+                      const biogeosim::substitution_model_t model) {
+  std::ostringstream oss;
+  oss << std::to_string(tree.leaf_count()) << " " << model.region_count()
+      << "\n";
+
+  tree.to_phylip_body(oss, model.region_count());
+
+  return oss.str();
+}
 
 int main(int argc, char **argv) {
   logger::get_log_states().add_stream(
@@ -50,8 +64,9 @@ int main(int argc, char **argv) {
 
   biogeosim::substitution_model_t model(1.0, 1.0, 6);
 
-  tree.sample(0110011, model, gen);
+  tree.sample(0b110011, model, gen);
   std::cout << tree.to_newick() << std::endl;
+  std::cout << to_phylip(tree, model) << std::endl;
 
   return 0;
 }
