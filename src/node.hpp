@@ -74,8 +74,43 @@ public:
     return os;
   }
 
+  std::ostream &to_phylip_line(std::ostream &os, size_t region_count) const {
+    for (const auto child : _children) {
+      child->to_phylip_line(os, region_count);
+    }
+    if (_children.size() == 0) {
+      os << _label << " ";
+      _final_state.to_formatted_str(os, region_count);
+      os << "\n";
+    }
+    return os;
+  }
+
+  inline bool is_leaf() const { return _children.size() == 0; }
+
+  size_t leaf_count() const {
+    if (is_leaf()) {
+      return 1;
+    }
+    size_t count = 0;
+    for (const auto child : _children) {
+      count += child->leaf_count();
+    }
+    return count;
+  }
+
+  size_t node_count() const {
+    size_t count = 0;
+    for (const auto child : _children) {
+      count += child->leaf_count();
+    }
+    return count + 1;
+  }
+
 private:
   double _brlen;
+  dist_t _final_state;
+  std::pair<dist_t, dist_t> _split_dists;
   std::string _label;
   std::vector<std::shared_ptr<node_t>> _children;
   std::vector<transition_t> _transitions;

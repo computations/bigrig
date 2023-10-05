@@ -44,6 +44,20 @@ public:
     return oss.str();
   }
 
+  std::string to_phylip_body(size_t region_count) const {
+    std::stringstream oss;
+    to_phylip_body(oss, region_count);
+    return oss.str();
+  }
+  std::ostream &to_phylip_body(std::ostream &os, size_t region_count) const {
+    _tree->to_phylip_line(os, region_count);
+    return os;
+  }
+
+  size_t node_count() const { return _tree->node_count(); }
+
+  size_t leaf_count() const { return _tree->leaf_count(); }
+
 private:
   std::unique_ptr<node_t> _tree;
 };
