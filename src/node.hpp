@@ -38,17 +38,17 @@ public:
               std::uniform_random_bit_generator auto &gen) {
     LOG_DEBUG("Node sampling with initial_distribution = %b",
               initial_distribution);
-    _transitions = generate_samples(_brlen, model, gen);
-    dist_t final_state;
+    _transitions = generate_samples(initial_distribution, _brlen, model, gen);
     if (_transitions.size() == 0) {
-      final_state = initial_distribution;
+      _final_state = initial_distribution;
     } else {
-      final_state = _transitions.back().final_state;
+      _final_state = _transitions.back().final_state;
     }
-    auto [left_dist, right_dist] = split_dist(final_state, model, gen);
+    _split_dists = split_dist(_final_state, model, gen);
 
-    for (auto &child : _children) {
-      child->sample(final_state, model, gen);
+    if (!is_leaf()) {
+      _children[0]->sample(_split_dists.first, model, gen);
+      _children[1]->sample(_split_dists.second, model, gen);
     }
   }
 
