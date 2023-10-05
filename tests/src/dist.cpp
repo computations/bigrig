@@ -34,6 +34,7 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(d.log2() == 4);
     CHECK((biogeosim::dist_t(0b1).log2()) == 1);
   }
+  SECTION("valid") { CHECK(biogeosim::valid_dist(0b110011, 6)); }
 
   SECTION("addition") {
     auto f = d + 1;
