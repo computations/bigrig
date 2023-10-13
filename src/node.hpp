@@ -3,6 +3,7 @@
 #include "corax/tree/utree.h"
 #include "dist.hpp"
 #include "model.hpp"
+
 #include <logger.hpp>
 #include <memory>
 #include <random>
@@ -17,15 +18,11 @@ public:
 
   node_t(corax_unode_t *n) {
     _brlen = n->length;
-    if (n->label) {
-      _label = n->label;
-    }
-    if (n->next == nullptr) {
-      return;
-    }
+    if (n->label) { _label = n->label; }
+    if (n->next == nullptr) { return; }
 
     auto start = n;
-    n = n->next;
+    n          = n->next;
     while (n != start) {
       _children.push_back(std::make_shared<node_t>(n->back));
       n = n->next;
@@ -34,7 +31,8 @@ public:
 
   void add_child(const std::shared_ptr<node_t> &n) { _children.push_back(n); }
 
-  void sample(dist_t initial_distribution, const substitution_model_t &model,
+  void sample(dist_t                                  initial_distribution,
+              const substitution_model_t             &model,
               std::uniform_random_bit_generator auto &gen) {
     LOG_DEBUG("Node sampling with initial_distribution = %b",
               initial_distribution);
@@ -53,21 +51,15 @@ public:
   }
 
   std::ostream &to_newick(std::ostream &os) const {
-    if (!_children.empty()) {
-      os << "(";
-    }
+    if (!_children.empty()) { os << "("; }
 
     for (size_t i = 0; i < _children.size(); ++i) {
       const auto &c = _children[i];
       c->to_newick(os);
-      if (i != _children.size() - 1) {
-        os << ", ";
-      }
+      if (i != _children.size() - 1) { os << ", "; }
     }
 
-    if (!_children.empty()) {
-      os << ")";
-    }
+    if (!_children.empty()) { os << ")"; }
 
     os << _label << ":" << _brlen;
 
@@ -78,39 +70,31 @@ public:
     for (const auto child : _children) {
       child->to_phylip_line(os, region_count);
     }
-    if (_children.size() == 0) {
-      os << _label << " " << _final_state << "\n";
-    }
+    if (_children.size() == 0) { os << _label << " " << _final_state << "\n"; }
     return os;
   }
 
   inline bool is_leaf() const { return _children.size() == 0; }
 
   size_t leaf_count() const {
-    if (is_leaf()) {
-      return 1;
-    }
+    if (is_leaf()) { return 1; }
     size_t count = 0;
-    for (const auto child : _children) {
-      count += child->leaf_count();
-    }
+    for (const auto child : _children) { count += child->leaf_count(); }
     return count;
   }
 
   size_t node_count() const {
     size_t count = 0;
-    for (const auto child : _children) {
-      count += child->leaf_count();
-    }
+    for (const auto child : _children) { count += child->leaf_count(); }
     return count + 1;
   }
 
 private:
-  double _brlen;
-  dist_t _final_state;
-  std::pair<dist_t, dist_t> _split_dists;
-  std::string _label;
+  double                               _brlen;
+  dist_t                               _final_state;
+  std::pair<dist_t, dist_t>            _split_dists;
+  std::string                          _label;
   std::vector<std::shared_ptr<node_t>> _children;
-  std::vector<transition_t> _transitions;
+  std::vector<transition_t>            _transitions;
 };
 } // namespace biogeosim

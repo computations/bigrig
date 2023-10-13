@@ -15,7 +15,8 @@ public:
   substitution_model_t() = default;
 
   substitution_model_t(double d, double e, size_t r)
-      : _rate_params{.dis = d, .ext = e}, _splitting_prob{0.5},
+      : _rate_params{.dis = d, .ext = e},
+        _splitting_prob{0.5},
         _region_count{r} {}
 
   /**
@@ -32,8 +33,8 @@ public:
     if (active_regions == 1) [[unlikely]] {
       return (region_count() - active_regions) * _rate_params.dis;
     }
-    return active_regions * _rate_params.ext +
-           (region_count() - active_regions) * _rate_params.dis;
+    return active_regions * _rate_params.ext
+         + (region_count() - active_regions) * _rate_params.dis;
   }
 
   substitution_model_t &set_params(rate_params_t p) {
@@ -57,15 +58,13 @@ public:
 
   uint64_t valid_mask() const {
     uint64_t mask = 0;
-    for (size_t i = 0; i < _region_count; ++i) {
-      mask |= 1ul << i;
-    }
+    for (size_t i = 0; i < _region_count; ++i) { mask |= 1ul << i; }
     return mask;
   }
 
 private:
   rate_params_t _rate_params;
-  double _splitting_prob; // Probability of Allopatry
-  size_t _region_count;
+  double        _splitting_prob; // Probability of Allopatry
+  size_t        _region_count;
 };
 } // namespace biogeosim

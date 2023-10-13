@@ -3,6 +3,7 @@
 #include "exceptions.hpp"
 #include "model.hpp"
 #include "node.hpp"
+
 #include <corax/corax.hpp>
 #include <filesystem>
 #include <memory>
@@ -23,13 +24,14 @@ public:
     corax_utree_destroy(corax_tree, nullptr);
   }
 
-  tree_t(const tree_t &) = delete;
+  tree_t(const tree_t &)            = delete;
   tree_t &operator=(const tree_t &) = delete;
 
-  tree_t(tree_t &&) = default;
+  tree_t(tree_t &&)                      = default;
   constexpr tree_t &operator=(tree_t &&) = default;
 
-  void sample(dist_t initial_distribution, const substitution_model_t &model,
+  void sample(dist_t                                  initial_distribution,
+              const substitution_model_t             &model,
               std::uniform_random_bit_generator auto &gen) {
     if (!valid_dist(initial_distribution, model)) {
       throw invalid_dist{"Invalid dist provided as a start dist"};

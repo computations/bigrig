@@ -4,9 +4,7 @@ namespace biogeosim {
 
 uint64_t valid_region_mask(size_t region_count) {
   uint64_t mask = 0;
-  for (size_t i = 0; i < region_count; ++i) {
-    mask |= 1ul << i;
-  }
+  for (size_t i = 0; i < region_count; ++i) { mask |= 1ul << i; }
   return mask;
 }
 
