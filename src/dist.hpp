@@ -19,12 +19,12 @@ public:
   dist_t() = default;
 
   dist_t(const dist_t &) = default;
-  dist_t(dist_t &&) = default;
+  dist_t(dist_t &&)      = default;
 
   dist_t &operator=(const dist_t &) = default;
-  dist_t &operator=(dist_t &&) = default;
+  dist_t &operator=(dist_t &&)      = default;
 
-  dist_t(uint64_t d) : _dist{d} {}
+  dist_t(uint64_t d, uint16_t s) : _dist{d}, _regions{s} {}
 
   constexpr size_t popcount() const {
     return static_cast<size_t>(__builtin_popcountll(_dist));
@@ -43,22 +43,36 @@ public:
     return sizeof(_dist) * BITS_IN_BYTE - clz();
   }
 
+  constexpr uint16_t regions() const { return _regions; }
+
   constexpr uint64_t operator[](size_t i) const { return bextr(i); }
 
-  dist_t operator^(dist_t d) const { return _dist ^ d._dist; }
-  dist_t operator|(dist_t d) const { return _dist | d._dist; }
-  dist_t operator&(dist_t d) const { return _dist & d._dist; }
+  dist_t operator^(dist_t d) const {
+    return {_dist ^ d._dist, std::max(_regions, d._regions)};
+  }
+  dist_t operator|(dist_t d) const {
+    return {_dist | d._dist, std::max(_regions, d._regions)};
+  }
+  dist_t operator&(dist_t d) const {
+    return {_dist & d._dist, std::max(_regions, d._regions)};
+  }
 
   explicit operator uint64_t() const { return _dist; }
 
-  dist_t operator&(uint64_t d) const { return _dist & d; }
-  dist_t operator~() const { return ~_dist; }
+  dist_t operator&(uint64_t d) const { return {_dist & d, _regions}; }
+  dist_t operator~() const { return {~_dist, _regions}; }
 
-  bool operator==(dist_t d) const { return d._dist == _dist; }
+  bool operator==(dist_t d) const {
+    return d._dist == _dist && _regions == d._regions;
+  }
 
-  dist_t negate_bit(size_t index) const { return _dist ^ (1ull << index); }
+  bool operator!=(dist_t d) const { return !(d == *this); }
 
-  dist_t operator+(uint64_t d) const { return _dist + d; }
+  dist_t negate_bit(size_t index) const {
+    return {_dist ^ (1ull << index), _regions};
+  }
+
+  dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
 
   size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
@@ -67,21 +81,17 @@ public:
 
   dist_t next_dist(uint32_t n) const {
     auto d = *this + 1;
-    while (d.popcount() > n) {
-      d = d + 1;
-    }
+    while (d.popcount() > n) { d = d + 1; }
     return d;
   }
 
   std::ostream &to_formatted_str(std::ostream &os, size_t regions) const {
-    for (int i = regions - 1; i >= 0; --i) {
-      os << bextr(i);
-    }
+    for (int i = regions - 1; i >= 0; --i) { os << bextr(i); }
     return os;
   }
 
   friend std::ostream &operator<<(std::ostream &os, dist_t dist) {
-    os << std::format("{:b}", dist._dist);
+    for (size_t i = 0; i < dist._regions; ++i) { os << dist.bextr(i); }
     return os;
   }
 
@@ -191,19 +201,17 @@ split_dist(dist_t init_dist, const substitution_model_t &model,
     return {init_dist, init_dist};
   }
 
-  std::bernoulli_distribution coin(model.splitting_prob());
+  std::bernoulli_distribution           coin(model.splitting_prob());
   std::uniform_int_distribution<size_t> die(0, init_dist.popcount() - 1);
 
   size_t flipped_index = die(gen);
   for (size_t i = 0; i < flipped_index + 1; ++i) {
-    if (!init_dist[i]) {
-      flipped_index++;
-    }
+    if (!init_dist[i]) { flipped_index++; }
   }
 
-  dist_t left_dist = init_dist;
-  dist_t right_dist = 0;
-  right_dist = right_dist.negate_bit(flipped_index);
+  dist_t left_dist  = init_dist;
+  dist_t right_dist = {0, init_dist.regions()};
+  right_dist        = right_dist.negate_bit(flipped_index);
 
   /* In the allopatric case, we need to remove the index from the init dist. */
   if (coin(gen)) {

@@ -79,9 +79,7 @@ public:
       child->to_phylip_line(os, region_count);
     }
     if (_children.size() == 0) {
-      os << _label << " ";
-      _final_state.to_formatted_str(os, region_count);
-      os << "\n";
+      os << _label << " " << _final_state << "\n";
     }
     return os;
   }
