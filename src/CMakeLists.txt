@@ -12,7 +12,7 @@ add_executable(biogeosim
     main.cpp
 )
 
-target_link_libraries(biogeosim biogeosim_obj logger CLI11)
+target_link_libraries(biogeosim biogeosim_obj logger CLI11 yaml-cpp)
 
 set_target_properties(biogeosim
     PROPERTIES

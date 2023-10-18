@@ -16,3 +16,6 @@
 [submodule "lib/pcg"]
 	path = lib/pcg
 	url = https://github.com/imneme/pcg-cpp.git
+[submodule "lib/yaml-cpp"]
+	path = lib/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
