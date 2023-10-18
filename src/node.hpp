@@ -58,7 +58,6 @@ public:
       c->to_newick(os);
       if (i != _children.size() - 1) { os << ", "; }
     }
-
     if (!_children.empty()) { os << ")"; }
 
     os << _label << ":" << _brlen;
@@ -66,10 +65,8 @@ public:
     return os;
   }
 
-  std::ostream &to_phylip_line(std::ostream &os, size_t region_count) const {
-    for (const auto child : _children) {
-      child->to_phylip_line(os, region_count);
-    }
+  std::ostream &to_phylip_line(std::ostream &os) const {
+    for (const auto child : _children) { child->to_phylip_line(os); }
     if (_children.size() == 0) { os << _label << " " << _final_state << "\n"; }
     return os;
   }
@@ -89,6 +86,15 @@ public:
     return count + 1;
   }
 
+  void assign_id_root() { assign_id(0); }
+
+  size_t assign_id(size_t next) {
+    if (is_leaf()) { return next; }
+    _node_id = next++;
+    for (const auto &c : _children) { next = c->assign_id(next); }
+    return next;
+  }
+
 private:
   double                               _brlen;
   dist_t                               _final_state;
@@ -96,5 +102,6 @@ private:
   std::string                          _label;
   std::vector<std::shared_ptr<node_t>> _children;
   std::vector<transition_t>            _transitions;
+  size_t                               _node_id;
 };
 } // namespace biogeosim

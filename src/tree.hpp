@@ -20,6 +20,7 @@ public:
     _tree = std::make_unique<node_t>();
     _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->back));
     _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->next->back));
+    _tree->assign_id_root();
 
     corax_utree_destroy(corax_tree, nullptr);
   }
@@ -27,8 +28,8 @@ public:
   tree_t(const tree_t &)            = delete;
   tree_t &operator=(const tree_t &) = delete;
 
-  tree_t(tree_t &&)                      = default;
-  constexpr tree_t &operator=(tree_t &&) = default;
+  tree_t(tree_t &&)            = default;
+  tree_t &operator=(tree_t &&) = default;
 
   void sample(dist_t                                  initial_distribution,
               const substitution_model_t             &model,
@@ -46,13 +47,13 @@ public:
     return oss.str();
   }
 
-  std::string to_phylip_body(size_t region_count) const {
+  std::string to_phylip_body() const {
     std::stringstream oss;
-    to_phylip_body(oss, region_count);
+    to_phylip_body(oss);
     return oss.str();
   }
-  std::ostream &to_phylip_body(std::ostream &os, size_t region_count) const {
-    _tree->to_phylip_line(os, region_count);
+  std::ostream &to_phylip_body(std::ostream &os) const {
+    _tree->to_phylip_line(os);
     return os;
   }
 

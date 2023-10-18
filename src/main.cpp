@@ -39,7 +39,7 @@ std::string to_phylip(const biogeosim::tree_t              &tree,
   oss << std::to_string(tree.leaf_count()) << " " << model.region_count()
       << "\n";
 
-  tree.to_phylip_body(oss, model.region_count());
+  tree.to_phylip_body(oss);
 
   return oss.str();
 }
