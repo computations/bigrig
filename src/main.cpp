@@ -44,6 +44,17 @@ std::string to_phylip(const biogeosim::tree_t              &tree,
   return oss.str();
 }
 
+std::string to_phylip_extended(const biogeosim::tree_t              &tree,
+                               const biogeosim::substitution_model_t model) {
+  std::ostringstream oss;
+  oss << std::to_string(tree.node_count()) << " " << model.region_count()
+      << "\n";
+
+  tree.to_phylip_body(oss, true);
+
+  return oss.str();
+}
+
 [[nodiscard]] bool verify_is_readable(const std::filesystem::path &path) {
   bool ok     = true;
   auto status = std::filesystem::status(path);
@@ -257,7 +268,8 @@ int main(int argc, char **argv) {
   auto phylip_filename  = cli_options.prefix;
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
-  phylip_file << to_phylip(tree, model);
+  phylip_file << to_phylip_extended(tree, model);
+
   auto cb = [](std::ostream &os, biogeosim::node_t n) {
     if (n.is_leaf()) {
       os << n.label();
@@ -266,6 +278,7 @@ int main(int argc, char **argv) {
     }
     os << ":" << n.brlen();
   };
+
   std::cout << tree.to_newick(cb) << std::endl;
 
   return 0;

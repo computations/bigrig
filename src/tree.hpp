@@ -59,8 +59,15 @@ public:
     to_phylip_body(oss);
     return oss.str();
   }
-  std::ostream &to_phylip_body(std::ostream &os) const {
-    _tree->to_phylip_line(os);
+
+  std::string to_phylip_body_extended() const {
+    std::stringstream oss;
+    to_phylip_body(oss, true);
+    return oss.str();
+  }
+
+  std::ostream &to_phylip_body(std::ostream &os, bool all = false) const {
+    _tree->to_phylip_line(os, all);
     return os;
   }
 

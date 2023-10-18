@@ -95,7 +95,7 @@ public:
   }
 
   friend std::ostream &operator<<(std::ostream &os, dist_t dist) {
-    for (size_t i = 0; i < dist._regions; ++i) { os << dist.bextr(i); }
+    for (size_t i = dist._regions; i; --i) { os << dist.bextr(i - 1); }
     return os;
   }
 

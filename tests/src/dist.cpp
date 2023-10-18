@@ -10,6 +10,7 @@
 #include <iostream>
 #include <math.h>
 #include <random>
+#include <sstream>
 
 TEST_CASE("dist operations", "[dist]") {
   constexpr size_t  regions = 4;
@@ -56,6 +57,12 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(biogeosim::dist_t("1010") == biogeosim::dist_t{0b1010, 4});
     CHECK(biogeosim::dist_t("0000") == biogeosim::dist_t{0b0000, 4});
     CHECK(biogeosim::dist_t("1011111") == biogeosim::dist_t{0b101'1111, 7});
+  }
+  SECTION("stream operator") {
+    CHECK("1010" == biogeosim::dist_t{0b1010, 4}.to_str());
+    CHECK("0000" == biogeosim::dist_t{0b0000, 4}.to_str());
+    CHECK(biogeosim::dist_t("1011111").to_str()
+          == biogeosim::dist_t{0b101'1111, 7}.to_str());
   }
 }
 

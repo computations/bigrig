@@ -9,6 +9,7 @@
 #include <memory>
 #include <random>
 #include <sstream>
+#include <string>
 #include <vector>
 
 namespace biogeosim {
@@ -70,14 +71,16 @@ public:
 
   std::ostream &to_newick(std::ostream &os) const {
     auto cb = [](std::ostream &os, const node_t &n) {
-      os << n._label << ":" << n._brlen;
+      os << n.string_id() << ":" << n._brlen;
     };
     return to_newick(os, cb);
   }
 
-  std::ostream &to_phylip_line(std::ostream &os) const {
-    for (const auto child : _children) { child->to_phylip_line(os); }
-    if (_children.size() == 0) { os << _label << " " << _final_state << "\n"; }
+  std::ostream &to_phylip_line(std::ostream &os, bool all = false) const {
+    for (const auto child : _children) { child->to_phylip_line(os, all); }
+    if (_children.size() == 0 || all) {
+      os << string_id() << " " << _final_state << "\n";
+    }
     return os;
   }
 
@@ -92,7 +95,7 @@ public:
 
   size_t node_count() const {
     size_t count = 0;
-    for (const auto child : _children) { count += child->leaf_count(); }
+    for (const auto child : _children) { count += child->node_count(); }
     return count + 1;
   }
 
@@ -105,9 +108,12 @@ public:
     return next;
   }
 
-  std::string label() { return _label; }
-  double      brlen() { return _brlen; }
-  size_t      node_id() { return _node_id; }
+  std::string label() const { return _label; }
+  double      brlen() const { return _brlen; }
+  size_t      node_id() const { return _node_id; }
+  std::string string_id() const {
+    return is_leaf() ? _label : std::to_string(_node_id);
+  }
 
 private:
   double                               _brlen;
