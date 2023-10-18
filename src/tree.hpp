@@ -47,6 +47,13 @@ public:
     return oss.str();
   }
 
+  std::string
+  to_newick(std::function<void(std::ostream &, const node_t &)> cb) const {
+    std::stringstream oss;
+    _tree->to_newick(oss, cb);
+    return oss.str();
+  }
+
   std::string to_phylip_body() const {
     std::stringstream oss;
     to_phylip_body(oss);

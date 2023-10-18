@@ -258,6 +258,15 @@ int main(int argc, char **argv) {
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
   phylip_file << to_phylip(tree, model);
+  auto cb = [](std::ostream &os, biogeosim::node_t n) {
+    if (n.is_leaf()) {
+      os << n.label();
+    } else {
+      os << n.node_id();
+    }
+    os << ":" << n.brlen();
+  };
+  std::cout << tree.to_newick(cb) << std::endl;
 
   return 0;
 }

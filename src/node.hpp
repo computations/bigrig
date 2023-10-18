@@ -4,6 +4,7 @@
 #include "dist.hpp"
 #include "model.hpp"
 
+#include <functional>
 #include <logger.hpp>
 #include <memory>
 #include <random>
@@ -50,19 +51,28 @@ public:
     }
   }
 
-  std::ostream &to_newick(std::ostream &os) const {
+  std::ostream &
+  to_newick(std::ostream                                       &os,
+            std::function<void(std::ostream &, const node_t &)> cb) const {
     if (!_children.empty()) { os << "("; }
 
     for (size_t i = 0; i < _children.size(); ++i) {
       const auto &c = _children[i];
-      c->to_newick(os);
+      c->to_newick(os, cb);
       if (i != _children.size() - 1) { os << ", "; }
     }
     if (!_children.empty()) { os << ")"; }
 
-    os << _label << ":" << _brlen;
+    cb(os, *this);
 
     return os;
+  }
+
+  std::ostream &to_newick(std::ostream &os) const {
+    auto cb = [](std::ostream &os, const node_t &n) {
+      os << n._label << ":" << n._brlen;
+    };
+    return to_newick(os, cb);
   }
 
   std::ostream &to_phylip_line(std::ostream &os) const {
@@ -94,6 +104,10 @@ public:
     for (const auto &c : _children) { next = c->assign_id(next); }
     return next;
   }
+
+  std::string label() { return _label; }
+  double      brlen() { return _brlen; }
+  size_t      node_id() { return _node_id; }
 
 private:
   double                               _brlen;
