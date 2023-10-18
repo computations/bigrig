@@ -9,6 +9,7 @@
 #include <limits>
 #include <logger.hpp>
 #include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,8 @@ namespace biogeosim {
 class dist_t {
 public:
   dist_t() = default;
+
+  dist_t(const std::string &);
 
   dist_t(const dist_t &) = default;
   dist_t(dist_t &&)      = default;
@@ -85,9 +88,10 @@ public:
     return d;
   }
 
-  std::ostream &to_formatted_str(std::ostream &os, size_t regions) const {
-    for (int i = regions - 1; i >= 0; --i) { os << bextr(i); }
-    return os;
+  std::string to_str() const {
+    std::ostringstream oss;
+    oss << *this;
+    return oss.str();
   }
 
   friend std::ostream &operator<<(std::ostream &os, dist_t dist) {

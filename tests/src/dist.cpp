@@ -52,6 +52,11 @@ TEST_CASE("dist operations", "[dist]") {
       CHECK((tmp ^ d).popcount() == 1);
     }
   }
+  SECTION("string constructor") {
+    CHECK(biogeosim::dist_t("1010") == biogeosim::dist_t{0b1010, 4});
+    CHECK(biogeosim::dist_t("0000") == biogeosim::dist_t{0b0000, 4});
+    CHECK(biogeosim::dist_t("1011111") == biogeosim::dist_t{0b101'1111, 7});
+  }
 }
 
 TEST_CASE("sample", "[sample]") {
