@@ -29,7 +29,6 @@ public:
   size_t region_count() const { return _region_count; }
 
   double compute_denominator(size_t active_regions) const {
-    [[assume(active_regions != 0)]];
     if (active_regions == 1) [[unlikely]] {
       return (region_count() - active_regions) * _rate_params.dis;
     }
