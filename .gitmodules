@@ -6,7 +6,7 @@
 	url = https://codeberg.org/Exelixis-Lab/coraxlib.git
 [submodule "lib/--force"]
 	path = lib/--force
-	url = https://github.com/CLIUtils/CLI11.git
+	url = https://github.com/jbeder/yaml-cpp
 [submodule "lib/CLI11"]
 	path = lib/CLI11
 	url = https://github.com/CLIUtils/CLI11.git
