@@ -268,18 +268,30 @@ int main(int argc, char **argv) {
   auto phylip_filename  = cli_options.prefix;
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
-  phylip_file << to_phylip_extended(tree, model);
+  phylip_file << to_phylip(tree, model);
+
+  auto phylip_all_filename  = cli_options.prefix;
+  phylip_all_filename      += ".all.phy";
+  std::ofstream phylip_all_file(phylip_all_filename);
+  phylip_all_file << to_phylip_extended(tree, model);
 
   auto cb = [](std::ostream &os, biogeosim::node_t n) {
     if (n.is_leaf()) {
       os << n.label();
     } else {
       os << n.node_id();
+      os << "[&&NHX:";
+      os << "left-split=" << n.node_split().left << ":";
+      os << "right-split=" << n.node_split().right;
+      os << "]";
     }
     os << ":" << n.brlen();
   };
 
-  std::cout << tree.to_newick(cb) << std::endl;
+  auto annotated_tree_filename  = cli_options.prefix;
+  annotated_tree_filename      += ".annotated.nwk";
+  std::ofstream annotated_tree_file(annotated_tree_filename);
+  annotated_tree_file << tree.to_newick(cb) << std::endl;
 
   return 0;
 }

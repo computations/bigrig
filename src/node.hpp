@@ -3,6 +3,7 @@
 #include "corax/tree/utree.h"
 #include "dist.hpp"
 #include "model.hpp"
+#include "split.hpp"
 
 #include <functional>
 #include <logger.hpp>
@@ -44,11 +45,11 @@ public:
     } else {
       _final_state = _transitions.back().final_state;
     }
-    _split_dists = split_dist(_final_state, model, gen);
+    _split = split_dist(_final_state, model, gen);
 
     if (!is_leaf()) {
-      _children[0]->sample(_split_dists.first, model, gen);
-      _children[1]->sample(_split_dists.second, model, gen);
+      _children[0]->sample(_split.left, model, gen);
+      _children[1]->sample(_split.right, model, gen);
     }
   }
 
@@ -115,10 +116,12 @@ public:
     return is_leaf() ? _label : std::to_string(_node_id);
   }
 
+  split_t node_split() const { return _split; }
+
 private:
   double                               _brlen;
   dist_t                               _final_state;
-  std::pair<dist_t, dist_t>            _split_dists;
+  split_t                              _split;
   std::string                          _label;
   std::vector<std::shared_ptr<node_t>> _children;
   std::vector<transition_t>            _transitions;

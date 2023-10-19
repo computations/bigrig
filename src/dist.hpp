@@ -166,6 +166,14 @@ transition_t sample(dist_t                                  init_dist,
   });
 }
 
+enum class split_type_e { singleton, allopatric, sympatric };
+
+struct split_t {
+  dist_t       left;
+  dist_t       right;
+  split_type_e type;
+};
+
 std::vector<transition_t>
 generate_samples(dist_t                                  init_dist,
                  double                                  brlen,
@@ -193,14 +201,13 @@ generate_samples(dist_t                                  init_dist,
  *  misleading. Regions are large enough that both Allopatry and Sympatry can
  *  occur, but the idea maps well, so I use it internally.
  */
-std::pair<dist_t, dist_t>
-split_dist(dist_t                                  init_dist,
-           const substitution_model_t             &model,
-           std::uniform_random_bit_generator auto &gen) {
+split_t split_dist(dist_t                                  init_dist,
+                   const substitution_model_t             &model,
+                   std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (init_dist.popcount() == 1) {
     LOG_DEBUG("Splitting a singleton: %b", init_dist);
-    return {init_dist, init_dist};
+    return {init_dist, init_dist, split_type_e::singleton};
   }
 
   std::bernoulli_distribution           coin(model.splitting_prob());
@@ -211,21 +218,23 @@ split_dist(dist_t                                  init_dist,
     if (!init_dist[i]) { flipped_index++; }
   }
 
-  dist_t left_dist  = init_dist;
-  dist_t right_dist = {0, init_dist.regions()};
-  right_dist        = right_dist.negate_bit(flipped_index);
+  split_type_e split_type = split_type_e::sympatric;
+  dist_t       left_dist  = init_dist;
+  dist_t       right_dist = {0, init_dist.regions()};
+  right_dist              = right_dist.negate_bit(flipped_index);
 
   /* In the allopatric case, we need to remove the index from the init dist. */
   if (coin(gen)) {
     LOG_DEBUG("%s", "Allopatric Split");
-    left_dist = left_dist.negate_bit(flipped_index);
+    left_dist  = left_dist.negate_bit(flipped_index);
+    split_type = split_type_e::allopatric;
   }
 
   std::bernoulli_distribution left_or_right(0.5);
   if (left_or_right(gen)) { std::swap(left_dist, right_dist); }
 
   LOG_DEBUG("Spilt %b into: %b, %b", init_dist, left_dist, right_dist);
-  return {left_dist, right_dist};
+  return {left_dist, right_dist, split_type};
 }
 
 } // namespace biogeosim

@@ -146,8 +146,8 @@ TEST_CASE("splitting", "[sample]") {
 
   SECTION("singleton") {
     biogeosim::dist_t init_dist = {0b1000, regions};
-    auto [d1, d2]               = biogeosim::split_dist(init_dist, model, gen);
-    CHECK(d1 == d2);
+    auto              sp        = biogeosim::split_dist(init_dist, model, gen);
+    CHECK(sp.left == sp.right);
   }
   SECTION("allopatry") {
     biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
@@ -155,14 +155,14 @@ TEST_CASE("splitting", "[sample]") {
                                            biogeosim::dist_t{0b1011, regions},
                                            biogeosim::dist_t{0b1111, regions});
     model.set_splitting_prob(1.0);
-    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
+    auto sp = biogeosim::split_dist(init_dist, model, gen);
 
     INFO("init: " << init_dist);
-    INFO("d1: " << d1);
-    INFO("d2: " << d2);
-    CHECK(d1 != d2);
-    CHECK((d1 | d2) == init_dist);
-    CHECK((d1 & d2).popcount() == 0);
+    INFO("d1: " << sp.left);
+    INFO("d2: " << sp.right);
+    CHECK(sp.left != sp.right);
+    CHECK((sp.left | sp.right) == init_dist);
+    CHECK((sp.left & sp.right).popcount() == 0);
   }
   SECTION("sympatry") {
     biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
@@ -170,20 +170,19 @@ TEST_CASE("splitting", "[sample]") {
                                            biogeosim::dist_t{0b1011, regions},
                                            biogeosim::dist_t{0b1111, regions});
     model.set_splitting_prob(0.0);
-    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
+    auto sp = biogeosim::split_dist(init_dist, model, gen);
 
     INFO("init: " << init_dist);
-    INFO("d1: " << d1);
-    INFO("d2: " << d2);
-    CHECK(d1 != d2);
-    CHECK((d1 | d2) == init_dist);
-    CHECK((d1 & d2).popcount() == 1);
+    INFO("d1: " << sp.left);
+    INFO("d2: " << sp.right);
+    CHECK(sp.left != sp.right);
+    CHECK((sp.left | sp.right) == init_dist);
+    CHECK((sp.left & sp.right).popcount() == 1);
   }
   SECTION("benchmark") {
     // biogeosim::dist_t init_dist = GENERATE(0b1110, 0b1100, 0b1011, 0b1111);
     biogeosim::dist_t init_dist = {0b1110, regions};
     model.set_splitting_prob(0.5);
-    auto [d1, d2] = biogeosim::split_dist(init_dist, model, gen);
 
     BENCHMARK("split_dist") {
       return biogeosim::split_dist(init_dist, model, gen);
