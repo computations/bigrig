@@ -27,7 +27,16 @@ public:
   dist_t &operator=(const dist_t &) = default;
   dist_t &operator=(dist_t &&)      = default;
 
+  dist_t &operator|=(const dist_t &d) {
+    dist_t tmp{*this};
+    tmp = tmp | d;
+    std::swap(tmp, *this);
+    return *this;
+  }
+
   dist_t(uint64_t d, uint16_t s) : _dist{d}, _regions{s} {}
+
+  explicit dist_t(uint16_t r) : _dist{0}, _regions{r} {}
 
   constexpr size_t popcount() const {
     return static_cast<size_t>(__builtin_popcountll(_dist));
@@ -76,6 +85,8 @@ public:
   }
 
   dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
+
+  explicit operator bool() const { return static_cast<bool>(_dist); }
 
   size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
@@ -150,13 +161,13 @@ transition_t sample(dist_t                                  init_dist,
 
   bool singleton = init_dist.popcount() == 1;
 
-  std::exponential_distribution<double> exp_die(e);
   std::exponential_distribution<double> dis_die(d);
+  std::exponential_distribution<double> exp_die(e);
 
   std::vector<transition_t> rolls(model.region_count());
 
   for (size_t i = 0; i < model.region_count(); ++i) {
-    if (init_dist[i] && singleton) { continue; }
+    if (singleton && init_dist[i]) { continue; }
     double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
     rolls[i] = transition_t{waiting_time, init_dist, init_dist.negate_bit(i)};
   }
@@ -172,6 +183,27 @@ struct split_t {
   dist_t       left;
   dist_t       right;
   split_type_e type;
+
+  std::string to_nhx_string() {
+    std::ostringstream oss;
+    oss << "left-split=" << left << ":"
+        << "right-split=" << right << ":";
+    oss << "split-type=";
+
+    switch (type) {
+    case split_type_e::singleton:
+      oss << "singleton";
+      break;
+    case split_type_e::allopatric:
+      oss << "allopatric";
+      break;
+    case split_type_e::sympatric:
+      oss << "sympatric";
+      break;
+    }
+
+    return oss.str();
+  }
 };
 
 std::vector<transition_t>
@@ -210,30 +242,27 @@ split_t split_dist(dist_t                                  init_dist,
     return {init_dist, init_dist, split_type_e::singleton};
   }
 
-  std::bernoulli_distribution           coin(model.splitting_prob());
-  std::uniform_int_distribution<size_t> die(0, init_dist.popcount() - 1);
+  dist_t       left_dist(init_dist.regions()), right_dist(init_dist.regions());
+  split_type_e split_type = split_type_e::allopatric;
+  std::uniform_int_distribution<uint64_t> mask_gen(
+      1, (1ul << init_dist.regions()) - 1);
 
-  size_t flipped_index = die(gen);
-  for (size_t i = 0; i < flipped_index + 1; ++i) {
-    if (!init_dist[i]) { flipped_index++; }
-  }
+  do {
+    dist_t mask{mask_gen(gen), init_dist.regions()};
+    left_dist  = mask & init_dist;
+    right_dist = (~mask) & init_dist;
+  } while (!(left_dist) || !(right_dist));
 
-  split_type_e split_type = split_type_e::sympatric;
-  dist_t       left_dist  = init_dist;
-  dist_t       right_dist = {0, init_dist.regions()};
-  right_dist              = right_dist.negate_bit(flipped_index);
+  std::bernoulli_distribution coin(1.0 - model.splitting_prob());
 
-  /* In the allopatric case, we need to remove the index from the init dist. */
   if (coin(gen)) {
     LOG_DEBUG("%s", "Allopatric Split");
-    left_dist  = left_dist.negate_bit(flipped_index);
-    split_type = split_type_e::allopatric;
+    left_dist  = left_dist | right_dist;
+    split_type = split_type_e::sympatric;
   }
 
   std::bernoulli_distribution left_or_right(0.5);
   if (left_or_right(gen)) { std::swap(left_dist, right_dist); }
-
-  LOG_DEBUG("Spilt %b into: %b, %b", init_dist, left_dist, right_dist);
   return {left_dist, right_dist, split_type};
 }
 

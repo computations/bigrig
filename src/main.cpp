@@ -281,8 +281,7 @@ int main(int argc, char **argv) {
     } else {
       os << n.node_id();
       os << "[&&NHX:";
-      os << "left-split=" << n.node_split().left << ":";
-      os << "right-split=" << n.node_split().right;
+      os << n.node_split().to_nhx_string();
       os << "]";
     }
     os << ":" << n.brlen();
