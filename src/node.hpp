@@ -3,7 +3,6 @@
 #include "corax/tree/utree.h"
 #include "dist.hpp"
 #include "model.hpp"
-#include "split.hpp"
 
 #include <functional>
 #include <logger.hpp>
