@@ -200,9 +200,9 @@ verify_config_file(const std::filesystem::path &config_filename) {
 
 void write_header(const cli_options_t &cli_options) {
   MESSAGE_INFO("Running simulation with the following parameters:");
-  LOG_INFO("  Tree file: %s", cli_options.tree_filename.value().c_str());
-  LOG_INFO("  Prefix: %s", cli_options.prefix.value().c_str());
-  LOG_INFO("  Root Distribution: %s",
+  LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
+  LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
+  LOG_INFO("   Root Distribution: %s",
            cli_options.root_distribution.to_str().c_str());
 }
 
