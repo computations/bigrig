@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
     LOG_INFO("tree: %s", cli_options.tree_filename.value().c_str());
   }
 
-  if (cli_options.prefix.value().empty()) {
+  if (!cli_options.prefix.has_value() || cli_options.prefix.value().empty()) {
     cli_options.prefix = cli_options.tree_filename;
   }
 
