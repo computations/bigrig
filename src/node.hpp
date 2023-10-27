@@ -117,6 +117,10 @@ public:
 
   split_t node_split() const { return _split; }
 
+  std::vector<std::shared_ptr<node_t>> &children() { return _children; }
+
+  std::vector<std::shared_ptr<node_t>> children() const { return _children; }
+
 private:
   double                               _brlen;
   dist_t                               _final_state;
