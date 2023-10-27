@@ -359,7 +359,6 @@ int main(int argc, char **argv) {
       os << n.node_split().to_nhx_string();
       os << "]";
     }
-    os << ":" << n.brlen();
   };
 
   auto annotated_tree_filename  = cli_options.prefix.value();
