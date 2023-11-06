@@ -1,6 +1,7 @@
 #pragma once
 #include "dist.hpp"
 #include "exceptions.hpp"
+#include "iterator.hpp"
 #include "model.hpp"
 #include "node.hpp"
 
@@ -75,34 +76,6 @@ public:
   size_t node_count() const { return _tree->node_count(); }
 
   size_t leaf_count() const { return _tree->leaf_count(); }
-
-  class preorder_iterator {
-  public:
-    preorder_iterator() = default;
-    explicit preorder_iterator(const std::shared_ptr<node_t> &n) {
-      _stack.push(n);
-    }
-    preorder_iterator operator*() const { return *this; }
-    preorder_iterator operator++() {
-      auto tmp_node = _stack.top();
-      _stack.pop();
-      for (auto &c : tmp_node->children()) { _stack.push(c); }
-      return *this;
-    }
-
-    bool operator==(const preorder_iterator &it) const {
-      return (it._stack.empty() && _stack.empty())
-          || (!_stack.empty() && it._stack.top() == _stack.top());
-    }
-    bool operator!=(const preorder_iterator &it) const {
-      return !(it == *this);
-    }
-
-    std::shared_ptr<node_t> &node() { return _stack.top(); }
-
-  private:
-    std::stack<std::shared_ptr<node_t>> _stack;
-  };
 
   preorder_iterator begin() const { return preorder_iterator(_tree); }
   preorder_iterator end() const { return preorder_iterator(); }
