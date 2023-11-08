@@ -14,7 +14,7 @@ public:
   explicit preorder_iterator(const std::shared_ptr<node_t> &n) {
     _stack.push(n);
   }
-  preorder_iterator  operator*() const { return *this; }
+  value_type  operator*() const { return _stack.top(); }
   preorder_iterator &operator++() {
     auto tmp_node = _stack.top();
     _stack.pop();
