@@ -22,10 +22,10 @@ public:
   dist_t(const std::string &);
 
   dist_t(const dist_t &) = default;
-  dist_t(dist_t &&)      = default;
+  dist_t(dist_t &&) = default;
 
   dist_t &operator=(const dist_t &) = default;
-  dist_t &operator=(dist_t &&)      = default;
+  dist_t &operator=(dist_t &&) = default;
 
   dist_t &operator|=(const dist_t &d) {
     dist_t tmp{*this};
@@ -95,7 +95,9 @@ public:
 
   dist_t next_dist(uint32_t n) const {
     auto d = *this + 1;
-    while (d.popcount() > n) { d = d + 1; }
+    while (d.popcount() > n) {
+      d = d + 1;
+    }
     return d;
   }
 
@@ -106,7 +108,9 @@ public:
   }
 
   friend std::ostream &operator<<(std::ostream &os, dist_t dist) {
-    for (size_t i = dist._regions; i; --i) { os << dist.bextr(i - 1); }
+    for (size_t i = dist._regions; i; --i) {
+      os << dist.bextr(i - 1);
+    }
     return os;
   }
 
@@ -125,12 +129,12 @@ private:
 
   static auto compute_skips(size_t i, size_t n) -> size_t {
     constexpr size_t BITS_IN_BYTE = 8;
-    size_t           skips        = 0;
+    size_t skips = 0;
     while (i != 0 && n != 0) {
-      size_t first_index  = sizeof(i) * BITS_IN_BYTE - __builtin_clzll(i | 1);
-      skips              += compute_skips_power_of_2(first_index, n);
-      n                  -= 1;
-      i                  -= 1 << (first_index - 1);
+      size_t first_index = sizeof(i) * BITS_IN_BYTE - __builtin_clzll(i | 1);
+      skips += compute_skips_power_of_2(first_index, n);
+      n -= 1;
+      i -= 1 << (first_index - 1);
     }
     skips += i;
     return skips;
@@ -154,8 +158,7 @@ public:
   dist_t final_state;
 };
 
-transition_t sample(dist_t                                  init_dist,
-                    const substitution_model_t             &model,
+transition_t sample(dist_t init_dist, const substitution_model_t &model,
                     std::uniform_random_bit_generator auto &gen) {
   auto [d, e] = model.rates();
 
@@ -167,7 +170,9 @@ transition_t sample(dist_t                                  init_dist,
   std::vector<transition_t> rolls(model.region_count());
 
   for (size_t i = 0; i < model.region_count(); ++i) {
-    if (singleton && init_dist[i]) { continue; }
+    if (singleton && init_dist[i]) {
+      continue;
+    }
     double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
     rolls[i] = transition_t{waiting_time, init_dist, init_dist.negate_bit(i)};
   }
@@ -180,8 +185,8 @@ transition_t sample(dist_t                                  init_dist,
 enum class split_type_e { singleton, allopatric, sympatric };
 
 struct split_t {
-  dist_t       left;
-  dist_t       right;
+  dist_t left;
+  dist_t right;
   split_type_e type;
 
   std::string to_nhx_string() {
@@ -190,34 +195,35 @@ struct split_t {
         << "right-split=" << right << ":";
     oss << "split-type=";
 
+    return oss.str();
+  }
+
+  std::string type_string() const {
     switch (type) {
     case split_type_e::singleton:
-      oss << "singleton";
-      break;
+      return "singleton";
     case split_type_e::allopatric:
-      oss << "allopatric";
-      break;
+      return "allopatric";
     case split_type_e::sympatric:
-      oss << "sympatric";
-      break;
+      return "sympatric";
     }
-
-    return oss.str();
+    throw std::runtime_error{"Did not cover all cases"};
   }
 };
 
 std::vector<transition_t>
-generate_samples(dist_t                                  init_dist,
-                 double                                  brlen,
-                 const substitution_model_t             &model,
+generate_samples(dist_t init_dist, double brlen,
+                 const substitution_model_t &model,
                  std::uniform_random_bit_generator auto &gen) {
   std::vector<transition_t> results;
   while (true) {
-    auto r  = sample(init_dist, model, gen);
-    brlen  -= r.waiting_time;
-    if (brlen < 0.0) { return results; }
-    LOG_DEBUG(
-        "adding transition from %b to %b", r.initial_state, r.final_state);
+    auto r = sample(init_dist, model, gen);
+    brlen -= r.waiting_time;
+    if (brlen < 0.0) {
+      return results;
+    }
+    LOG_DEBUG("adding transition from %b to %b", r.initial_state,
+              r.final_state);
     init_dist = r.final_state;
     results.push_back(r);
   }
@@ -233,8 +239,7 @@ generate_samples(dist_t                                  init_dist,
  *  misleading. Regions are large enough that both Allopatry and Sympatry can
  *  occur, but the idea maps well, so I use it internally.
  */
-split_t split_dist(dist_t                                  init_dist,
-                   const substitution_model_t             &model,
+split_t split_dist(dist_t init_dist, const substitution_model_t &model,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (init_dist.popcount() == 1) {
@@ -242,14 +247,14 @@ split_t split_dist(dist_t                                  init_dist,
     return {init_dist, init_dist, split_type_e::singleton};
   }
 
-  dist_t       left_dist(init_dist.regions()), right_dist(init_dist.regions());
+  dist_t left_dist(init_dist.regions()), right_dist(init_dist.regions());
   split_type_e split_type = split_type_e::allopatric;
   std::uniform_int_distribution<uint64_t> mask_gen(
       1, (1ul << init_dist.regions()) - 1);
 
   do {
     dist_t mask{mask_gen(gen), init_dist.regions()};
-    left_dist  = mask & init_dist;
+    left_dist = mask & init_dist;
     right_dist = (~mask) & init_dist;
   } while (!(left_dist) || !(right_dist));
 
@@ -257,12 +262,14 @@ split_t split_dist(dist_t                                  init_dist,
 
   if (coin(gen)) {
     LOG_DEBUG("%s", "Allopatric Split");
-    left_dist  = left_dist | right_dist;
+    left_dist = left_dist | right_dist;
     split_type = split_type_e::sympatric;
   }
 
   std::bernoulli_distribution left_or_right(0.5);
-  if (left_or_right(gen)) { std::swap(left_dist, right_dist); }
+  if (left_or_right(gen)) {
+    std::swap(left_dist, right_dist);
+  }
   return {left_dist, right_dist, split_type};
 }
 

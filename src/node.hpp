@@ -111,6 +111,7 @@ public:
   std::string label() const { return _label; }
   double      brlen() const { return _brlen; }
   size_t      node_id() const { return _node_id; }
+  dist_t final_state() const { return _final_state;}
   std::string string_id() const {
     return is_leaf() ? _label : std::to_string(_node_id);
   }

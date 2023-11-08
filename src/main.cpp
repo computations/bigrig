@@ -2,7 +2,6 @@
 #include "node.hpp"
 #include "pcg_random.hpp"
 #include "tree.hpp"
-#include "yaml-cpp/exceptions.h"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -10,10 +9,13 @@
 #include <corax/corax.hpp>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <logger.hpp>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>
 #include <string>
+#include <yaml-cpp/exceptions.h>
 #include <yaml-cpp/yaml.h>
 
 constexpr auto PHYILP_EXT = ".phy";
@@ -25,36 +27,48 @@ struct cli_options_t {
   std::optional<std::filesystem::path> config_filename;
   std::optional<std::filesystem::path> tree_filename;
   std::optional<std::filesystem::path> prefix;
-  std::optional<bool>                  debug_log;
-  std::optional<output_format_type_e>  output_format_type;
-  biogeosim::dist_t                    root_distribution;
-  double                               dispersion_rate;
-  double                               extinction_rate;
-  bool                                 redo;
+  std::optional<bool> debug_log;
+  std::optional<output_format_type_e> output_format_type;
+  biogeosim::dist_t root_distribution;
+  double dispersion_rate;
+  double extinction_rate;
+  bool redo;
 
   std::filesystem::path phylip_filename() const {
-    auto tmp  = prefix.value();
-    tmp      += PHYILP_EXT;
+    auto tmp = prefix.value();
+    tmp += PHYILP_EXT;
     return tmp;
   }
 
   bool cli_arg_specified() const {
-    return tree_filename.has_value() || prefix.has_value()
-        || debug_log.has_value() || tree_filename.has_value();
+    return tree_filename.has_value() || prefix.has_value() ||
+           debug_log.has_value() || tree_filename.has_value();
   }
 
   cli_options_t() = default;
   cli_options_t(const YAML::Node &yaml) {
     tree_filename = yaml["tree"].as<std::string>();
-    if (yaml["prefix"]) { prefix = yaml["prefix"].as<std::string>(); }
-    if (yaml["debug-log"]) { debug_log = yaml["debug-log"].as<bool>(); }
+    if (yaml["prefix"]) {
+      prefix = yaml["prefix"].as<std::string>();
+    }
+    if (yaml["debug-log"]) {
+      debug_log = yaml["debug-log"].as<bool>();
+    }
+    if (yaml["output-format"] &&
+        yaml["output-format"].as<std::string>() == "json") {
+      output_format_type = output_format_type_e::JSON;
+    }
+    if (yaml["output-format"] &&
+        yaml["output-format"].as<std::string>() == "yaml") {
+      output_format_type = output_format_type_e::YAML;
+    }
     root_distribution = yaml["root-dist"].as<std::string>();
-    dispersion_rate   = yaml["dispersion"].as<double>();
-    extinction_rate   = yaml["extinction"].as<double>();
+    dispersion_rate = yaml["dispersion"].as<double>();
+    extinction_rate = yaml["extinction"].as<double>();
   }
 };
 
-std::string to_phylip(const biogeosim::tree_t              &tree,
+std::string to_phylip(const biogeosim::tree_t &tree,
                       const biogeosim::substitution_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.leaf_count()) << " " << model.region_count()
@@ -65,7 +79,7 @@ std::string to_phylip(const biogeosim::tree_t              &tree,
   return oss.str();
 }
 
-std::string to_phylip_extended(const biogeosim::tree_t              &tree,
+std::string to_phylip_extended(const biogeosim::tree_t &tree,
                                const biogeosim::substitution_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.node_count()) << " " << model.region_count()
@@ -77,10 +91,10 @@ std::string to_phylip_extended(const biogeosim::tree_t              &tree,
 }
 
 [[nodiscard]] bool verify_is_readable(const std::filesystem::path &path) {
-  bool ok     = true;
+  bool ok = true;
   auto status = std::filesystem::status(path);
-  if ((std::filesystem::perms::owner_read & status.permissions())
-      == std::filesystem::perms::none) {
+  if ((std::filesystem::perms::owner_read & status.permissions()) ==
+      std::filesystem::perms::none) {
     LOG_ERROR("The path '%s' is not readable", path.c_str());
     ok = false;
   }
@@ -88,10 +102,10 @@ std::string to_phylip_extended(const biogeosim::tree_t              &tree,
 }
 
 [[nodiscard]] bool verify_is_writable(const std::filesystem::path &path) {
-  bool ok             = true;
-  auto status         = std::filesystem::status(path);
-  auto required_perms = std::filesystem::perms::owner_write
-                      | std::filesystem::perms::owner_exec;
+  bool ok = true;
+  auto status = std::filesystem::status(path);
+  auto required_perms =
+      std::filesystem::perms::owner_write | std::filesystem::perms::owner_exec;
   if ((required_perms & status.permissions()) == std::filesystem::perms::none) {
     LOG_ERROR("The path '%s' is not writable", path.c_str());
     ok = false;
@@ -184,8 +198,8 @@ verify_config_file(const std::filesystem::path &config_filename) {
 [[nodiscard]] bool config_or_cli(const cli_options_t &cli_options) {
   bool ok = true;
 
-  if (cli_options.config_filename.has_value()
-      && cli_options.cli_arg_specified()) {
+  if (cli_options.config_filename.has_value() &&
+      cli_options.cli_arg_specified()) {
     MESSAGE_ERROR("Both config and CLI arguements have been specified. Please "
                   "only specify one");
     ok = false;
@@ -195,7 +209,7 @@ verify_config_file(const std::filesystem::path &config_filename) {
     if (!verify_config_file(config_filename)) {
       LOG_ERROR("There was an issue with the config file %s",
                 config_filename.c_str());
-      return false;
+      ok = false;
     }
   }
 
@@ -220,8 +234,7 @@ bool normalize_paths(cli_options_t &cli_options) {
         std::filesystem::absolute(cli_options.tree_filename.value()));
   } catch (const std::filesystem::filesystem_error &err) {
     LOG_ERROR("Failed to canonicalize '%s' because '%s'",
-              cli_options.tree_filename.value().c_str(),
-              err.what());
+              cli_options.tree_filename.value().c_str(), err.what());
     ok = false;
   }
   try {
@@ -229,8 +242,7 @@ bool normalize_paths(cli_options_t &cli_options) {
         std::filesystem::absolute(cli_options.prefix.value()));
   } catch (const std::filesystem::filesystem_error &err) {
     LOG_ERROR("Failed to canonicalize '%s' because '%s'",
-              cli_options.prefix.value().c_str(),
-              err.what());
+              cli_options.prefix.value().c_str(), err.what());
     ok = false;
   }
   return ok;
@@ -248,22 +260,64 @@ bool normalize_paths(cli_options_t &cli_options) {
 }
 
 cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
-  auto          yaml = YAML::LoadFile(config_filename);
+  auto yaml = YAML::LoadFile(config_filename);
   cli_options_t cli_options(yaml);
 
   return cli_options;
 }
 
-void write_output_files(const cli_options_t                   &cli_options,
-                        const biogeosim::tree_t               &tree,
+void write_yaml_file(std::ostream &os, const cli_options_t &cli_options,
+                     const biogeosim::tree_t &tree,
+                     const biogeosim::substitution_model_t &model) {
+
+  YAML::Emitter yaml;
+  yaml << YAML::BeginMap;
+  yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
+
+  yaml << YAML::Key << "align";
+  yaml << YAML::BeginMap;
+
+  for (const auto &n : tree) {
+    if (!n->is_leaf()) {
+      continue;
+    }
+    yaml<< YAML::Key << n->label() << YAML::Value << n->final_state().to_str();
+  }
+  yaml << YAML::EndMap;
+  yaml<< YAML::Key << "splits";
+  yaml << YAML::BeginMap;
+  for (const auto &n : tree) {
+    if (n->is_leaf()) {
+      continue;
+    }
+    yaml<< YAML::Key << n->node_id();
+    yaml << YAML::BeginMap;
+    yaml << YAML::Key << "left" << YAML::Value << n->node_split().left.to_str();
+    yaml << YAML::Key << "right" << YAML::Value << n->node_split().right.to_str();
+    yaml << YAML::Key << "type" << YAML::Value << n->node_split().type_string();
+    yaml << YAML::EndMap;
+  }
+
+  yaml << YAML::EndMap;
+  os << yaml.c_str() << std::endl;
+ }
+
+void write_json_file(std::ostream &os, const cli_options_t &cli_options,
+                     const biogeosim::tree_t &tree,
+                     const biogeosim::substitution_model_t &model) {
+  nlohmann::json j;
+}
+
+void write_output_files(const cli_options_t &cli_options,
+                        const biogeosim::tree_t &tree,
                         const biogeosim::substitution_model_t &model) {
-  auto phylip_filename  = cli_options.prefix.value();
-  phylip_filename      += ".phy";
+  auto phylip_filename = cli_options.prefix.value();
+  phylip_filename += ".phy";
   std::ofstream phylip_file(phylip_filename);
   phylip_file << to_phylip(tree, model);
 
-  auto phylip_all_filename  = cli_options.prefix.value();
-  phylip_all_filename      += ".all.phy";
+  auto phylip_all_filename = cli_options.prefix.value();
+  phylip_all_filename += ".all.phy";
   std::ofstream phylip_all_file(phylip_all_filename);
   phylip_all_file << to_phylip_extended(tree, model);
 
@@ -278,20 +332,28 @@ void write_output_files(const cli_options_t                   &cli_options,
     }
   };
 
-  auto annotated_tree_filename  = cli_options.prefix.value();
-  annotated_tree_filename      += ".annotated";
-  annotated_tree_filename      += NEWICK_EXT;
+  auto annotated_tree_filename = cli_options.prefix.value();
+  annotated_tree_filename += ".annotated";
+  annotated_tree_filename += NEWICK_EXT;
   std::ofstream annotated_tree_file(annotated_tree_filename);
   annotated_tree_file << tree.to_newick(cb) << std::endl;
+
+  if (cli_options.output_format_type.has_value() &&
+      cli_options.output_format_type.value() == output_format_type_e::YAML) {
+    auto output_yaml_filename = cli_options.prefix.value();
+    output_yaml_filename += ".yaml";
+    std::ofstream output_yaml_file(output_yaml_filename);
+    write_yaml_file(output_yaml_file, cli_options, tree, model);
+  }
 }
 
 bool validate_options(cli_options_t &cli_options) {
   bool ok = true;
   if (cli_options.config_filename.has_value() && config_or_cli(cli_options)) {
     try {
-      auto cli_options_tmp
-          = parse_yaml_options(cli_options.config_filename.value());
-      cli_options_tmp.redo            = cli_options.redo;
+      auto cli_options_tmp =
+          parse_yaml_options(cli_options.config_filename.value());
+      cli_options_tmp.redo = cli_options.redo;
       cli_options_tmp.config_filename = cli_options.config_filename;
       std::swap(cli_options, cli_options_tmp);
     } catch (const YAML::Exception &e) {
@@ -327,31 +389,27 @@ bool validate_options(cli_options_t &cli_options) {
 
 int main(int argc, char **argv) {
   logger::get_log_states().add_stream(
-      stdout,
-      logger::log_level::info | logger::log_level::warning
-          | logger::log_level::important | logger::log_level::error
-          | logger::log_level::progress);
+      stdout, logger::log_level::info | logger::log_level::warning |
+                  logger::log_level::important | logger::log_level::error |
+                  logger::log_level::progress);
 
   CLI::App app{"Biogeosim"};
 
   cli_options_t cli_options;
 
-  app.add_option(
-      "--config", cli_options.config_filename, "Config file with options");
-  app.add_option("--tree",
-                 cli_options.tree_filename,
+  app.add_option("--config", cli_options.config_filename,
+                 "Config file with options");
+  app.add_option("--tree", cli_options.tree_filename,
                  "A file containing a newick encoded tree which will be used "
                  "to perform the simulation");
   app.add_option("--prefix", cli_options.prefix, "prefix for the output files");
-  app.add_option("--root-dist",
-                 cli_options.root_distribution,
+  app.add_option("--root-dist", cli_options.root_distribution,
                  "Distribution at the root at the start of the simulation");
   app.add_option("--d", cli_options.dispersion_rate, "Dispersion rate");
   app.add_option("--e", cli_options.extinction_rate, "Extinction rate");
   app.add_flag("--redo", cli_options.redo, "Extinction rate")
       ->default_val(false);
-  app.add_flag("--debug-log",
-               cli_options.debug_log,
+  app.add_flag("--debug-log", cli_options.debug_log,
                "Create a file in the prefix that contains the debug log");
   app.add_flag(
       "--json",
@@ -368,27 +426,32 @@ int main(int argc, char **argv) {
 
   CLI11_PARSE(app);
 
-  if (!validate_options(cli_options)) { return 1; }
+  if (!validate_options(cli_options)) {
+    return 1;
+  }
 
   if (cli_options.debug_log) {
-    std::filesystem::path debug_filename  = cli_options.prefix.value();
-    debug_filename                       += ".debug.log";
+    std::filesystem::path debug_filename = cli_options.prefix.value();
+    debug_filename += ".debug.log";
     LOG_INFO("Logging debug information to %s", debug_filename.c_str());
     logger::get_log_states().add_file_stream(
         debug_filename.c_str(),
-        logger::log_level::info | logger::log_level::warning
-            | logger::log_level::important | logger::log_level::error
-            | logger::log_level::debug);
+        logger::log_level::info | logger::log_level::warning |
+            logger::log_level::important | logger::log_level::error |
+            logger::log_level::debug);
   }
 
   auto tree = biogeosim::tree_t(cli_options.tree_filename.value().c_str());
 
+  for (auto n : tree) {
+    std::cout << n->label() << std::endl;
+  }
+
   pcg_extras::seed_seq_from<std::random_device> seed_source;
-  pcg64_fast                                    gen(seed_source);
+  pcg64_fast gen(seed_source);
 
   biogeosim::substitution_model_t model(
-      cli_options.dispersion_rate,
-      cli_options.extinction_rate,
+      cli_options.dispersion_rate, cli_options.extinction_rate,
       cli_options.root_distribution.regions());
 
   tree.sample(cli_options.root_distribution, model, gen);
