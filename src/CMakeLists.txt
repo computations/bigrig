@@ -5,7 +5,16 @@ add_library(biogeosim_obj OBJECT
     tree.cpp
 )
 
+add_library(biogeosim_interface_obj OBJECT
+  clioptions.cpp
+  io.cpp
+  )
+
 target_link_libraries(biogeosim_obj PUBLIC corax logger)
+target_include_directories(biogeosim_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
+target_link_libraries(biogeosim_interface_obj PUBLIC logger CLI11 yaml-cpp corax
+   nlohmann_json::nlohmann_json)
 target_include_directories(biogeosim_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_executable(biogeosim
@@ -14,10 +23,9 @@ add_executable(biogeosim
 
 target_link_libraries(biogeosim 
   biogeosim_obj 
+  biogeosim_interface_obj
   logger 
-  CLI11 
-  yaml-cpp 
-  nlohmann_json::nlohmann_json)
+)
 
 set_target_properties(biogeosim
     PROPERTIES
