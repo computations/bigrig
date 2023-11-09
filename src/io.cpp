@@ -2,6 +2,8 @@
 
 #include "clioptions.hpp"
 
+#include <filesystem>
+
 void write_header(const cli_options_t &cli_options) {
   MESSAGE_INFO("Running simulation with the following parameters:");
   LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
@@ -170,6 +172,18 @@ bool normalize_paths(cli_options_t &cli_options) {
                 cli_options.phylip_filename().c_str());
     ok = false;
   }
+  if (cli_options.yaml_file_set()
+      && std::filesystem::exists(cli_options.yaml_filename())) {
+    LOG_WARNING("Results file %s exists already",
+                cli_options.yaml_filename().c_str());
+    ok = false;
+  }
+  if (cli_options.json_file_set()
+      && std::filesystem::exists(cli_options.json_filename())) {
+    LOG_WARNING("Results file %s exists already",
+                cli_options.json_filename().c_str());
+    ok = false;
+  }
   return ok;
 }
 
@@ -241,7 +255,7 @@ void write_json_file(std::ostream                          &os,
     };
   }
 
-  os << j.dump();
+  os << j.dump() << std::endl;
 }
 
 void write_output_files(const cli_options_t                   &cli_options,
@@ -274,19 +288,15 @@ void write_output_files(const cli_options_t                   &cli_options,
   std::ofstream annotated_tree_file(annotated_tree_filename);
   annotated_tree_file << tree.to_newick(cb) << std::endl;
 
-  if (cli_options.output_format_type.has_value()
-      && cli_options.output_format_type.value() == output_format_type_e::YAML) {
-    auto output_yaml_filename  = cli_options.prefix.value();
-    output_yaml_filename      += ".yaml";
+  if (cli_options.yaml_file_set()) {
+    auto          output_yaml_filename = cli_options.yaml_filename();
     std::ofstream output_yaml_file(output_yaml_filename);
     write_yaml_file(output_yaml_file, cli_options, tree, model);
   }
-  if (cli_options.output_format_type.has_value()
-      && cli_options.output_format_type.value() == output_format_type_e::YAML) {
-    auto output_json_filename  = cli_options.prefix.value();
-    output_json_filename      += ".json";
-    std::ofstream output_yaml_file(output_json_filename);
-    write_json_file(output_yaml_file, cli_options, tree, model);
+  if (cli_options.json_file_set()) {
+    auto          output_json_filename = cli_options.json_filename();
+    std::ofstream output_json_file(output_json_filename);
+    write_json_file(output_json_file, cli_options, tree, model);
   }
 }
 
@@ -298,6 +308,9 @@ bool validate_options(cli_options_t &cli_options) {
           = parse_yaml_options(cli_options.config_filename.value());
       cli_options_tmp.redo            = cli_options.redo;
       cli_options_tmp.config_filename = cli_options.config_filename;
+      if (!cli_options_tmp.output_format_type.has_value()) {
+        cli_options_tmp.output_format_type = cli_options.output_format_type;
+      }
       std::swap(cli_options, cli_options_tmp);
     } catch (const YAML::Exception &e) {
       LOG_ERROR("Failed to parse the config file: %s", e.what());

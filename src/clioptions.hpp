@@ -17,6 +17,8 @@
 
 constexpr auto PHYILP_EXT = ".phy";
 constexpr auto NEWICK_EXT = ".nwk";
+constexpr auto YAML_EXT   = ".yaml";
+constexpr auto JSON_EXT   = ".json";
 
 enum class output_format_type_e { JSON, YAML };
 
@@ -37,9 +39,31 @@ struct cli_options_t {
     return tmp;
   }
 
+  std::filesystem::path yaml_filename() const {
+    auto tmp  = prefix.value();
+    tmp      += YAML_EXT;
+    return tmp;
+  }
+
+  std::filesystem::path json_filename() const {
+    auto tmp  = prefix.value();
+    tmp      += JSON_EXT;
+    return tmp;
+  }
+
   bool cli_arg_specified() const {
     return tree_filename.has_value() || prefix.has_value()
         || debug_log.has_value() || tree_filename.has_value();
+  }
+
+  bool yaml_file_set() const {
+    return output_format_type.has_value()
+        && output_format_type.value() == output_format_type_e::YAML;
+  }
+
+  bool json_file_set() const {
+    return output_format_type.has_value()
+        && output_format_type.value() == output_format_type_e::JSON;
   }
 
   cli_options_t() = default;
@@ -47,13 +71,18 @@ struct cli_options_t {
     tree_filename = yaml["tree"].as<std::string>();
     if (yaml["prefix"]) { prefix = yaml["prefix"].as<std::string>(); }
     if (yaml["debug-log"]) { debug_log = yaml["debug-log"].as<bool>(); }
-    if (yaml["output-format"]
-        && yaml["output-format"].as<std::string>() == "json") {
-      output_format_type = output_format_type_e::JSON;
+    if (yaml["output-format"]) {
+      if (yaml["output-format"].as<std::string>() == "json") {
+        output_format_type = output_format_type_e::JSON;
+      }
+      if (yaml["output-format"].as<std::string>() == "yaml") {
+        output_format_type = output_format_type_e::YAML;
+      }
     }
-    if (yaml["output-format"]
-        && yaml["output-format"].as<std::string>() == "yaml") {
-      output_format_type = output_format_type_e::YAML;
+    if (output_format_type.has_value()) {
+      MESSAGE_WARNING(
+          "Output format specified in both the config file and on the command "
+          "line. Using the specification from the config file.");
     }
     root_distribution = yaml["root-dist"].as<std::string>();
     dispersion_rate   = yaml["dispersion"].as<double>();
