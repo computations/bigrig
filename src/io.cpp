@@ -218,6 +218,30 @@ void write_json_file(std::ostream                          &os,
                      const biogeosim::tree_t               &tree,
                      const biogeosim::substitution_model_t &model) {
   nlohmann::json j;
+
+  j["tree"] = tree.to_newick();
+  // j["align"] = nlohmann::json::array();
+
+  size_t index = 0;
+  for (const auto &n : tree) {
+    if (!n->is_leaf()) { continue; }
+
+    j["align"][n->label()] = n->final_state().to_str();
+  }
+
+  // j["splits"] = nlohmann::json::array();
+
+  for (const auto &n : tree) {
+    if (n->is_leaf()) { continue; }
+    auto split                                = n->node_split();
+    j["splits"][std::to_string(n->node_id())] = {
+        {"left", split.left.to_str()},
+        {"right", split.right.to_str()},
+        {"type", split.type_string()},
+    };
+  }
+
+  os << j.dump();
 }
 
 void write_output_files(const cli_options_t                   &cli_options,
@@ -256,6 +280,13 @@ void write_output_files(const cli_options_t                   &cli_options,
     output_yaml_filename      += ".yaml";
     std::ofstream output_yaml_file(output_yaml_filename);
     write_yaml_file(output_yaml_file, cli_options, tree, model);
+  }
+  if (cli_options.output_format_type.has_value()
+      && cli_options.output_format_type.value() == output_format_type_e::YAML) {
+    auto output_json_filename  = cli_options.prefix.value();
+    output_json_filename      += ".json";
+    std::ofstream output_yaml_file(output_json_filename);
+    write_json_file(output_yaml_file, cli_options, tree, model);
   }
 }
 
