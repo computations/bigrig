@@ -23,6 +23,7 @@ public:
     _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->back));
     _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->next->back));
     _tree->assign_id_root();
+    _tree->assign_abs_time_root();
 
     corax_utree_destroy(corax_tree, nullptr);
   }

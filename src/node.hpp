@@ -110,6 +110,7 @@ public:
 
   std::string label() const { return _label; }
   double      brlen() const { return _brlen; }
+  double      abs_time() const { return _abs_time; }
   size_t      node_id() const { return _node_id; }
   dist_t      final_state() const { return _final_state; }
   std::string string_id() const {
@@ -122,8 +123,19 @@ public:
 
   std::vector<std::shared_ptr<node_t>> children() const { return _children; }
 
+  std::vector<transition_t>  transitions() const { return _transitions; }
+  std::vector<transition_t> &transitions() { return _transitions; }
+
+  void assign_abs_time(double t) {
+    _abs_time = t + _brlen;
+    for (auto &c : children()) { c->assign_abs_time(_abs_time); }
+  }
+
+  void assign_abs_time_root() { assign_abs_time(0); }
+
 private:
   double                               _brlen;
+  double                               _abs_time;
   dist_t                               _final_state;
   split_t                              _split;
   std::string                          _label;

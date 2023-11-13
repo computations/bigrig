@@ -3,6 +3,7 @@
 #include "clioptions.hpp"
 
 #include <filesystem>
+#include <format>
 
 void write_header(const cli_options_t &cli_options) {
   MESSAGE_INFO("Running simulation with the following parameters:");
@@ -210,6 +211,7 @@ void write_yaml_file(std::ostream                          &os,
     yaml << YAML::Key << n->label() << YAML::Value << n->final_state().to_str();
   }
   yaml << YAML::EndMap;
+
   yaml << YAML::Key << "splits";
   yaml << YAML::BeginMap;
   for (const auto &n : tree) {
@@ -223,6 +225,33 @@ void write_yaml_file(std::ostream                          &os,
     yaml << YAML::EndMap;
   }
 
+  yaml << YAML::Key << "events";
+  yaml << YAML::BeginMap;
+  for (auto const &n : tree) {
+    if (n->is_leaf()) { continue; }
+
+    for (const auto &c : n->children()) {
+      yaml << YAML::Key
+           << std::format("{} -> {}", n->string_id(), c->string_id());
+      yaml << YAML::BeginSeq;
+      double total_time = 0;
+      for (auto const &t : c->transitions()) {
+        total_time += t.waiting_time;
+        yaml << YAML::BeginMap;
+        yaml << YAML::Key << "abs-time" << YAML::Value
+             << n->abs_time() + total_time;
+        yaml << YAML::Key << "waiting-time" << YAML::Value << t.waiting_time;
+        yaml << YAML::Key << "initial-state" << YAML::Value
+             << t.initial_state.to_str();
+        yaml << YAML::Key << "final-state" << YAML::Value
+             << t.final_state.to_str();
+        yaml << YAML::EndMap;
+      }
+      yaml << YAML::EndSeq;
+    }
+  }
+  yaml << YAML::EndMap;
+
   yaml << YAML::EndMap;
   os << yaml.c_str() << std::endl;
 }
@@ -234,7 +263,6 @@ void write_json_file(std::ostream                          &os,
   nlohmann::json j;
 
   j["tree"] = tree.to_newick();
-  // j["align"] = nlohmann::json::array();
 
   size_t index = 0;
   for (const auto &n : tree) {
@@ -242,8 +270,6 @@ void write_json_file(std::ostream                          &os,
 
     j["align"][n->label()] = n->final_state().to_str();
   }
-
-  // j["splits"] = nlohmann::json::array();
 
   for (const auto &n : tree) {
     if (n->is_leaf()) { continue; }
@@ -253,6 +279,22 @@ void write_json_file(std::ostream                          &os,
         {"right", split.right.to_str()},
         {"type", split.type_string()},
     };
+  }
+
+  for (const auto &n : tree) {
+    if (n->is_leaf()) { continue; }
+    for (const auto &c : n->children()) {
+      auto   node_key = std::format("{} -> {}", n->string_id(), c->string_id());
+      double total_time = 0;
+      for (const auto &t : c->transitions()) {
+        total_time += t.waiting_time;
+        j["events"][node_key].push_back(
+            {{"abs-time", n->abs_time() + total_time},
+             {"waiting_time", t.waiting_time},
+             {"initial-state", t.initial_state.to_str()},
+             {"final-state", t.final_state.to_str()}});
+      }
+    }
   }
 
   os << j.dump() << std::endl;
