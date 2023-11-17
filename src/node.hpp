@@ -77,7 +77,7 @@ public:
   }
 
   std::ostream &to_phylip_line(std::ostream &os, bool all = false) const {
-    for (const auto child : _children) { child->to_phylip_line(os, all); }
+    for (const auto &child : _children) { child->to_phylip_line(os, all); }
     if (_children.size() == 0 || all) {
       os << string_id() << " " << _final_state << "\n";
     }
@@ -89,13 +89,13 @@ public:
   size_t leaf_count() const {
     if (is_leaf()) { return 1; }
     size_t count = 0;
-    for (const auto child : _children) { count += child->leaf_count(); }
+    for (const auto &child : _children) { count += child->leaf_count(); }
     return count;
   }
 
   size_t node_count() const {
     size_t count = 0;
-    for (const auto child : _children) { count += child->node_count(); }
+    for (const auto &child : _children) { count += child->node_count(); }
     return count + 1;
   }
 

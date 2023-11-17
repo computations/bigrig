@@ -17,6 +17,9 @@ target_link_libraries(biogeosim_interface_obj PUBLIC logger CLI11 yaml-cpp corax
    nlohmann_json::nlohmann_json)
 target_include_directories(biogeosim_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
+target_compile_options(biogeosim_obj PRIVATE -Wall -Wextra)
+target_compile_options(biogeosim_interface_obj PRIVATE -Wall -Wextra)
+
 add_executable(biogeosim
     main.cpp
 )
@@ -31,6 +34,8 @@ set_target_properties(biogeosim
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
+
+target_compile_options(biogeosim PRIVATE -Wall -Wextra)
 
 target_include_directories(biogeosim_obj PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/include")
 target_include_directories(biogeosim PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/include")

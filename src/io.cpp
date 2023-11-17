@@ -85,7 +85,7 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
 
     try {
       std::filesystem::create_directories(prefix.parent_path());
-    } catch (std::filesystem::filesystem_error err) {
+    } catch (const std::filesystem::filesystem_error &err) {
       LOG_ERROR("%s", err.what());
       ok = false;
     }
@@ -195,10 +195,7 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
   return cli_options;
 }
 
-void write_yaml_file(std::ostream                          &os,
-                     const cli_options_t                   &cli_options,
-                     const biogeosim::tree_t               &tree,
-                     const biogeosim::substitution_model_t &model) {
+void write_yaml_file(std::ostream &os, const biogeosim::tree_t &tree) {
   YAML::Emitter yaml;
   yaml << YAML::BeginMap;
   yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
@@ -256,15 +253,11 @@ void write_yaml_file(std::ostream                          &os,
   os << yaml.c_str() << std::endl;
 }
 
-void write_json_file(std::ostream                          &os,
-                     const cli_options_t                   &cli_options,
-                     const biogeosim::tree_t               &tree,
-                     const biogeosim::substitution_model_t &model) {
+void write_json_file(std::ostream &os, const biogeosim::tree_t &tree) {
   nlohmann::json j;
 
   j["tree"] = tree.to_newick();
 
-  size_t index = 0;
   for (const auto &n : tree) {
     if (!n->is_leaf()) { continue; }
 
@@ -333,12 +326,12 @@ void write_output_files(const cli_options_t                   &cli_options,
   if (cli_options.yaml_file_set()) {
     auto          output_yaml_filename = cli_options.yaml_filename();
     std::ofstream output_yaml_file(output_yaml_filename);
-    write_yaml_file(output_yaml_file, cli_options, tree, model);
+    write_yaml_file(output_yaml_file, tree);
   }
   if (cli_options.json_file_set()) {
     auto          output_json_filename = cli_options.json_filename();
     std::ofstream output_json_file(output_json_filename);
-    write_json_file(output_json_file, cli_options, tree, model);
+    write_json_file(output_json_file, tree);
   }
 }
 
