@@ -16,16 +16,16 @@
 namespace biogeosim {
 class tree_t {
 public:
-  tree_t(const std::filesystem::path &tree_filename) {
+  explicit tree_t(const std::filesystem::path &tree_filename) {
     auto corax_tree = corax_utree_parse_newick_rooted(tree_filename.c_str());
 
-    _tree = std::make_unique<node_t>();
-    _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->back));
-    _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->next->back));
-    _tree->assign_id_root();
-    _tree->assign_abs_time_root();
+    convert_tree(corax_tree);
+  }
 
-    corax_utree_destroy(corax_tree, nullptr);
+  explicit tree_t(const std::string &tree_str) {
+    auto corax_tree = corax_utree_parse_newick_string_rooted(tree_str.c_str());
+
+    convert_tree(corax_tree);
   }
 
   tree_t(const tree_t &)            = delete;
@@ -82,6 +82,19 @@ public:
   preorder_iterator end() const { return preorder_iterator(); }
 
 private:
+  void convert_tree(corax_utree_t *corax_tree) {
+    _tree = std::make_unique<node_t>();
+    _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->back));
+    _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->next->back));
+    if (corax_tree->vroot->label) {
+      _tree->set_label(corax_tree->vroot->label);
+    }
+    _tree->assign_id_root();
+    _tree->assign_abs_time_root();
+
+    corax_utree_destroy(corax_tree, nullptr);
+  }
+
   std::shared_ptr<node_t> _tree;
 };
 } // namespace biogeosim

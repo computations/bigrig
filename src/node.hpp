@@ -133,6 +133,8 @@ public:
 
   void assign_abs_time_root() { assign_abs_time(0); }
 
+  void set_label(const std::string &str) { _label = str; }
+
 private:
   double                               _brlen;
   double                               _abs_time;

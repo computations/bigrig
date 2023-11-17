@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
             | logger::log_level::debug);
   }
 
-  auto tree = biogeosim::tree_t(cli_options.tree_filename.value().c_str());
+  auto tree = biogeosim::tree_t(cli_options.tree_filename.value());
 
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
