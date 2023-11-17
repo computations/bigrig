@@ -19,6 +19,13 @@ dist_t::dist_t(const std::string &dist_string) {
   _dist >>= 1; // Need to shift down one since we overshot
 }
 
+dist_t &dist_t::operator|=(const dist_t &d) {
+  dist_t tmp{*this};
+  tmp = tmp | d;
+  std::swap(tmp, *this);
+  return *this;
+}
+
 uint64_t valid_region_mask(size_t region_count) {
   uint64_t mask = 0;
   for (size_t i = 0; i < region_count; ++i) { mask |= 1ul << i; }

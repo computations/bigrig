@@ -27,37 +27,32 @@ public:
   dist_t &operator=(const dist_t &) = default;
   dist_t &operator=(dist_t &&)      = default;
 
-  dist_t &operator|=(const dist_t &d) {
-    dist_t tmp{*this};
-    tmp = tmp | d;
-    std::swap(tmp, *this);
-    return *this;
-  }
+  dist_t &operator|=(const dist_t &d);
 
   dist_t(uint64_t d, uint16_t s) : _dist{d}, _regions{s} {}
 
   explicit dist_t(uint16_t r) : _dist{0}, _regions{r} {}
 
-  constexpr size_t popcount() const {
+  inline constexpr size_t popcount() const {
     return static_cast<size_t>(__builtin_popcountll(_dist));
   }
 
-  constexpr size_t clz() const {
+  inline constexpr size_t clz() const {
     return static_cast<size_t>(__builtin_clzll(_dist));
   }
 
-  constexpr size_t clz_min() const {
+  inline constexpr size_t clz_min() const {
     return static_cast<size_t>(__builtin_clzll(_dist | 1ull));
   }
 
-  constexpr size_t log2() const {
+  inline constexpr size_t log2() const {
     constexpr size_t BITS_IN_BYTE = 8;
     return sizeof(_dist) * BITS_IN_BYTE - clz();
   }
 
-  constexpr uint16_t regions() const { return _regions; }
+  inline constexpr uint16_t regions() const { return _regions; }
 
-  constexpr uint64_t operator[](size_t i) const { return bextr(i); }
+  inline constexpr uint64_t operator[](size_t i) const { return bextr(i); }
 
   dist_t operator^(dist_t d) const {
     return {_dist ^ d._dist, std::max(_regions, d._regions)};
