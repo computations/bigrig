@@ -12,7 +12,7 @@
 #include <sstream>
 #include <string>
 
-int main(int argc, char **argv) {
+int main() {
   logger::get_log_states().add_stream(
       stdout,
       logger::log_level::info | logger::log_level::warning
@@ -43,12 +43,14 @@ int main(int argc, char **argv) {
   app.add_flag(
       "--json",
       [&cli_options](std::int64_t count) {
+        (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::JSON;
       },
       "Output results in JSON, where possible");
   app.add_flag(
       "--yaml",
       [&cli_options](std::int64_t count) {
+        (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::YAML;
       },
       "Output results in YAML, where possible");

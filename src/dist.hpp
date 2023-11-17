@@ -216,8 +216,9 @@ generate_samples(dist_t                                  init_dist,
     auto r  = sample(init_dist, model, gen);
     brlen  -= r.waiting_time;
     if (brlen < 0.0) { return results; }
-    LOG_DEBUG(
-        "adding transition from %b to %b", r.initial_state, r.final_state);
+    LOG_DEBUG("adding transition from %lb to %lb",
+              static_cast<uint64_t>(r.initial_state),
+              static_cast<uint64_t>(r.final_state));
     init_dist = r.final_state;
     results.push_back(r);
   }
@@ -238,7 +239,7 @@ split_t split_dist(dist_t                                  init_dist,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (init_dist.popcount() == 1) {
-    LOG_DEBUG("Splitting a singleton: %b", init_dist);
+    LOG_DEBUG("Splitting a singleton: %lb", static_cast<uint64_t>(init_dist));
     return {init_dist, init_dist, split_type_e::singleton};
   }
 

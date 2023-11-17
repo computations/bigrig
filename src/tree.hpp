@@ -40,7 +40,8 @@ public:
     if (!valid_dist(initial_distribution, model)) {
       throw invalid_dist{"Invalid dist provided as a start dist"};
     }
-    LOG_DEBUG("Starting sample with init dist = %b", initial_distribution);
+    LOG_DEBUG("Starting sample with init dist = %lb",
+              static_cast<uint64_t>(initial_distribution));
     _tree->sample(initial_distribution, model, gen);
   }
 
