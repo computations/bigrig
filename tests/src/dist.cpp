@@ -21,6 +21,7 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK((d | e) == biogeosim::dist_t{0b1101, regions});
     CHECK((d & e) == biogeosim::dist_t{0b1001, regions});
   }
+   
   SECTION("access operator") {
     CHECK(d[0] == 1);
     CHECK(d[1] == 0);
@@ -32,10 +33,12 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(e[2] == 1);
     CHECK(e[3] == 1);
   }
+   
   SECTION("log2") {
     CHECK(d.log2() == 4);
     CHECK((biogeosim::dist_t(0b1, 1).log2()) == 1);
   }
+
   SECTION("valid") {
     CHECK(biogeosim::valid_dist({0b11'0011, 6}, 6));
     CHECK(!biogeosim::valid_dist({0b11'0011, 6}, 5));
@@ -53,11 +56,13 @@ TEST_CASE("dist operations", "[dist]") {
       CHECK((tmp ^ d).popcount() == 1);
     }
   }
+
   SECTION("string constructor") {
     CHECK(biogeosim::dist_t("1010") == biogeosim::dist_t{0b1010, 4});
     CHECK(biogeosim::dist_t("0000") == biogeosim::dist_t{0b0000, 4});
     CHECK(biogeosim::dist_t("1011111") == biogeosim::dist_t{0b101'1111, 7});
   }
+
   SECTION("stream operator") {
     CHECK("1010" == biogeosim::dist_t{0b1010, 4}.to_str());
     CHECK("0000" == biogeosim::dist_t{0b0000, 4}.to_str());
@@ -149,6 +154,7 @@ TEST_CASE("splitting", "[sample]") {
     auto              sp        = biogeosim::split_dist(init_dist, model, gen);
     CHECK(sp.left == sp.right);
   }
+
   SECTION("allopatry") {
     biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
                                            biogeosim::dist_t{0b1100, regions},
@@ -166,6 +172,7 @@ TEST_CASE("splitting", "[sample]") {
     CHECK((sp.left | sp.right) == init_dist);
     CHECK((sp.left & sp.right).popcount() == 0);
   }
+
   SECTION("sympatry") {
     biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
                                            biogeosim::dist_t{0b1100, regions},
@@ -184,8 +191,8 @@ TEST_CASE("splitting", "[sample]") {
     CHECK((sp.left & sp.right).popcount()
           == std::min(sp.left.popcount(), sp.right.popcount()));
   }
+
   SECTION("benchmark") {
-    // biogeosim::dist_t init_dist = GENERATE(0b1110, 0b1100, 0b1011, 0b1111);
     biogeosim::dist_t init_dist = {0b1110, regions};
     model.set_splitting_prob(0.5);
 
@@ -199,43 +206,3 @@ TEST_CASE("splitting", "[sample]") {
     };
   }
 }
-/*
-TEST_CASE("stats for generate_samples", "[sample][stats]") {
-  const biogeosim::dist_t init_dist = 0b1010;
-  std::minstd_rand gen(Catch::getSeed());
-  constexpr size_t regions = 4;
-  constexpr size_t iters = 1e6;
-
-  double dis = GENERATE(1.0, 2.0);
-  double ext = GENERATE(1.0, 2.0);
-
-  double brlen = GENERATE(1.0, 2.0);
-
-  INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen);
-
-  double average_rate =
-      ext * init_dist.popcount() + dis * (regions - init_dist.popcount());
-  double mu = brlen * average_rate;
-  double sigma = average_rate;
-
-  biogeosim::substitution_model_t model(dis, ext, regions);
-
-  double sum = 0;
-  double sumsq = 0;
-
-  for (size_t i = 0; i < iters; ++i) {
-    double count = biogeosim::generate_samples(brlen, model, gen).size();
-    sum += count;
-    sumsq += count * count;
-  }
-
-  double mean = sum / iters;
-  double std = (sumsq - sum * sum / iters) / (iters - 1);
-  double t = (mean - mu) / (sqrt(std / iters));
-  INFO("mean: " << mean << " mu: " << mu);
-
-  CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0.0, 0.01));
-  CHECK_THAT(std, Catch::Matchers::WithinAbs(sigma, 0.01));
-  CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 2));
-}
-*/
