@@ -60,7 +60,7 @@ public:
     for (size_t i = 0; i < _children.size(); ++i) {
       const auto &c = _children[i];
       c->to_newick(os, cb);
-      if (i != _children.size() - 1) { os << ", "; }
+      if (i != _children.size() - 1) { os << ","; }
     }
     if (!_children.empty()) { os << ")"; }
 
