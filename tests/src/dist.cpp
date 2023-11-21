@@ -21,7 +21,7 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK((d | e) == biogeosim::dist_t{0b1101, regions});
     CHECK((d & e) == biogeosim::dist_t{0b1001, regions});
   }
-   
+
   SECTION("access operator") {
     CHECK(d[0] == 1);
     CHECK(d[1] == 0);
@@ -33,7 +33,7 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(e[2] == 1);
     CHECK(e[3] == 1);
   }
-   
+
   SECTION("log2") {
     CHECK(d.log2() == 4);
     CHECK((biogeosim::dist_t(0b1, 1).log2()) == 1);
@@ -169,6 +169,7 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.left);
     CHECK(sp.right);
     CHECK(sp.left != sp.right);
+    CHECK((sp.left.popcount() == 1 || sp.right.popcount() == 1));
     CHECK((sp.left | sp.right) == init_dist);
     CHECK((sp.left & sp.right).popcount() == 0);
   }
@@ -187,6 +188,7 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.left);
     CHECK(sp.right);
     CHECK(sp.left != sp.right);
+    CHECK((sp.left.popcount() == 1 || sp.right.popcount() == 1));
     CHECK((sp.left | sp.right) == init_dist);
     CHECK((sp.left & sp.right).popcount()
           == std::min(sp.left.popcount(), sp.right.popcount()));
