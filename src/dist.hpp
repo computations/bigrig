@@ -240,20 +240,19 @@ split_t split_dist(dist_t                                  init_dist,
 
   dist_t       left_dist(init_dist.regions()), right_dist(init_dist.regions());
   split_type_e split_type = split_type_e::allopatric;
-  std::uniform_int_distribution<uint64_t> mask_gen(
-      1, (1ul << init_dist.regions()) - 1);
+  std::uniform_int_distribution<size_t> child_dist(0, init_dist.regions());
 
   do {
-    dist_t mask{mask_gen(gen), init_dist.regions()};
-    left_dist  = mask & init_dist;
-    right_dist = (~mask) & init_dist;
+    dist_t child{(1ul << child_dist(gen)), init_dist.regions()};
+    left_dist  = child & init_dist;
+    right_dist = (~child) & init_dist;
   } while (!(left_dist) || !(right_dist));
 
   std::bernoulli_distribution coin(1.0 - model.splitting_prob());
 
   if (coin(gen)) {
     LOG_DEBUG("%s", "Allopatric Split");
-    left_dist  = left_dist | right_dist;
+    right_dist  = left_dist | right_dist;
     split_type = split_type_e::sympatric;
   }
 
