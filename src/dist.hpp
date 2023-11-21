@@ -15,6 +15,8 @@
 
 namespace biogeosim {
 
+typedef uint64_t dist_base_t;
+
 class dist_t {
 public:
   dist_t() = default;
@@ -172,7 +174,7 @@ transition_t sample(dist_t                                  init_dist,
   });
 }
 
-enum class split_type_e { singleton, allopatric, sympatric };
+enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
 struct split_t {
   dist_t       left;
@@ -196,6 +198,10 @@ struct split_t {
       return "allopatric";
     case split_type_e::sympatric:
       return "sympatric";
+    case split_type_e::jump:
+      return "jump";
+    case split_type_e::invalid:
+      return "invalid";
     }
     throw std::runtime_error{"Did not cover all cases"};
   }
@@ -219,6 +225,11 @@ generate_samples(dist_t                                  init_dist,
   }
 }
 
+split_type_e determine_split_type(dist_t init_dist,
+                                  dist_t left_dist,
+                                  dist_t right_dist,
+                                  bool   jumps_ok);
+
 /*
  * There are three types of splitting:
  *  - Singleton
@@ -228,36 +239,51 @@ generate_samples(dist_t                                  init_dist,
  *  and they shouldn't be used in user facing descriptions, as they are very
  *  misleading. Regions are large enough that both Allopatry and Sympatry can
  *  occur, but the idea maps well, so I use it internally.
+ *
+ *  In additoin, Metzke introduced a jump parameter, making it +J. We optionally
+ *  support this option.
  */
 split_t split_dist(dist_t                                  init_dist,
                    const substitution_model_t             &model,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
-  if (init_dist.popcount() == 1) {
+  if (!model.jumps_ok() && init_dist.popcount() == 1) {
     LOG_DEBUG("Splitting a singleton: %lb", static_cast<uint64_t>(init_dist));
     return {init_dist, init_dist, split_type_e::singleton};
   }
+  auto max_dist = (1ul << init_dist.regions()) - 1;
+  std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
 
-  dist_t       left_dist(init_dist.regions()), right_dist(init_dist.regions());
-  split_type_e split_type = split_type_e::allopatric;
-  std::uniform_int_distribution<size_t> child_dist(0, init_dist.regions());
+  std::bernoulli_distribution sympatry_coin(
+      model.cladogenesis_params().sympatry);
 
-  do {
-    dist_t child{(1ul << child_dist(gen)), init_dist.regions()};
-    left_dist  = child & init_dist;
-    right_dist = (~child) & init_dist;
-  } while (!(left_dist) || !(right_dist));
+  std::bernoulli_distribution allopatry_coin(
+      model.cladogenesis_params().allopatry);
 
-  std::bernoulli_distribution coin(1.0 - model.splitting_prob());
+  std::bernoulli_distribution copy_coin(model.cladogenesis_params().copy);
 
-  if (coin(gen)) {
-    LOG_DEBUG("%s", "Allopatric Split");
-    right_dist  = left_dist | right_dist;
-    split_type = split_type_e::sympatric;
+  std::bernoulli_distribution jump_coin(model.cladogenesis_params().jump);
+
+  dist_t       left_dist, right_dist;
+  split_type_e split_type;
+
+  while (true) {
+    left_dist  = dist_t{dist_gen(gen), init_dist.regions()};
+    right_dist = dist_t{dist_gen(gen), init_dist.regions()};
+    split_type = determine_split_type(
+        init_dist, left_dist, right_dist, model.jumps_ok());
+
+    if (split_type == split_type_e::invalid) { continue; }
+    if (split_type == split_type_e::sympatric) {
+      if (sympatry_coin(gen)) { break; }
+    } else if (split_type == split_type_e::allopatric) {
+      if (allopatry_coin(gen)) { break; }
+    } else if (split_type == split_type_e::singleton) {
+      if (copy_coin(gen)) { break; }
+    } else if (split_type == split_type_e::jump) {
+      if (jump_coin(gen)) { break; }
+    }
   }
-
-  std::bernoulli_distribution left_or_right(0.5);
-  if (left_or_right(gen)) { std::swap(left_dist, right_dist); }
   return {left_dist, right_dist, split_type};
 }
 
