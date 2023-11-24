@@ -266,8 +266,10 @@ split_t split_dist(dist_t                                  init_dist,
 
   dist_t       left_dist, right_dist;
   split_type_e split_type;
+  size_t sample_count = 0;
 
   while (true) {
+    sample_count++;
     left_dist  = dist_t{dist_gen(gen), init_dist.regions()};
     right_dist = dist_t{dist_gen(gen), init_dist.regions()};
     split_type = determine_split_type(
@@ -284,6 +286,7 @@ split_t split_dist(dist_t                                  init_dist,
       if (jump_coin(gen)) { break; }
     }
   }
+  LOG_DEBUG("Splitting took %lu samples", sample_count);
   return {left_dist, right_dist, split_type};
 }
 
