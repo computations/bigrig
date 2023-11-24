@@ -220,16 +220,25 @@ TEST_CASE("splitting", "[sample]") {
   }
 
   SECTION("benchmark") {
-    biogeosim::dist_t init_dist = {0b1110, regions};
-    model.set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
+    SECTION("generate") {
+      biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
+                                             biogeosim::dist_t{0b1010, regions},
+                                             biogeosim::dist_t{0b1111, regions},
+                                             biogeosim::dist_t{0b11'1100, 6},
+                                             biogeosim::dist_t{0b11'0000, 6},
+                                             biogeosim::dist_t{0b11'1111, 6});
+      model.set_cladogenesis_params(1.0, 1.0, 1.0, 0.0);
 
-    BENCHMARK("split_dist") {
-      return biogeosim::split_dist(init_dist, model, gen);
-    };
+      BENCHMARK("split_dist: " + init_dist.to_str()) {
+        return biogeosim::split_dist(init_dist, model, gen);
+      };
+    }
 
-    init_dist = {0b1000, regions};
-    BENCHMARK("split_dist singleton") {
-      return biogeosim::split_dist(init_dist, model, gen);
-    };
+    SECTION("singletons") {
+      biogeosim::dist_t init_dist{0b1000, regions};
+      BENCHMARK("split_dist singleton") {
+        return biogeosim::split_dist(init_dist, model, gen);
+      };
+    }
   }
 }
