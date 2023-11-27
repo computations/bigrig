@@ -1,9 +1,12 @@
 #pragma once
+
 #include <cstdint>
 #include <utility>
 #include <vector>
 
 namespace biogeosim {
+
+class dist_t;
 
 struct rate_params_t {
   double dis;
@@ -23,23 +26,18 @@ public:
 
   substitution_model_t(double d, double e, size_t r)
       : _rate_params{.dis = d, .ext = e},
-        _clad_params{1.0, 1.0, 1.0, 0.0},
+        _clad_params{
+            .copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 0.0},
         _region_count{r} {}
 
   /**
    * Returns the pair (e,d) for a simple 2 parameter dec model.
    */
-  rate_params_t rates() const { return _rate_params; }
+  inline rate_params_t rates() const { return _rate_params; }
 
-  size_t region_count() const { return _region_count; }
+  inline size_t region_count() const { return _region_count; }
 
-  double compute_denominator(size_t active_regions) const {
-    if (active_regions == 1) [[unlikely]] {
-      return (region_count() - active_regions) * _rate_params.dis;
-    }
-    return active_regions * _rate_params.ext
-         + (region_count() - active_regions) * _rate_params.dis;
-  }
+  double compute_denominator(size_t active_regions) const;
 
   substitution_model_t &set_params(rate_params_t p) {
     _rate_params = p;
@@ -67,17 +65,17 @@ public:
 
   cladogenesis_params_t cladogenesis_params() const { return _clad_params; }
 
-  cladogenesis_params_t normalized_cladogenesis_params() const {
-    auto   tmp         = _clad_params;
-    double denominator = tmp.copy + tmp.sympatry + tmp.allopatry + tmp.jump;
+  cladogenesis_params_t normalized_cladogenesis_params() const;
 
-    tmp.copy      /= denominator;
-    tmp.sympatry  /= denominator;
-    tmp.allopatry /= denominator;
-    tmp.jump      /= denominator;
+  size_t jump_count(const dist_t &dist) const;
+  size_t allopatry_count(const dist_t &dist) const;
+  size_t sympatry_count(const dist_t &dist) const;
+  size_t copy_count(const dist_t &dist) const;
 
-    return _clad_params;
-  }
+  double jump_weight(const dist_t &dist) const;
+  double allopatry_weight(const dist_t &dist) const;
+  double sympatry_weight(const dist_t &dist) const;
+  double copy_weight(const dist_t &dist) const;
 
   uint64_t valid_mask() const {
     uint64_t mask = 0;
@@ -90,6 +88,8 @@ public:
 private:
   rate_params_t         _rate_params;
   cladogenesis_params_t _clad_params;
+
+  bool _duplicity = true;
 
   size_t _region_count;
 };

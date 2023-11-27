@@ -26,6 +26,12 @@ dist_t &dist_t::operator|=(const dist_t &d) {
   return *this;
 }
 
+std::string dist_t::to_str() const {
+  std::ostringstream oss;
+  oss << *this;
+  return oss.str();
+}
+
 uint64_t valid_region_mask(size_t region_count) {
   uint64_t mask = 0;
   for (size_t i = 0; i < region_count; ++i) { mask |= 1ul << i; }
@@ -68,4 +74,31 @@ split_type_e determine_split_type(dist_t init_dist,
   }
   return split_type_e::invalid;
 }
+
+std::string split_t::to_nhx_string() const {
+  std::ostringstream oss;
+  oss << "left-split=" << left << ":"
+      << "right-split=" << right << ":";
+  oss << "split-type=";
+
+  return oss.str();
+}
+
+std::string split_t::type_string() const {
+  switch (type) {
+  case split_type_e::singleton:
+    return "singleton";
+  case split_type_e::allopatric:
+    return "allopatric";
+  case split_type_e::sympatric:
+    return "sympatric";
+  case split_type_e::jump:
+    return "jump";
+  case split_type_e::invalid:
+    return "invalid";
+  }
+  throw std::runtime_error{"Did not cover all cases"};
+}
+
+
 } // namespace biogeosim

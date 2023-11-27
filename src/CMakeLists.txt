@@ -1,5 +1,6 @@
 add_library(biogeosim_obj OBJECT
     dist.cpp
+    model.cpp
     util.cpp
     node.cpp
     tree.cpp

@@ -56,51 +56,49 @@ public:
 
   inline constexpr uint64_t operator[](size_t i) const { return bextr(i); }
 
-  dist_t operator^(dist_t d) const {
+  inline dist_t operator^(dist_t d) const {
     return {_dist ^ d._dist, std::max(_regions, d._regions)};
   }
-  dist_t operator|(dist_t d) const {
+
+  inline dist_t operator|(dist_t d) const {
     return {_dist | d._dist, std::max(_regions, d._regions)};
   }
-  dist_t operator&(dist_t d) const {
+
+  inline dist_t operator&(dist_t d) const {
     return {_dist & d._dist, std::max(_regions, d._regions)};
   }
 
-  explicit operator uint64_t() const { return _dist; }
+  inline explicit operator uint64_t() const { return _dist; }
 
-  dist_t operator&(uint64_t d) const { return {_dist & d, _regions}; }
-  dist_t operator~() const { return {~_dist, _regions}; }
+  inline dist_t operator&(uint64_t d) const { return {_dist & d, _regions}; }
+  inline dist_t operator~() const { return {~_dist, _regions}; }
 
-  bool operator==(dist_t d) const {
+  inline bool operator==(dist_t d) const {
     return d._dist == _dist && _regions == d._regions;
   }
 
-  bool operator!=(dist_t d) const { return !(d == *this); }
+  inline bool operator!=(dist_t d) const { return !(d == *this); }
 
-  dist_t negate_bit(size_t index) const {
+  inline dist_t negate_bit(size_t index) const {
     return {_dist ^ (1ull << index), _regions};
   }
 
-  dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
+  inline dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
 
-  explicit operator bool() const { return static_cast<bool>(_dist); }
+  inline explicit operator bool() const { return static_cast<bool>(_dist); }
 
-  size_t index(size_t max_areas) const {
+  inline size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
     return _dist - skips;
   }
 
-  dist_t next_dist(uint32_t n) const {
+  inline dist_t next_dist(uint32_t n) const {
     auto d = *this + 1;
     while (d.popcount() > n) { d = d + 1; }
     return d;
   }
 
-  std::string to_str() const {
-    std::ostringstream oss;
-    oss << *this;
-    return oss.str();
-  }
+  std::string to_str() const;
 
   friend std::ostream &operator<<(std::ostream &os, dist_t dist) {
     for (size_t i = dist._regions; i; --i) { os << dist.bextr(i - 1); }
@@ -181,30 +179,8 @@ struct split_t {
   dist_t       right;
   split_type_e type;
 
-  std::string to_nhx_string() {
-    std::ostringstream oss;
-    oss << "left-split=" << left << ":"
-        << "right-split=" << right << ":";
-    oss << "split-type=";
-
-    return oss.str();
-  }
-
-  std::string type_string() const {
-    switch (type) {
-    case split_type_e::singleton:
-      return "singleton";
-    case split_type_e::allopatric:
-      return "allopatric";
-    case split_type_e::sympatric:
-      return "sympatric";
-    case split_type_e::jump:
-      return "jump";
-    case split_type_e::invalid:
-      return "invalid";
-    }
-    throw std::runtime_error{"Did not cover all cases"};
-  }
+  std::string to_nhx_string() const;
+  std::string type_string() const;
 };
 
 std::vector<transition_t>
@@ -266,7 +242,7 @@ split_t split_dist(dist_t                                  init_dist,
 
   dist_t       left_dist, right_dist;
   split_type_e split_type;
-  size_t sample_count = 0;
+  size_t       sample_count = 0;
 
   while (true) {
     sample_count++;
