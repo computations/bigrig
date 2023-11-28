@@ -78,7 +78,7 @@ TEST_CASE("sample", "[sample]") {
 
   constexpr double brlen = 1.0;
 
-  biogeosim::substitution_model_t model(dis, ext, regions);
+  biogeosim::substitution_model_t model(dis, ext, regions, true);
   biogeosim::dist_t               init_dist = {0b0101, regions};
 
   pcg64_fast gen(Catch::getSeed());
@@ -115,7 +115,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   double mu    = 1 / (average_rate);
   double sigma = mu * mu;
 
-  biogeosim::substitution_model_t model(dis, ext, regions);
+  biogeosim::substitution_model_t model(dis, ext, regions, true);
 
   double brlen = GENERATE(0.5, 1.0, 1.5);
   INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen
@@ -149,7 +149,8 @@ TEST_CASE("splitting", "[sample]") {
   biogeosim::substitution_model_t model;
   model.set_params(1.0, 1.0)
       .set_cladogenesis_params(1.0, 1.0, 1.0, 0.0)
-      .set_region_count(4);
+      .set_region_count(4)
+      .set_two_region_duplicity(true);
 
   SECTION("singleton") {
     biogeosim::dist_t init_dist = {0b1000, regions};

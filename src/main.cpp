@@ -54,6 +54,9 @@ int main() {
         cli_options.output_format_type = output_format_type_e::YAML;
       },
       "Output results in YAML, where possible");
+  app.add_flag("--two-region-duplicity",
+               cli_options.two_region_duplicity,
+               "Allow for outcome duplicity in the case of 2 region splits");
 
   CLI11_PARSE(app);
 
@@ -75,10 +78,10 @@ int main() {
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
-  biogeosim::substitution_model_t model(
-      cli_options.dispersion_rate,
-      cli_options.extinction_rate,
-      cli_options.root_distribution.regions());
+  biogeosim::substitution_model_t model(cli_options.dispersion_rate,
+                                        cli_options.extinction_rate,
+                                        cli_options.root_distribution.regions(),
+                                        cli_options.two_region_duplicity);
 
   tree.sample(cli_options.root_distribution, model, gen);
 

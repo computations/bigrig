@@ -24,10 +24,11 @@ class substitution_model_t {
 public:
   substitution_model_t() = default;
 
-  substitution_model_t(double d, double e, size_t r)
+  substitution_model_t(double d, double e, size_t r, bool duplicity)
       : _rate_params{.dis = d, .ext = e},
         _clad_params{
             .copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 0.0},
+        _duplicity{duplicity},
         _region_count{r} {}
 
   /**
@@ -60,6 +61,11 @@ public:
     _clad_params.allopatry = v;
     _clad_params.jump      = j;
 
+    return *this;
+  }
+
+  substitution_model_t &set_two_region_duplicity(bool d) {
+    _duplicity = d;
     return *this;
   }
 

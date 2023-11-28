@@ -32,6 +32,7 @@ struct cli_options_t {
   double                               dispersion_rate;
   double                               extinction_rate;
   bool                                 redo;
+  bool                                 two_region_duplicity;
 
   std::filesystem::path phylip_filename() const {
     auto tmp  = prefix.value();
@@ -83,6 +84,9 @@ struct cli_options_t {
       MESSAGE_WARNING(
           "Output format specified in both the config file and on the command "
           "line. Using the specification from the config file.");
+    }
+    if (yaml["two-region-duplicity"]) {
+      two_region_duplicity = yaml["two-region-duplicity"].as<bool>();
     }
     root_distribution = yaml["root-dist"].as<std::string>();
     dispersion_rate   = yaml["dispersion"].as<double>();

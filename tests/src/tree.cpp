@@ -23,7 +23,7 @@ TEST_CASE("tree sample", "[tree]") {
 
   const std::string tree_str = "((a:1,b:1),c:1);";
 
-  biogeosim::substitution_model_t model(dis, ext, regions);
+  biogeosim::substitution_model_t model(dis, ext, regions, true);
   biogeosim::dist_t               init_dist = {0b0101, regions};
 
   biogeosim::tree_t tree(tree_str);
