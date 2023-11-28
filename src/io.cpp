@@ -1,6 +1,7 @@
 #include "io.hpp"
 
 #include "clioptions.hpp"
+#include "logger.hpp"
 
 #include <filesystem>
 #include <format>
@@ -10,7 +11,7 @@ void write_header(const cli_options_t &cli_options) {
   LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
   LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
   LOG_INFO("   Root Distribution: %s",
-           cli_options.root_distribution.to_str().c_str());
+           cli_options.root_distribution.value().to_str().c_str());
 }
 
 std::string to_phylip(const biogeosim::tree_t              &tree,
@@ -103,22 +104,33 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
   ok &= validate_tree_filename(cli_options.tree_filename.value());
   ok &= validate_prefix(cli_options.prefix.value());
 
-  if (cli_options.root_distribution.regions() > 64) {
+  if (!cli_options.root_distribution.has_value()) {
+    MESSAGE_ERROR("The root distribution was not provided. Please provide a "
+                  "value for the root distribution");
+    ok = false;
+  } else if (cli_options.root_distribution.value().regions() > 64) {
     LOG_ERROR("Simulating with %u regions is unsupported. Please choose a "
               "number less than or equal to 64",
-              cli_options.root_distribution.regions());
+              cli_options.root_distribution.value().regions());
     ok = false;
   }
-  if (cli_options.dispersion_rate < 0) {
+  if (!cli_options.dispersion_rate.has_value()) {
+    MESSAGE_ERROR("Dispersion rate was not set. Please provide a value for "
+                  "the dispersion rate");
+    ok = false;
+  } else if (cli_options.dispersion_rate.value() < 0) {
     LOG_ERROR("Simulating with dispersion rate = %f is not valid, please pick "
               "a positive number",
-              cli_options.dispersion_rate);
+              cli_options.dispersion_rate.value());
     ok = false;
   }
-  if (cli_options.extinction_rate < 0) {
+  if (!cli_options.extinction_rate.has_value()) {
+    MESSAGE_ERROR("Extinction rate was not set. Please provide a value for "
+                  "the extinction rate");
+  } else if (cli_options.extinction_rate.value() < 0) {
     LOG_ERROR("Simulating with dispersion rate = %f is not valid, please pick "
               "a positive number",
-              cli_options.extinction_rate);
+              cli_options.extinction_rate.value());
     ok = false;
   }
 
@@ -131,7 +143,7 @@ verify_config_file(const std::filesystem::path &config_filename) {
     LOG_ERROR("The config file %s does not exist", config_filename.c_str());
     ok = false;
   } else if (!verify_is_readable(config_filename)) {
-    LOG_ERROR("We dont' have the permissions to read the config file %s",
+    LOG_ERROR("We don't have the permissions to read the config file %s",
               config_filename.c_str());
     ok = false;
   }
@@ -341,15 +353,10 @@ bool validate_options(cli_options_t &cli_options) {
     try {
       auto cli_options_tmp
           = parse_yaml_options(cli_options.config_filename.value());
-      cli_options_tmp.redo            = cli_options.redo;
-      cli_options_tmp.config_filename = cli_options.config_filename;
-      if (!cli_options_tmp.output_format_type.has_value()) {
-        cli_options_tmp.output_format_type = cli_options.output_format_type;
-      }
-      std::swap(cli_options, cli_options_tmp);
+      cli_options.merge(cli_options_tmp);
     } catch (const YAML::Exception &e) {
       LOG_ERROR("Failed to parse the config file: %s", e.what());
-      return 1;
+      return false;
     }
 
     LOG_INFO("tree: %s", cli_options.tree_filename.value().c_str());
@@ -365,14 +372,14 @@ bool validate_options(cli_options_t &cli_options) {
   if (!validate_cli_options(cli_options)) {
     MESSAGE_ERROR(
         "We can't continue with the current options, exiting instead");
-    return 1;
+    return false;
   }
 
   if (!check_existing_results(cli_options)) {
-    if (!cli_options.redo) {
+    if (!cli_options.redo.value()) {
       MESSAGE_ERROR("Refusing to run with existing results. Please specify the "
                     "--redo option if you want to overwrite existig results");
-      return 1;
+      return false;
     }
   }
   return ok;

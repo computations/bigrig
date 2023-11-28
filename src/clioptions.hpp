@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <yaml-cpp/exceptions.h>
 #include <yaml-cpp/yaml.h>
@@ -22,17 +23,23 @@ constexpr auto JSON_EXT   = ".json";
 
 enum class output_format_type_e { JSON, YAML };
 
+class cli_option_missing_required_yaml_option : std::invalid_argument {
+public:
+  cli_option_missing_required_yaml_option(const std::string &msg)
+      : std::invalid_argument{msg} {}
+};
+
 struct cli_options_t {
   std::optional<std::filesystem::path> config_filename;
   std::optional<std::filesystem::path> tree_filename;
   std::optional<std::filesystem::path> prefix;
   std::optional<bool>                  debug_log;
   std::optional<output_format_type_e>  output_format_type;
-  biogeosim::dist_t                    root_distribution;
-  double                               dispersion_rate;
-  double                               extinction_rate;
-  bool                                 redo;
-  bool                                 two_region_duplicity;
+  std::optional<biogeosim::dist_t>     root_distribution;
+  std::optional<double>                dispersion_rate;
+  std::optional<double>                extinction_rate;
+  std::optional<bool>                  redo;
+  std::optional<bool>                  two_region_duplicity;
 
   std::filesystem::path phylip_filename() const {
     auto tmp  = prefix.value();
@@ -67,6 +74,35 @@ struct cli_options_t {
         && output_format_type.value() == output_format_type_e::JSON;
   }
 
+  void merge(const cli_options_t &other) {
+    if (other.config_filename.has_value()) {
+      config_filename = other.config_filename;
+    }
+    if (other.tree_filename.has_value()) {
+      tree_filename = other.tree_filename;
+    }
+    if (other.debug_log.has_value()) { debug_log = other.debug_log; }
+    if (other.output_format_type.has_value()) {
+      output_format_type = other.output_format_type;
+    }
+    if (other.output_format_type.has_value()) {
+      output_format_type = other.output_format_type;
+    }
+    if (other.root_distribution.has_value()) {
+      root_distribution = other.root_distribution;
+    }
+    if (other.dispersion_rate.has_value()) {
+      dispersion_rate = other.dispersion_rate;
+    }
+    if (other.extinction_rate.has_value()) {
+      extinction_rate = other.extinction_rate;
+    }
+    if (other.redo.has_value()) { redo = other.redo; }
+    if (other.two_region_duplicity.has_value()) {
+      two_region_duplicity = other.two_region_duplicity;
+    }
+  }
+
   cli_options_t() = default;
   cli_options_t(const YAML::Node &yaml) {
     tree_filename = yaml["tree"].as<std::string>();
@@ -88,8 +124,14 @@ struct cli_options_t {
     if (yaml["two-region-duplicity"]) {
       two_region_duplicity = yaml["two-region-duplicity"].as<bool>();
     }
-    root_distribution = yaml["root-dist"].as<std::string>();
-    dispersion_rate   = yaml["dispersion"].as<double>();
-    extinction_rate   = yaml["extinction"].as<double>();
+    if (yaml["root-dist"]) {
+      root_distribution = yaml["root-dist"].as<std::string>();
+    }
+    if (yaml["dispersion"]) {
+      dispersion_rate = yaml["dispersion"].as<double>();
+    }
+    if (yaml["extinction"]) {
+      extinction_rate = yaml["extinction"].as<double>();
+    }
   }
 };

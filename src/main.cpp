@@ -78,12 +78,13 @@ int main() {
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
-  biogeosim::substitution_model_t model(cli_options.dispersion_rate,
-                                        cli_options.extinction_rate,
-                                        cli_options.root_distribution.regions(),
-                                        cli_options.two_region_duplicity);
+  biogeosim::substitution_model_t model(
+      cli_options.dispersion_rate.value(),
+      cli_options.extinction_rate.value(),
+      cli_options.root_distribution.value().regions(),
+      cli_options.two_region_duplicity.value_or(true));
 
-  tree.sample(cli_options.root_distribution, model, gen);
+  tree.sample(cli_options.root_distribution.value(), model, gen);
 
   write_output_files(cli_options, tree, model);
 
