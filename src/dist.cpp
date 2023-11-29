@@ -1,4 +1,5 @@
 #include "dist.hpp"
+#include "split.hpp"
 
 #include <stdexcept>
 

@@ -1,6 +1,7 @@
 add_executable(biogeosim_test
   dist.cpp
   tree.cpp
+  split.cpp
 )
 
 target_link_libraries(biogeosim_test PRIVATE biogeosim_obj Catch2 Catch2WithMain)
