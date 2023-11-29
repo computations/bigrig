@@ -13,6 +13,10 @@
 #include <string>
 #include <vector>
 
+#if __BMI2__
+#include <x86intrin.h>
+#endif
+
 namespace biogeosim {
 
 typedef uint64_t dist_base_t;
@@ -38,6 +42,10 @@ public:
   inline constexpr size_t popcount() const {
     return static_cast<size_t>(__builtin_popcountll(_dist));
   }
+
+  inline constexpr size_t unpopcount() const { return regions() - popcount(); }
+
+  inline constexpr bool full() const { return regions() == popcount(); }
 
   inline constexpr size_t clz() const {
     return static_cast<size_t>(__builtin_clzll(_dist));
@@ -70,7 +78,9 @@ public:
 
   inline explicit operator uint64_t() const { return _dist; }
 
-  constexpr inline dist_t operator&(uint64_t d) const { return {_dist & d, _regions}; }
+  constexpr inline dist_t operator&(uint64_t d) const {
+    return {_dist & d, _regions};
+  }
   constexpr inline dist_t operator~() const { return {~_dist, _regions}; }
 
   constexpr inline bool operator==(dist_t d) const {
@@ -83,9 +93,13 @@ public:
     return {_dist ^ (1ull << index), _regions};
   }
 
-  constexpr inline dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
+  constexpr inline dist_t operator+(uint64_t d) const {
+    return {_dist + d, _regions};
+  }
 
-  constexpr inline explicit operator bool() const { return static_cast<bool>(_dist); }
+  constexpr inline explicit operator bool() const {
+    return static_cast<bool>(_dist);
+  }
 
   inline size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
@@ -93,9 +107,26 @@ public:
   }
 
   inline size_t set_index(size_t index) const {
-    uint64_t mask         = (1ul << (index + 1)) - 1;
-    auto     negated_bits = ((~(*this)) & mask).popcount();
-    return index + negated_bits;
+#if __BMI2__
+    return __builtin_ctz(_pdep_u64(_dist, index));
+#else
+    for (size_t i = 0; i <= index && index != regions(); ++i) {
+      if (!bextr(i)) { index++; }
+    }
+    return index;
+#endif
+  }
+
+  inline size_t unset_index(size_t index) const {
+#if __BMI2__
+    uint64_t mask = (1ul << regions()) - 1;
+    return __builtin_ctz(_pdep_u64(~_dist & mask, index));
+#else
+    for (size_t i = 0; i <= index && index != regions(); ++i) {
+      if (bextr(i)) { index++; }
+    }
+    return index;
+#endif
   }
 
   inline dist_t next_dist(uint32_t n) const {

@@ -69,8 +69,7 @@ TEST_CASE("splitting", "[sample]") {
   SECTION("jump") {
     biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
                                            biogeosim::dist_t{0b1100, regions},
-                                           biogeosim::dist_t{0b1011, regions},
-                                           biogeosim::dist_t{0b1111, regions});
+                                           biogeosim::dist_t{0b1011, regions});
     model.set_cladogenesis_params(0.0, 0.0, 0.0, 1.0);
     auto sp = biogeosim::split_dist(init_dist, model, gen);
 

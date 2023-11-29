@@ -1,5 +1,7 @@
 #include "dist.hpp"
 
+#include <random>
+
 namespace biogeosim {
 enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
@@ -30,10 +32,32 @@ generate_samples(dist_t                                  init_dist,
   }
 }
 
-split_type_e determine_split_type(dist_t init_dist,
-                                  dist_t left_dist,
-                                  dist_t right_dist,
-                                  bool   jumps_ok);
+split_type_e roll_split_type(dist_t                                  init_dist,
+                             const substitution_model_t             &model,
+                             std::uniform_random_bit_generator auto &gen) {
+  double allo_weight = model.allopatry_weight(init_dist);
+  double sym_weight  = model.sympatry_weight(init_dist);
+  double jump_weight = model.jump_weight(init_dist);
+
+  double sum = allo_weight + sym_weight + jump_weight;
+
+  allo_weight /= sum;
+  sym_weight  /= sum;
+  jump_weight /= sum;
+
+  double roll = std::uniform_real_distribution<double>()(gen);
+
+  const std::array<const std::pair<double, split_type_e>, 3> options{
+      std::pair{allo_weight, split_type_e::allopatric},
+      std::pair{sym_weight, split_type_e::sympatric},
+      std::pair{jump_weight, split_type_e::jump}};
+
+  for (auto o : options) {
+    if (roll <= o.first) { return o.second; }
+    roll -= o.first;
+  }
+  return split_type_e::invalid;
+}
 
 /*
  * There are three types of splitting:
@@ -45,12 +69,54 @@ split_type_e determine_split_type(dist_t init_dist,
  *  misleading. Regions are large enough that both Allopatry and Sympatry can
  *  occur, but the idea maps well, so I use it internally.
  *
- *  In additoin, Metzke introduced a jump parameter, making it +J. We optionally
+ *  In additoin, Matzke introduced a jump parameter, making it +J. We optionally
  *  support this option.
  */
 split_t split_dist(dist_t                                  init_dist,
                    const substitution_model_t             &model,
                    std::uniform_random_bit_generator auto &gen) {
+  // Singleton case
+  if (!model.jumps_ok() && init_dist.popcount() == 1) {
+    LOG_DEBUG("Splitting a singleton: %lb", static_cast<uint64_t>(init_dist));
+    return {init_dist, init_dist, split_type_e::singleton};
+  }
+
+  auto   type      = roll_split_type(init_dist, model, gen);
+  size_t max_index = type == split_type_e::jump ? init_dist.unpopcount()
+                                                : init_dist.popcount();
+  size_t flipped_index
+      = std::uniform_int_distribution<size_t>(0, max_index - 1)(gen);
+
+
+  if (type == split_type_e::jump) {
+    flipped_index = init_dist.unset_index(flipped_index);
+  } else {
+    flipped_index = init_dist.set_index(flipped_index);
+  }
+
+  dist_t left_dist{init_dist};
+  dist_t right_dist;
+
+  if (type == split_type_e::allopatric) {
+    left_dist = init_dist.negate_bit(flipped_index);
+  }
+  right_dist = {1ul << flipped_index, init_dist.regions()};
+
+  std::bernoulli_distribution coin(0.5);
+  if (coin(gen)) { std::swap(left_dist, right_dist); }
+
+  return {left_dist, right_dist, type};
+}
+
+split_type_e determine_split_type(dist_t init_dist,
+                                  dist_t left_dist,
+                                  dist_t right_dist,
+                                  bool   jumps_ok);
+
+split_t
+split_dist_rejection_method(dist_t                                  init_dist,
+                            const substitution_model_t             &model,
+                            std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (!model.jumps_ok() && init_dist.popcount() == 1) {
     LOG_DEBUG("Splitting a singleton: %lb", static_cast<uint64_t>(init_dist));
