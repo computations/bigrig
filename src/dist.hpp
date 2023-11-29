@@ -23,17 +23,17 @@ public:
 
   dist_t(const std::string &);
 
-  dist_t(const dist_t &) = default;
-  dist_t(dist_t &&)      = default;
+  constexpr dist_t(const dist_t &) = default;
+  constexpr dist_t(dist_t &&)      = default;
 
-  dist_t &operator=(const dist_t &) = default;
-  dist_t &operator=(dist_t &&)      = default;
+  constexpr dist_t &operator=(const dist_t &) = default;
+  constexpr dist_t &operator=(dist_t &&)      = default;
 
   dist_t &operator|=(const dist_t &d);
 
-  dist_t(uint64_t d, uint16_t s) : _dist{d}, _regions{s} {}
+  constexpr dist_t(uint64_t d, uint16_t s) : _dist{d}, _regions{s} {}
 
-  explicit dist_t(uint16_t r) : _dist{0}, _regions{r} {}
+  constexpr explicit dist_t(uint16_t r) : _dist{0}, _regions{r} {}
 
   inline constexpr size_t popcount() const {
     return static_cast<size_t>(__builtin_popcountll(_dist));
@@ -56,40 +56,46 @@ public:
 
   inline constexpr uint64_t operator[](size_t i) const { return bextr(i); }
 
-  inline dist_t operator^(dist_t d) const {
+  constexpr inline dist_t operator^(dist_t d) const {
     return {_dist ^ d._dist, std::max(_regions, d._regions)};
   }
 
-  inline dist_t operator|(dist_t d) const {
+  constexpr inline dist_t operator|(dist_t d) const {
     return {_dist | d._dist, std::max(_regions, d._regions)};
   }
 
-  inline dist_t operator&(dist_t d) const {
+  constexpr inline dist_t operator&(dist_t d) const {
     return {_dist & d._dist, std::max(_regions, d._regions)};
   }
 
   inline explicit operator uint64_t() const { return _dist; }
 
-  inline dist_t operator&(uint64_t d) const { return {_dist & d, _regions}; }
-  inline dist_t operator~() const { return {~_dist, _regions}; }
+  constexpr inline dist_t operator&(uint64_t d) const { return {_dist & d, _regions}; }
+  constexpr inline dist_t operator~() const { return {~_dist, _regions}; }
 
-  inline bool operator==(dist_t d) const {
+  constexpr inline bool operator==(dist_t d) const {
     return d._dist == _dist && _regions == d._regions;
   }
 
-  inline bool operator!=(dist_t d) const { return !(d == *this); }
+  constexpr inline bool operator!=(dist_t d) const { return !(d == *this); }
 
-  inline dist_t negate_bit(size_t index) const {
+  constexpr inline dist_t negate_bit(size_t index) const {
     return {_dist ^ (1ull << index), _regions};
   }
 
-  inline dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
+  constexpr inline dist_t operator+(uint64_t d) const { return {_dist + d, _regions}; }
 
-  inline explicit operator bool() const { return static_cast<bool>(_dist); }
+  constexpr inline explicit operator bool() const { return static_cast<bool>(_dist); }
 
   inline size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
     return _dist - skips;
+  }
+
+  inline size_t set_index(size_t index) const {
+    uint64_t mask         = (1ul << (index + 1)) - 1;
+    auto     negated_bits = ((~(*this)) & mask).popcount();
+    return index + negated_bits;
   }
 
   inline dist_t next_dist(uint32_t n) const {
@@ -171,6 +177,5 @@ transition_t sample(dist_t                                  init_dist,
     return a.waiting_time < b.waiting_time;
   });
 }
-
 
 } // namespace biogeosim
