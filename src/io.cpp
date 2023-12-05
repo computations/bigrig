@@ -230,7 +230,8 @@ void write_yaml_file(std::ostream &os, const biogeosim::tree_t &tree) {
     yaml << YAML::Key << "left" << YAML::Value << n->node_split().left.to_str();
     yaml << YAML::Key << "right" << YAML::Value
          << n->node_split().right.to_str();
-    yaml << YAML::Key << "type" << YAML::Value << n->node_split().type_string();
+    yaml << YAML::Key << "type" << YAML::Value
+         << n->node_split().to_type_string();
     yaml << YAML::EndMap;
   }
 
@@ -282,7 +283,7 @@ void write_json_file(std::ostream &os, const biogeosim::tree_t &tree) {
     j["splits"][std::to_string(n->node_id())] = {
         {"left", split.left.to_str()},
         {"right", split.right.to_str()},
-        {"type", split.type_string()},
+        {"type", split.to_type_string()},
     };
   }
 

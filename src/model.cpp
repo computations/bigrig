@@ -15,7 +15,7 @@ double substitution_model_t::compute_denominator(size_t active_regions) const {
 cladogenesis_params_t
 substitution_model_t::normalized_cladogenesis_params() const {
   auto   tmp         = _clad_params;
-  double denominator = tmp.copy + tmp.sympatry + tmp.allopatry + tmp.jump;
+  double denominator = _clad_params.sum();
 
   tmp.copy      /= denominator;
   tmp.sympatry  /= denominator;
@@ -38,7 +38,7 @@ size_t substitution_model_t::sympatry_count(const dist_t &dist) const {
 }
 
 size_t substitution_model_t::copy_count(const dist_t &dist) const {
-  return dist.popcount() == 1;
+  return (dist.popcount() == 1) * (2 * _duplicity);
 }
 
 double substitution_model_t::jump_weight(const dist_t &dist) const {

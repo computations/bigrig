@@ -115,51 +115,43 @@ TEST_CASE("regression") {
   pcg64_fast       gen(Catch::getSeed());
   constexpr size_t iters = 1e5;
 
-  biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1110, regions},
+  auto keys = {biogeosim::split_type_e::jump,
+               biogeosim::split_type_e::sympatric,
+               biogeosim::split_type_e::allopatric,
+               biogeosim::split_type_e::singleton,
+               biogeosim::split_type_e::invalid};
+
+  biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b1000, regions},
+                                         biogeosim::dist_t{0b1110, regions},
                                          biogeosim::dist_t{0b1100, regions},
                                          biogeosim::dist_t{0b1011, regions},
                                          biogeosim::dist_t{0b1111, regions});
+  biogeosim::cladogenesis_params_t params
+      = GENERATE(biogeosim::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
+                 biogeosim::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0});
 
   biogeosim::substitution_model_t model;
   model.set_params(1.0, 1.0).set_region_count(4).set_two_region_duplicity(true);
   INFO("init dist:" << init_dist);
+  INFO("model params: " << params.to_debug_string());
 
-  SECTION("No jumps") {
-    model.set_cladogenesis_params(1.0, 1.0, 1.0, 0.0);
-    std::unordered_map<biogeosim::split_type_e, size_t>
-        regression_split_type_counts;
-    std::unordered_map<biogeosim::split_type_e, size_t> split_type_counts;
-    for (size_t i = 0; i < iters; ++i) {
-      auto rej_res
-          = biogeosim::split_dist_rejection_method(init_dist, model, gen);
-      regression_split_type_counts[rej_res.type] += 1;
+  model.set_cladogenesis_params(params);
+  std::unordered_map<biogeosim::split_type_e, size_t>
+      regression_split_type_counts;
+  std::unordered_map<biogeosim::split_type_e, size_t> split_type_counts;
+  for (size_t i = 0; i < iters; ++i) {
+    auto rej_res
+        = biogeosim::split_dist_rejection_method(init_dist, model, gen);
+    regression_split_type_counts[rej_res.type] += 1;
 
-      auto new_res = biogeosim::split_dist(init_dist, model, gen);
-      split_type_counts[new_res.type] += 1;
-    }
-    for (const auto &kv : regression_split_type_counts) {
-      double reg_val = static_cast<double>(kv.second) / iters;
-      double new_val = static_cast<double>(split_type_counts[kv.first]) / iters;
-      CHECK_THAT(reg_val - new_val, Catch::Matchers::WithinAbs(0.0, 0.01));
-    }
+    auto new_res = biogeosim::split_dist(init_dist, model, gen);
+    split_type_counts[new_res.type] += 1;
   }
-  SECTION("Jumps") {
-    model.set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
-    std::unordered_map<biogeosim::split_type_e, size_t>
-        regression_split_type_counts;
-    std::unordered_map<biogeosim::split_type_e, size_t> split_type_counts;
-    for (size_t i = 0; i < iters; ++i) {
-      auto rej_res
-          = biogeosim::split_dist_rejection_method(init_dist, model, gen);
-      regression_split_type_counts[rej_res.type] += 1;
-
-      auto new_res = biogeosim::split_dist(init_dist, model, gen);
-      split_type_counts[new_res.type] += 1;
-    }
-    for (const auto &kv : regression_split_type_counts) {
-      double reg_val = static_cast<double>(kv.second) / iters;
-      double new_val = static_cast<double>(split_type_counts[kv.first]) / iters;
-      CHECK(reg_val == new_val);
-    }
+  for (const auto &key : keys) {
+    double reg_val
+        = static_cast<double>(regression_split_type_counts[key]) / iters;
+    double new_val = static_cast<double>(split_type_counts[key]) / iters;
+    INFO("clado type: " << biogeosim::type_string(key));
+    CHECK_THAT(reg_val, Catch::Matchers::WithinAbs(new_val, 0.01));
   }
 }

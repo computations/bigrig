@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -13,12 +15,83 @@ struct rate_params_t {
   double ext;
 };
 
+/**
+ * This data structure is a bit wacky. It really is just an array with named
+ * elements (which the compiler is aware of. Sometimes I want to perform
+ * operations on this as if it was an array. So, there are some WACKY functions
+ * which basically cast the structure to an array, and iterate over the array to
+ * compute a sum. Similarly, we use the same technique to normalize the
+ * parameters.
+ */
 struct cladogenesis_params_t {
-  double copy;
-  double sympatry;
-  double allopatry;
-  double jump;
+  using data_type = double;
+
+  data_type copy;
+  data_type sympatry;
+  data_type allopatry;
+  data_type jump;
+
+  static constexpr size_t size() {
+    static_assert(sizeof(cladogenesis_params_t) % sizeof(data_type) == 0,
+                  "something is fucked");
+    return sizeof(cladogenesis_params_t) / sizeof(data_type);
+  }
+
+  data_type sum() const {
+    auto   start = as_ptr();
+    double acc   = 0;
+    for (size_t i = 0; i < size(); ++i) { acc += start[i]; }
+    return acc;
+  }
+
+  cladogenesis_params_t normalize() const {
+    cladogenesis_params_t tmp{*this};
+
+    tmp.normalize(sum());
+    return tmp;
+  }
+
+  std::string to_debug_string() const {
+    std::ostringstream oss;
+    oss << "copy: " << copy << ", sympatry: " << sympatry
+        << ", allopatry: " << allopatry << ", jump: " << jump;
+    return oss.str();
+  }
+
+private:
+  using array_type       = data_type *;
+  using const_array_type = data_type const *;
+
+  const_array_type as_ptr() const {
+    return reinterpret_cast<const_array_type>(this);
+  }
+
+  array_type as_ptr() { return reinterpret_cast<array_type>(this); }
+
+  void normalize(data_type d) {
+    auto start = as_ptr();
+    for (size_t i = 0; i < size(); ++i) { start[i] /= d; }
+  }
 };
+
+/* Assert that the fields are in the right order */
+static_assert(offsetof(cladogenesis_params_t, copy)
+                  / sizeof(cladogenesis_params_t::data_type)
+              == 0);
+static_assert(offsetof(cladogenesis_params_t, sympatry)
+                  / sizeof(cladogenesis_params_t::data_type)
+              == 1);
+static_assert(offsetof(cladogenesis_params_t, allopatry)
+                  / sizeof(cladogenesis_params_t::data_type)
+              == 2);
+static_assert(offsetof(cladogenesis_params_t, jump)
+                  / sizeof(cladogenesis_params_t::data_type)
+              == 3);
+
+/* Check that jump is the last field */
+static_assert(offsetof(cladogenesis_params_t, jump)
+                  + sizeof(cladogenesis_params_t::data_type)
+              == sizeof(cladogenesis_params_t));
 
 class substitution_model_t {
 public:
@@ -60,6 +133,13 @@ public:
     _clad_params.sympatry  = s;
     _clad_params.allopatry = v;
     _clad_params.jump      = j;
+
+    return *this;
+  }
+
+  substitution_model_t &
+  set_cladogenesis_params(const cladogenesis_params_t &p) {
+    _clad_params = p;
 
     return *this;
   }

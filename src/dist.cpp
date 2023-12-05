@@ -48,17 +48,12 @@ bool valid_dist(dist_t d, size_t regions) {
   return !static_cast<uint64_t>(d & (~mask));
 }
 
-split_type_e determine_split_type(dist_t init_dist,
-                                  dist_t left_dist,
-                                  dist_t right_dist,
-                                  bool   jumps_ok) {
-  // Jump case
-  if (jumps_ok && (((left_dist | right_dist) ^ init_dist).popcount() == 1)
-      && !(left_dist & right_dist)
-      && (left_dist.popcount() == 1 || right_dist.popcount() == 1)) {
-    return split_type_e::jump;
+split_type_e
+determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
+  if (left_dist.popcount() > right_dist.popcount()) {
+    std::swap(left_dist, right_dist);
   }
-  // other cases
+
   if ((left_dist | right_dist) == init_dist) {
     if (left_dist == right_dist && left_dist.popcount() == 1) {
       return split_type_e::singleton;
@@ -72,34 +67,12 @@ split_type_e determine_split_type(dist_t init_dist,
     if ((left_dist & right_dist).popcount() == 0) {
       return split_type_e::allopatric;
     }
+  } else if (left_dist.popcount() == 1 && right_dist == init_dist
+             && (left_dist | init_dist).popcount()
+                    == init_dist.popcount() + 1) {
+    return split_type_e::jump;
   }
   return split_type_e::invalid;
 }
-
-std::string split_t::to_nhx_string() const {
-  std::ostringstream oss;
-  oss << "left-split=" << left << ":"
-      << "right-split=" << right << ":";
-  oss << "split-type=";
-
-  return oss.str();
-}
-
-std::string split_t::type_string() const {
-  switch (type) {
-  case split_type_e::singleton:
-    return "singleton";
-  case split_type_e::allopatric:
-    return "allopatric";
-  case split_type_e::sympatric:
-    return "sympatric";
-  case split_type_e::jump:
-    return "jump";
-  case split_type_e::invalid:
-    return "invalid";
-  }
-  throw std::runtime_error{"Did not cover all cases"};
-}
-
 
 } // namespace biogeosim
