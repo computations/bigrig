@@ -5,13 +5,15 @@
 namespace biogeosim {
 enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
+std::string type_string(const split_type_e &st);
+
 struct split_t {
   dist_t       left;
   dist_t       right;
   split_type_e type;
 
   std::string to_nhx_string() const;
-  std::string type_string() const;
+  std::string to_type_string() const;
 };
 
 std::vector<transition_t>
@@ -35,6 +37,18 @@ generate_samples(dist_t                                  init_dist,
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const substitution_model_t             &model,
                              std::uniform_random_bit_generator auto &gen) {
+  if (init_dist.popcount() == 1) {
+    double copy_weight = model.copy_weight(init_dist);
+    double jump_weight = model.jump_weight(init_dist);
+
+    double sum = copy_weight + jump_weight;
+
+    jump_weight /= sum;
+
+    std::bernoulli_distribution jump_coin(jump_weight);
+    if (jump_coin(gen)) { return split_type_e::jump; }
+    return split_type_e::singleton;
+  }
   double allo_weight = model.allopatry_weight(init_dist);
   double sym_weight  = model.sympatry_weight(init_dist);
   double jump_weight = model.jump_weight(init_dist);
@@ -81,12 +95,16 @@ split_t split_dist(dist_t                                  init_dist,
     return {init_dist, init_dist, split_type_e::singleton};
   }
 
-  auto   type      = roll_split_type(init_dist, model, gen);
+  auto type = roll_split_type(init_dist, model, gen);
+
+  if (type == split_type_e::singleton) {
+    return {init_dist, init_dist, split_type_e::singleton};
+  }
+
   size_t max_index = type == split_type_e::jump ? init_dist.unpopcount()
                                                 : init_dist.popcount();
   size_t flipped_index
       = std::uniform_int_distribution<size_t>(0, max_index - 1)(gen);
-
 
   if (type == split_type_e::jump) {
     flipped_index = init_dist.unset_index(flipped_index);
@@ -108,10 +126,8 @@ split_t split_dist(dist_t                                  init_dist,
   return {left_dist, right_dist, type};
 }
 
-split_type_e determine_split_type(dist_t init_dist,
-                                  dist_t left_dist,
-                                  dist_t right_dist,
-                                  bool   jumps_ok);
+split_type_e
+determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist);
 
 split_t
 split_dist_rejection_method(dist_t                                  init_dist,
@@ -143,8 +159,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
     sample_count++;
     left_dist  = dist_t{dist_gen(gen), init_dist.regions()};
     right_dist = dist_t{dist_gen(gen), init_dist.regions()};
-    split_type = determine_split_type(
-        init_dist, left_dist, right_dist, model.jumps_ok());
+    split_type = determine_split_type(init_dist, left_dist, right_dist);
 
     if (split_type == split_type_e::invalid) { continue; }
     if (split_type == split_type_e::sympatric) {

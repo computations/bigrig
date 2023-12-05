@@ -4,6 +4,7 @@ add_library(biogeosim_obj OBJECT
     util.cpp
     node.cpp
     tree.cpp
+    split.cpp
 )
 
 add_library(biogeosim_interface_obj OBJECT
