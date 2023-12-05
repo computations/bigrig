@@ -37,8 +37,8 @@ public:
   void sample(dist_t                                  initial_distribution,
               const substitution_model_t             &model,
               std::uniform_random_bit_generator auto &gen) {
-    LOG_DEBUG("Node sampling with initial_distribution = %lb",
-              static_cast<uint64_t>(initial_distribution));
+    LOG_DEBUG("Node sampling with initial_distribution = %s",
+              initial_distribution.to_str().c_str());
     _transitions = generate_samples(initial_distribution, _brlen, model, gen);
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;

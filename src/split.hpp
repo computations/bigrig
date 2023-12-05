@@ -26,9 +26,9 @@ generate_samples(dist_t                                  init_dist,
     auto r  = sample(init_dist, model, gen);
     brlen  -= r.waiting_time;
     if (brlen < 0.0) { return results; }
-    LOG_DEBUG("adding transition from %lb to %lb",
-              static_cast<uint64_t>(r.initial_state),
-              static_cast<uint64_t>(r.final_state));
+    LOG_DEBUG("adding transition from %s to %s",
+              r.initial_state.to_str().c_str(),
+              r.final_state.to_str().c_str());
     init_dist = r.final_state;
     results.push_back(r);
   }
@@ -91,7 +91,7 @@ split_t split_dist(dist_t                                  init_dist,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (!model.jumps_ok() && init_dist.popcount() == 1) {
-    LOG_DEBUG("Splitting a singleton: %lb", static_cast<uint64_t>(init_dist));
+    LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
     return {init_dist, init_dist, split_type_e::singleton};
   }
 
@@ -135,7 +135,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
                             std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (!model.jumps_ok() && init_dist.popcount() == 1) {
-    LOG_DEBUG("Splitting a singleton: %lb", static_cast<uint64_t>(init_dist));
+    LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
     return {init_dist, init_dist, split_type_e::singleton};
   }
   auto max_dist = (1ul << init_dist.regions()) - 1;

@@ -81,6 +81,8 @@ TEST_CASE("tree sample", "[tree]") {
 
   biogeosim::substitution_model_t model(dis, ext, regions, true);
   biogeosim::dist_t               init_dist = {0b0101, regions};
+  model.set_cladogenesis_params(
+      {.copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 1.0});
 
   biogeosim::tree_t tree(tree_str);
 
