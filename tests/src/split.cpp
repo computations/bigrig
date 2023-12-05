@@ -128,7 +128,10 @@ TEST_CASE("regression") {
                                          biogeosim::dist_t{0b1111, regions});
   biogeosim::cladogenesis_params_t params
       = GENERATE(biogeosim::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
-                 biogeosim::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0});
+                 biogeosim::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
+                 biogeosim::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
+                 biogeosim::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
+                 biogeosim::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
   biogeosim::substitution_model_t model;
   model.set_params(1.0, 1.0).set_region_count(4).set_two_region_duplicity(true);

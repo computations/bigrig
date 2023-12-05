@@ -141,15 +141,15 @@ split_dist_rejection_method(dist_t                                  init_dist,
   auto max_dist = (1ul << init_dist.regions()) - 1;
   std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
 
-  std::bernoulli_distribution sympatry_coin(
-      model.cladogenesis_params().sympatry);
+  auto model_params = model.cladogenesis_params().normalize();
 
-  std::bernoulli_distribution allopatry_coin(
-      model.cladogenesis_params().allopatry);
+  std::bernoulli_distribution sympatry_coin(model_params.sympatry);
 
-  std::bernoulli_distribution copy_coin(model.cladogenesis_params().copy);
+  std::bernoulli_distribution allopatry_coin(model_params.allopatry);
 
-  std::bernoulli_distribution jump_coin(model.cladogenesis_params().jump);
+  std::bernoulli_distribution copy_coin(model_params.copy);
+
+  std::bernoulli_distribution jump_coin(model_params.jump);
 
   dist_t       left_dist, right_dist;
   split_type_e split_type;
