@@ -359,8 +359,6 @@ bool validate_options(cli_options_t &cli_options) {
       LOG_ERROR("Failed to parse the config file: %s", e.what());
       return false;
     }
-
-    LOG_INFO("tree: %s", cli_options.tree_filename.value().c_str());
   }
 
   if (!cli_options.prefix.has_value() || cli_options.prefix.value().empty()) {
