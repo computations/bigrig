@@ -73,6 +73,7 @@ int main() {
             | logger::log_level::debug);
   }
 
+  MESSAGE_INFO("Parsing tree");
   auto tree = biogeosim::tree_t(cli_options.tree_filename.value());
 
   pcg_extras::seed_seq_from<std::random_device> seed_source;
@@ -84,9 +85,12 @@ int main() {
       cli_options.root_distribution.value().regions(),
       cli_options.two_region_duplicity.value_or(true));
 
+  MESSAGE_INFO("Sampling from tree")
   tree.sample(cli_options.root_distribution.value(), model, gen);
 
+  MESSAGE_INFO("Writing results to files")
   write_output_files(cli_options, tree, model);
 
+  MESSAGE_INFO("Done!")
   return 0;
 }
