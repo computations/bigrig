@@ -2,6 +2,8 @@
 
 #include <random>
 
+constexpr size_t VECTOR_INITIAL_RESERVE = 10;
+
 namespace biogeosim {
 enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
@@ -22,6 +24,7 @@ generate_samples(dist_t                                  init_dist,
                  const substitution_model_t             &model,
                  std::uniform_random_bit_generator auto &gen) {
   std::vector<transition_t> results;
+  results.reserve(VECTOR_INITIAL_RESERVE);
   while (true) {
     auto r  = sample(init_dist, model, gen);
     brlen  -= r.waiting_time;
@@ -32,6 +35,7 @@ generate_samples(dist_t                                  init_dist,
     init_dist = r.final_state;
     results.push_back(r);
   }
+  return results;
 }
 
 split_type_e roll_split_type(dist_t                                  init_dist,
