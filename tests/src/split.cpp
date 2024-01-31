@@ -110,10 +110,28 @@ TEST_CASE("splitting", "[sample]") {
   }
 }
 
+/*
+ * Test the fast, optimized version against a "dumb" but accurate version. The
+ * parameter for abs_tol is a compromise between getting results and accuracy.
+ * The `GENERATE` expressions will try the following code with each of the
+ * listed parameters. So, this code | init_dist X params | = 25 times.
+ * In addition, there are 4 checks each.
+ */
 TEST_CASE("regression") {
   constexpr size_t regions = 4;
   pcg64_fast       gen(Catch::getSeed());
-  constexpr size_t iters = 1e5;
+
+#if D_RIGOROUS
+  /* These values for iters and abs_tol ensure with 99.999% confidence that
+   * error is less than 0.0001 */
+  constexpr size_t iters   = 487'791'396;
+  constexpr double abs_tol = 1.0e-4;
+#else
+  /* These values for iters and abs_tol ensure with 99.999% confidence that error
+   * is less than 0.01 */
+  constexpr size_t iters   = 48'780;
+  constexpr double abs_tol = 1.0e-2;
+#endif
 
   auto keys = {biogeosim::split_type_e::jump,
                biogeosim::split_type_e::sympatric,
@@ -155,6 +173,6 @@ TEST_CASE("regression") {
         = static_cast<double>(regression_split_type_counts[key]) / iters;
     double new_val = static_cast<double>(split_type_counts[key]) / iters;
     INFO("clado type: " << biogeosim::type_string(key));
-    CHECK_THAT(reg_val, Catch::Matchers::WithinAbs(new_val, 0.01));
+    CHECK_THAT(reg_val, Catch::Matchers::WithinAbs(new_val, abs_tol));
   }
 }

@@ -91,7 +91,18 @@ TEST_CASE("sample", "[sample]") {
 
 TEST_CASE("stats for sample", "[sample][stats]") {
   constexpr size_t regions = 4;
-  constexpr size_t iters   = 1e4;
+  constexpr double expected_t = 4.0;
+
+#if D_RIGOROUS
+  /* 99.999% confidence that error is less than 0.001 */
+  constexpr size_t iters   = 1'886'084'219;
+  constexpr double abs_tol = 1.0e-4;
+#else
+  /* 99.999% confidence that error is less than 0.01 */
+  constexpr size_t iters   = 188'609;
+  constexpr double abs_tol = 1.0e-2;
+#endif
+
 
   pcg64 gen(Catch::getSeed());
 
@@ -136,7 +147,6 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   INFO("mean: " << mean << " mu: " << mu << " std: " << std
                 << " sigma: " << sigma);
 
-  // CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0.0, 0.01));
-  // CHECK_THAT(std, Catch::Matchers::WithinAbs(sigma, 0.01));
   CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 4));
+  CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0, abs_tol));
 }
