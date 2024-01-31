@@ -85,7 +85,7 @@ public:
     if (_children.size() == 0 || all) {
       // os << string_id() << " " << _final_state << "\n";
       auto tmp_name = string_id();
-      os << tmp_name ;
+      os << tmp_name;
       if (pad_to != 0) {
         if (pad_to < tmp_name.size()) {
           throw std::runtime_error{"invalid padding, will overflow"};
@@ -124,12 +124,16 @@ public:
     return next;
   }
 
-  size_t get_string_id_len_max() { return get_string_id_len_max(0); }
+  size_t get_string_id_len_max(bool all) {
+    return get_string_id_len_max(0, all);
+  }
 
-  size_t get_string_id_len_max(size_t max) {
-    size_t label_size = string_id().size();
-    max               = std::max(label_size, max);
-    for (const auto &c : _children) { max = c->get_string_id_len_max(max); }
+  size_t get_string_id_len_max(size_t max, bool all) {
+    if (is_leaf() || all) {
+      size_t label_size = string_id().size();
+      max               = std::max(label_size, max);
+    }
+    for (const auto &c : _children) { max = c->get_string_id_len_max(max, all); }
     return max;
   }
 
