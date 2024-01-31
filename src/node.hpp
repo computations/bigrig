@@ -77,10 +77,25 @@ public:
     return to_newick(os, cb);
   }
 
-  std::ostream &to_phylip_line(std::ostream &os, bool all = false) const {
-    for (const auto &child : _children) { child->to_phylip_line(os, all); }
+  std::ostream &
+  to_phylip_line(std::ostream &os, size_t pad_to = 0, bool all = false) const {
+    for (const auto &child : _children) {
+      child->to_phylip_line(os, pad_to, all);
+    }
     if (_children.size() == 0 || all) {
-      os << string_id() << " " << _final_state << "\n";
+      // os << string_id() << " " << _final_state << "\n";
+      auto tmp_name = string_id();
+      os << tmp_name ;
+      if (pad_to != 0) {
+        if (pad_to < tmp_name.size()) {
+          throw std::runtime_error{"invalid padding, will overflow"};
+        }
+        pad_to -= tmp_name.size();
+      }
+
+      for (size_t i = 0; i < pad_to; ++i) { os << " "; }
+
+      os << _final_state << "\n";
     }
     return os;
   }
@@ -107,6 +122,15 @@ public:
     _node_id = next++;
     for (const auto &c : _children) { next = c->assign_id(next); }
     return next;
+  }
+
+  size_t get_string_id_len_max() { return get_string_id_len_max(0); }
+
+  size_t get_string_id_len_max(size_t max) {
+    size_t label_size = string_id().size();
+    max               = std::max(label_size, max);
+    for (const auto &c : _children) { max = c->get_string_id_len_max(max); }
+    return max;
   }
 
   std::string label() const { return _label; }

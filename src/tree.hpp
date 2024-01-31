@@ -71,7 +71,8 @@ public:
   }
 
   std::ostream &to_phylip_body(std::ostream &os, bool all = false) const {
-    _tree->to_phylip_line(os, all);
+    size_t padding = _tree->get_string_id_len_max() + 1;
+    _tree->to_phylip_line(os, padding, all);
     return os;
   }
 
