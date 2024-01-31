@@ -17,3 +17,7 @@ target_include_directories(biogeosim_test PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/in
 
 target_compile_definitions(biogeosim_test PRIVATE
   "D_RIGOROUS=$<BOOL:${RIGOROUS_TESTS}>")
+
+catch_discover_tests(biogeosim_test
+  EXTRA_ARGS --skip-benchmarks
+)
