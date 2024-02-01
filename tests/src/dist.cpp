@@ -113,7 +113,6 @@ TEST_CASE("stats for sample", "[sample][stats]") {
                                          biogeosim::dist_t{0b0100, regions},
                                          biogeosim::dist_t{0b1000, regions},
                                          biogeosim::dist_t{0b1010, regions},
-                                         biogeosim::dist_t{0b1010, regions},
                                          biogeosim::dist_t{0b1110, regions},
                                          biogeosim::dist_t{0b1111, regions});
 
