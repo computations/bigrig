@@ -117,7 +117,7 @@ TEST_CASE("splitting", "[sample]") {
  * listed parameters. So, this code | init_dist X params | = 25 times.
  * In addition, there are 4 checks each.
  */
-TEST_CASE("regression") {
+TEST_CASE("split regression") {
   constexpr size_t regions = 4;
   pcg64_fast       gen(Catch::getSeed());
 

@@ -152,3 +152,49 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   CHECK_THAT(t, Catch::Matchers::WithinAbs(0, 4));
   CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0, abs_tol));
 }
+
+TEST_CASE("sample regression") {
+  constexpr size_t regions    = 4;
+
+#if D_RIGOROUS
+  /* These values for iters and abs_tol ensure with 99.999% confidence that
+   * error is less than 0.0001 */
+  constexpr size_t iters   = 487'791'396;
+  constexpr double abs_tol = 1.0e-4;
+#else
+  /* These values for iters and abs_tol ensure with 99.999% confidence that
+   * error is less than 0.01 */
+  constexpr size_t iters   = 48'780;
+  constexpr double abs_tol = 1.0e-2;
+#endif
+
+  pcg64                           gen(Catch::getSeed());
+
+  biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b0001, regions},
+                                         biogeosim::dist_t{0b0100, regions},
+                                         biogeosim::dist_t{0b1010, regions},
+                                         biogeosim::dist_t{0b1110, regions},
+                                         biogeosim::dist_t{0b1111, regions});
+
+  double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
+  double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
+
+  double brlen = GENERATE(0.5, 1.0, 1.5);
+
+  biogeosim::substitution_model_t model(dis, ext, regions, true);
+
+  double rej_total = 0;
+  double ana_total = 0;
+
+  for (size_t i = 0; i < iters; ++i) {
+    auto rej_res  = biogeosim::sample_rejection(init_dist, model, gen);
+    rej_total    += rej_res.waiting_time;
+    auto ana_res  = biogeosim::sample_analytic(init_dist, model, gen);
+    ana_total    += ana_res.waiting_time;
+  }
+
+  double rej_mean = rej_total / iters;
+  double ana_mean = ana_total / iters;
+
+  CHECK_THAT(rej_mean - ana_mean, Catch::Matchers::WithinAbs(0, abs_tol));
+}
