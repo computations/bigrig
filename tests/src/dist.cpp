@@ -74,8 +74,6 @@ TEST_CASE("sample", "[sample]") {
   constexpr double dis = 1.0;
   constexpr double ext = 1.0;
 
-  constexpr double brlen = 1.0;
-
   uint16_t regions = GENERATE(4, 8, 16, 32);
 
   biogeosim::substitution_model_t model(dis, ext, regions, true);
@@ -128,9 +126,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
 
   biogeosim::substitution_model_t model(dis, ext, regions, true);
 
-  double brlen = GENERATE(0.5, 1.0, 1.5);
-  INFO("dis: " << dis << " ext: " << ext << " brlen: " << brlen
-               << " dist: " << init_dist);
+  INFO("dis: " << dis << " ext: " << ext << " dist: " << init_dist);
 
   double sum   = 0;
   double sumsq = 0;
@@ -153,7 +149,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
 }
 
 TEST_CASE("sample regression") {
-  constexpr size_t regions    = 4;
+  constexpr size_t regions = 4;
 
 #if D_RIGOROUS
   /* These values for iters and abs_tol ensure with 99.999% confidence that
@@ -167,7 +163,7 @@ TEST_CASE("sample regression") {
   constexpr double abs_tol = 1.0e-2;
 #endif
 
-  pcg64                           gen(Catch::getSeed());
+  pcg64 gen(Catch::getSeed());
 
   biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b0001, regions},
                                          biogeosim::dist_t{0b0100, regions},
@@ -177,8 +173,6 @@ TEST_CASE("sample regression") {
 
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
-
-  double brlen = GENERATE(0.5, 1.0, 1.5);
 
   biogeosim::substitution_model_t model(dis, ext, regions, true);
 
