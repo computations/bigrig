@@ -109,6 +109,12 @@ TEST_CASE("tree sample", "[tree]") {
 
   pcg64_fast gen(Catch::getSeed());
 
+  tree.sample(init_dist, model, gen);
+
+  for(const auto& n: tree){
+    CHECK((bool)n->final_state());
+  }
+
   BENCHMARK("sample: " + std::to_string(tree.leaf_count())) {
     tree.sample(init_dist, model, gen);
   };

@@ -133,7 +133,9 @@ public:
       size_t label_size = string_id().size();
       max               = std::max(label_size, max);
     }
-    for (const auto &c : _children) { max = c->get_string_id_len_max(max, all); }
+    for (const auto &c : _children) {
+      max = c->get_string_id_len_max(max, all);
+    }
     return max;
   }
 

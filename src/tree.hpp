@@ -8,6 +8,7 @@
 #include <corax/corax.hpp>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stack>
 #include <stdexcept>
@@ -43,6 +44,13 @@ public:
     LOG_DEBUG("Starting sample with init dist = %lb",
               static_cast<uint64_t>(initial_distribution));
     _tree->sample(initial_distribution, model, gen);
+  }
+
+  std::optional<dist_t> get_dist_by_string_id(const std::string &key) const {
+    for (const auto &n : *this) {
+      if (n->string_id() == key) { return n->final_state(); }
+    }
+    return {};
   }
 
   std::string to_newick() const {
