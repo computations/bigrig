@@ -71,11 +71,12 @@ TEST_CASE("dist operations", "[dist]") {
 }
 
 TEST_CASE("sample", "[sample]") {
-  constexpr size_t regions = 4;
-  constexpr double dis     = 1.0;
-  constexpr double ext     = 1.0;
+  constexpr double dis = 1.0;
+  constexpr double ext = 1.0;
 
   constexpr double brlen = 1.0;
+
+  uint16_t regions = GENERATE(4, 8, 16, 32);
 
   biogeosim::substitution_model_t model(dis, ext, regions, true);
   biogeosim::dist_t               init_dist = {0b0101, regions};
@@ -86,7 +87,9 @@ TEST_CASE("sample", "[sample]") {
   CHECK(t.initial_state == init_dist);
   CHECK(t.initial_state != t.final_state);
 
-  BENCHMARK("sample") { return biogeosim::sample(init_dist, model, gen); };
+  BENCHMARK("sample " + std::to_string(regions) + " regions") {
+    return biogeosim::sample(init_dist, model, gen);
+  };
 }
 
 TEST_CASE("stats for sample", "[sample][stats]") {
