@@ -110,10 +110,13 @@ public:
 #if __BMI2__
     return __builtin_ctz(_pdep_u64(_dist, index));
 #else
-    for (size_t i = 0; i <= index && index != regions(); ++i) {
-      if (!bextr(i)) { index++; }
+    size_t tmp_index = 0;
+    while (true) {
+      if (index == 0 && (*this)[tmp_index] == 1) { break; }
+      if ((*this)[tmp_index] == 1) { index -= 1; }
+      tmp_index++;
     }
-    return index;
+    return tmp_index;
 #endif
   }
 
@@ -122,10 +125,13 @@ public:
     uint64_t mask = (1ul << regions()) - 1;
     return __builtin_ctz(_pdep_u64(~_dist & mask, index));
 #else
-    for (size_t i = 0; i <= index && index != regions(); ++i) {
-      if (bextr(i)) { index++; }
+    size_t tmp_index = 0;
+    while (true) {
+      if (index == 0 && (*this)[tmp_index] == 0) { break; }
+      if ((*this)[tmp_index] == 0) { index -= 1; }
+      tmp_index++;
     }
-    return index;
+    return tmp_index;
 #endif
   }
 
@@ -189,6 +195,12 @@ public:
 transition_t sample(dist_t                                  init_dist,
                     const substitution_model_t             &model,
                     std::uniform_random_bit_generator auto &gen) {
+  return sample_analytic(init_dist, model, gen);
+}
+
+transition_t sample_rejection(dist_t                                  init_dist,
+                              const substitution_model_t             &model,
+                              std::uniform_random_bit_generator auto &gen) {
   auto [d, e] = model.rates();
 
   bool singleton = init_dist.popcount() == 1;
@@ -204,9 +216,46 @@ transition_t sample(dist_t                                  init_dist,
     rolls[i] = transition_t{waiting_time, init_dist, init_dist.negate_bit(i)};
   }
 
-  return *std::min_element(rolls.begin(), rolls.end(), [](auto a, auto b) {
-    return a.waiting_time < b.waiting_time;
-  });
+  auto min_ele
+      = *std::min_element(rolls.begin(), rolls.end(), [](auto a, auto b) {
+          return a.waiting_time < b.waiting_time;
+        });
+  LOG_DEBUG("waiting time: %f", min_ele.waiting_time);
+  return min_ele;
+}
+
+transition_t sample_analytic(dist_t                                  init_dist,
+                             const substitution_model_t             &model,
+                             std::uniform_random_bit_generator auto &gen) {
+  auto [dispersion_rate, extinction_rate] = model.rates();
+
+  bool singleton = init_dist.popcount() == 1;
+
+  double dispersion_weight = dispersion_rate * init_dist.unpopcount();
+  double extinction_weight = extinction_rate * init_dist.popcount();
+  double waiting_time_parameter
+      = dispersion_weight + (singleton ? 0.0 : extinction_weight);
+
+  std::exponential_distribution<double> wait_time_distribution(
+      waiting_time_parameter);
+
+  double waiting_time = wait_time_distribution(gen);
+
+  std::bernoulli_distribution type_coin(dispersion_weight
+                                        / (waiting_time_parameter));
+
+  size_t negate_index = 0;
+  if (type_coin(gen)) {
+    std::uniform_int_distribution<> index_picker(0, init_dist.unpopcount());
+    negate_index = init_dist.unset_index(index_picker(gen));
+  } else {
+    std::uniform_int_distribution<> index_picker(0, init_dist.popcount());
+    negate_index = init_dist.set_index(index_picker(gen));
+  }
+
+  LOG_DEBUG("waiting time: %f", waiting_time);
+
+  return {waiting_time, init_dist, init_dist.negate_bit(negate_index)};
 }
 
 } // namespace biogeosim

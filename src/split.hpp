@@ -74,6 +74,13 @@ split_type_e roll_split_type(dist_t                                  init_dist,
     if (roll <= o.first) { return o.second; }
     roll -= o.first;
   }
+
+  LOG_ERROR("Rolled an invalid split. roll: %f, allo_weight: %f, sym_weight: "
+            "%f, jump_weight: %f",
+            roll,
+            allo_weight,
+            sym_weight,
+            jump_weight);
   return split_type_e::invalid;
 }
 

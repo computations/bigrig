@@ -90,7 +90,7 @@ TEST_CASE("sample", "[sample]") {
 }
 
 TEST_CASE("stats for sample", "[sample][stats]") {
-  constexpr size_t regions = 4;
+  constexpr size_t regions    = 4;
   constexpr double expected_t = 4.0;
 
 #if D_RIGOROUS
@@ -102,7 +102,6 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   constexpr size_t iters   = 188'609;
   constexpr double abs_tol = 1.0e-2;
 #endif
-
 
   pcg64 gen(Catch::getSeed());
 
@@ -118,7 +117,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
 
-  double average_rate = dis * (regions - init_dist.popcount());
+  double average_rate = dis * init_dist.unpopcount();
 
   if (init_dist.popcount() > 1) { average_rate += ext * init_dist.popcount(); }
 
