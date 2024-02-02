@@ -34,4 +34,9 @@ constexpr inline auto combinations(uint64_t n, uint64_t i) -> size_t {
   return factorial(n) / (factorial(i) * factorial(n - i));
 }
 
+constexpr auto PHYILP_EXT = ".phy";
+constexpr auto NEWICK_EXT = ".nwk";
+constexpr auto YAML_EXT   = ".yaml";
+constexpr auto JSON_EXT   = ".json";
+
 } // namespace biogeosim::util

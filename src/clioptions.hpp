@@ -1,5 +1,6 @@
 #pragma once
 #include "dist.hpp"
+#include "util.hpp"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -16,11 +17,9 @@
 #include <yaml-cpp/exceptions.h>
 #include <yaml-cpp/yaml.h>
 
-constexpr auto PHYILP_EXT = ".phy";
-constexpr auto NEWICK_EXT = ".nwk";
-constexpr auto YAML_EXT   = ".yaml";
-constexpr auto JSON_EXT   = ".json";
-
+/**
+ * Type-safe enum for the output file format.
+ */
 enum class output_format_type_e { JSON, YAML };
 
 class cli_option_missing_required_yaml_option : std::invalid_argument {
@@ -29,109 +28,92 @@ public:
       : std::invalid_argument{msg} {}
 };
 
+/**
+ * Semi-smart struct containing the parsed program options. Normally these are
+ * passed on the command line, but they can also be provided via a config file.
+ * Includes some logic relating to merging CLI and file options.
+ *
+ * Many of the member variables are wrapped in a `std::optional`. This is
+ * because CLI11, the cli parsing library, infers that a switch is optional
+ * based on the type. In order to support both a CLI interface as well as a
+ * config file, we need to allow for all of the CLI options to be optional.
+ *
+ * Its possible that we could do this via some other method with CLI11, but
+ * honestly it's easier to handle the merging logic myself, rather than fight
+ * with CLI11.
+ */
 struct cli_options_t {
+  /**
+   * Path to file containing config.
+   */
   std::optional<std::filesystem::path> config_filename;
+
+  /**
+   * Path to a file containing a newick tree which will be used for simulations.
+   */
   std::optional<std::filesystem::path> tree_filename;
+
+  /**
+   * Prefix used for output files. If its not specified on the CLI, it will be
+   * instead be the tree filename.
+   */
   std::optional<std::filesystem::path> prefix;
-  std::optional<bool>                  debug_log;
-  std::optional<output_format_type_e>  output_format_type;
-  std::optional<biogeosim::dist_t>     root_distribution;
-  std::optional<double>                dispersion_rate;
-  std::optional<double>                extinction_rate;
-  std::optional<bool>                  redo;
-  std::optional<bool>                  two_region_duplicity;
 
-  std::filesystem::path phylip_filename() const {
-    auto tmp  = prefix.value();
-    tmp      += PHYILP_EXT;
-    return tmp;
-  }
+  /**
+   * Flag to enable a debug log, which will be very verbose.
+   */
+  std::optional<bool> debug_log;
 
-  std::filesystem::path yaml_filename() const {
-    auto tmp  = prefix.value();
-    tmp      += YAML_EXT;
-    return tmp;
-  }
+  /**
+   * Output format enum. Right now valid options are
+   * - JSON
+   * - YAML
+   */
+  std::optional<output_format_type_e> output_format_type;
 
-  std::filesystem::path json_filename() const {
-    auto tmp  = prefix.value();
-    tmp      += JSON_EXT;
-    return tmp;
-  }
+  /**
+   * Starting distribution for the simulation.
+   */
+  std::optional<biogeosim::dist_t> root_distribution;
 
-  bool cli_arg_specified() const {
-    return tree_filename.has_value() || prefix.has_value()
-        || debug_log.has_value() || tree_filename.has_value();
-  }
+  /**
+   * Dispersion rate which was provided by the user.
+   */
+  std::optional<double> dispersion_rate;
 
-  bool yaml_file_set() const {
-    return output_format_type.has_value()
-        && output_format_type.value() == output_format_type_e::YAML;
-  }
+  /**
+   * Extinction rate which was provided by the user.
+   */
+  std::optional<double> extinction_rate;
 
-  bool json_file_set() const {
-    return output_format_type.has_value()
-        && output_format_type.value() == output_format_type_e::JSON;
-  }
+  /**
+   * Enable overwriting the exsisting result files.
+   */
+  std::optional<bool> redo;
 
-  void merge(const cli_options_t &other) {
-    if (other.config_filename.has_value()) {
-      config_filename = other.config_filename;
-    }
-    if (other.tree_filename.has_value()) {
-      tree_filename = other.tree_filename;
-    }
-    if (other.debug_log.has_value()) { debug_log = other.debug_log; }
-    if (other.output_format_type.has_value()) {
-      output_format_type = other.output_format_type;
-    }
-    if (other.output_format_type.has_value()) {
-      output_format_type = other.output_format_type;
-    }
-    if (other.root_distribution.has_value()) {
-      root_distribution = other.root_distribution;
-    }
-    if (other.dispersion_rate.has_value()) {
-      dispersion_rate = other.dispersion_rate;
-    }
-    if (other.extinction_rate.has_value()) {
-      extinction_rate = other.extinction_rate;
-    }
-    if (other.redo.has_value()) { redo = other.redo; }
-    if (other.two_region_duplicity.has_value()) {
-      two_region_duplicity = other.two_region_duplicity;
-    }
-  }
+  /**
+   * There is a case that I don't know how to solve, so I decided to offer it as
+   * an option. In the case of 2 regions, there are 2 ways to count the number
+   * of splits. One of them "double counts", because the method of production
+   * produces equivalent results. I didn't quite know what to do, so I decided
+   * to support both ways of counting.
+   */
+  std::optional<bool> two_region_duplicity;
+
+  std::filesystem::path phylip_filename() const;
+
+  std::filesystem::path yaml_filename() const;
+
+  std::filesystem::path json_filename() const;
+
+  bool cli_arg_specified() const;
+
+  bool yaml_file_set() const;
+
+  bool json_file_set() const;
+
+  void merge(const cli_options_t &other);
 
   cli_options_t() = default;
-  cli_options_t(const YAML::Node &yaml) {
-    tree_filename = yaml["tree"].as<std::string>();
-    if (yaml["prefix"]) { prefix = yaml["prefix"].as<std::string>(); }
-    if (yaml["debug-log"]) { debug_log = yaml["debug-log"].as<bool>(); }
-    if (yaml["output-format"]) {
-      if (yaml["output-format"].as<std::string>() == "json") {
-        output_format_type = output_format_type_e::JSON;
-      }
-      if (yaml["output-format"].as<std::string>() == "yaml") {
-        output_format_type = output_format_type_e::YAML;
-      }
-    }
-    if (output_format_type.has_value()) {
-      MESSAGE_WARNING(
-          "Output format specified in both the config file and on the command "
-          "line. Using the specification from the config file.");
-    }
-    if (yaml["two-region-duplicity"]) {
-      two_region_duplicity = yaml["two-region-duplicity"].as<bool>();
-    }
-    if (yaml["root-dist"]) {
-      root_distribution = yaml["root-dist"].as<std::string>();
-    }
-    if (yaml["dispersion"]) {
-      dispersion_rate = yaml["dispersion"].as<double>();
-    }
-    if (yaml["extinction"]) {
-      extinction_rate = yaml["extinction"].as<double>();
-    }
-  }
+  cli_options_t(const YAML::Node &yaml);
 };

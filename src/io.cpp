@@ -332,7 +332,7 @@ void write_output_files(const cli_options_t                   &cli_options,
 
   auto annotated_tree_filename  = cli_options.prefix.value();
   annotated_tree_filename      += ".annotated";
-  annotated_tree_filename      += NEWICK_EXT;
+  annotated_tree_filename      += biogeosim::util::NEWICK_EXT;
   std::ofstream annotated_tree_file(annotated_tree_filename);
   annotated_tree_file << tree.to_newick(cb) << std::endl;
 

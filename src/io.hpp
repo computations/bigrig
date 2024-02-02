@@ -3,6 +3,7 @@
 #include "clioptions.hpp"
 #include "model.hpp"
 #include "tree.hpp"
+#include "util.hpp"
 
 #include <iostream>
 
