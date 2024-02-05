@@ -101,12 +101,12 @@ public:
     return static_cast<bool>(_dist);
   }
 
-  inline size_t index(size_t max_areas) const {
+  constexpr inline size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
     return _dist - skips;
   }
 
-  inline size_t set_index(size_t index) const {
+  constexpr inline size_t set_index(size_t index) const {
 #if __BMI2__
     return __builtin_ctz(_pdep_u64(_dist, index));
 #else
@@ -120,7 +120,7 @@ public:
 #endif
   }
 
-  inline size_t unset_index(size_t index) const {
+  constexpr inline size_t unset_index(size_t index) const {
 #if __BMI2__
     uint64_t mask = (1ul << regions()) - 1;
     return __builtin_ctz(_pdep_u64(~_dist & mask, index));
@@ -135,7 +135,7 @@ public:
 #endif
   }
 
-  inline dist_t next_dist(uint32_t n) const {
+  constexpr inline dist_t next_dist(uint32_t n) const {
     auto d = *this + 1;
     while (d.popcount() > n) { d = d + 1; }
     return d;
@@ -149,11 +149,11 @@ public:
   }
 
 private:
-  constexpr uint64_t bextr(size_t index) const {
+  constexpr inline uint64_t bextr(size_t index) const {
     return (_dist >> index) & 1ull;
   }
 
-  static auto compute_skips_power_of_2(size_t k, size_t n) -> size_t {
+  constexpr static auto compute_skips_power_of_2(size_t k, size_t n) -> size_t {
     size_t skips = 0;
     for (size_t i = n + 1; i < k; ++i) {
       skips += bigrig::util::combinations(k - 1, i);
@@ -161,7 +161,7 @@ private:
     return skips;
   }
 
-  static auto compute_skips(size_t i, size_t n) -> size_t {
+  constexpr static auto compute_skips(size_t i, size_t n) -> size_t {
     constexpr size_t BITS_IN_BYTE = 8;
     size_t           skips        = 0;
     while (i != 0 && n != 0) {
