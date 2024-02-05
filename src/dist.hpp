@@ -73,15 +73,27 @@ public:
    */
   inline constexpr uint16_t regions() const { return _regions; }
 
+  /**
+   * Check if the dist is valid, constrained to a given number of regions, given
+   * by the substitution model.
+   */
   inline bool valid_dist(const substitution_model_t &model) {
     return valid_dist(model.region_count());
   }
 
+  /**
+   * Check if the dist is valid, constrained to a given number of regions.
+   */
   inline bool valid_dist(size_t required_regions) {
     if (required_regions != regions()) { return false; }
     return valid_dist();
   }
 
+  /**
+   * We don't check on dist_t construction if the dist is valid, so we have a
+   * function to let us know if the dist is valid. Here valid means there are
+   * no regions other than the ones allowed.
+   */
   inline bool valid_dist() const {
     auto mask = valid_region_mask();
     return !static_cast<uint64_t>(*this & (~mask));
@@ -89,18 +101,27 @@ public:
 
   inline constexpr uint64_t operator[](size_t i) const { return bextr(i); }
 
-  constexpr inline dist_t symmetric_difference(dist_t d) const {
+  /**
+   * Compute the symmetric difference, I.E. the xor of the set.
+   */
+  constexpr inline dist_t region_symmetric_difference(dist_t d) const {
     return *this ^ d;
   }
 
-  constexpr inline size_t symmetric_difference_size(dist_t d) const {
-    return symmetric_difference(d).popcount();
+  /**
+   * Compute the size of the symmetric difference, efficiently.
+   */
+  constexpr inline size_t region_symmetric_difference_size(dist_t d) const {
+    return region_symmetric_difference(d).popcount();
   }
 
   constexpr inline dist_t operator^(dist_t d) const {
     return {_dist ^ d._dist, std::max(_regions, d._regions)};
   }
 
+  /**
+   * Compute the union of the dists.
+   */
   constexpr inline dist_t region_union(dist_t d) { return *this | d; }
 
   constexpr inline dist_t operator|(dist_t d) const {
@@ -109,11 +130,10 @@ public:
 
   constexpr inline dist_t region_intersection(dist_t d) { return *this & d; }
 
-  constexpr inline size_t region_intersection_size(dist_t d) {
-    return region_intersection(d).full_region_count();
-  }
-
-  constexpr inline bool one_region_diff(dist_t d) {
+  /**
+   * Returns true if the difference between two dists is exactly one region.
+   */
+  constexpr inline bool one_region_off(dist_t d) {
     return (*this ^ d).popcount() == 1;
   }
 
@@ -188,6 +208,11 @@ public:
 #endif
   }
 
+  constexpr inline dist_t set_by_count(size_t count) {
+    auto index = set_index(count);
+    return negate_bit(index);
+  }
+
   /**
    * This is the version of `set_index` if we want to turn a full region into an
    * empty region.
@@ -205,6 +230,11 @@ public:
     }
     return tmp_index;
 #endif
+  }
+
+  constexpr inline dist_t unset_by_count(size_t count) {
+    auto index = unset_index(count);
+    return negate_bit(index);
   }
 
   /**
@@ -350,20 +380,19 @@ transition_t sample_analytic(dist_t                                  init_dist,
   std::bernoulli_distribution type_coin(dispersion_weight
                                         / (waiting_time_parameter));
 
-  size_t negate_index = 0;
-  if (type_coin(gen)) {
-    std::uniform_int_distribution<> index_picker(
-        0, init_dist.empty_region_count());
-    negate_index = init_dist.unset_index(index_picker(gen));
-  } else {
-    std::uniform_int_distribution<> index_picker(0,
-                                                 init_dist.full_region_count());
-    negate_index = init_dist.set_index(index_picker(gen));
-  }
+  auto type = type_coin(gen);
+
+  auto index_picker
+      = type
+          ? std::uniform_int_distribution<>(0, init_dist.empty_region_count())
+          : std::uniform_int_distribution<>(0, init_dist.full_region_count());
+
+  auto new_dist = type ? init_dist.unset_by_count(index_picker(gen))
+                       : init_dist.set_by_count(index_picker(gen));
 
   LOG_DEBUG("waiting time: %f", waiting_time);
 
-  return {waiting_time, init_dist, init_dist.negate_bit(negate_index)};
+  return {waiting_time, init_dist, new_dist};
 }
 
 } // namespace bigrig

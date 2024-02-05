@@ -17,7 +17,7 @@ TEST_CASE("dist operations", "[dist]") {
   bigrig::dist_t   e       = {0b1101, regions};
   SECTION("bitwise ops") {
     CHECK((d ^ e) == bigrig::dist_t{0b0100, regions});
-    CHECK((d.symmetric_difference(e)) == bigrig::dist_t{0b0100, regions});
+    CHECK((d.region_symmetric_difference(e)) == bigrig::dist_t{0b0100, regions});
     CHECK((d | e) == bigrig::dist_t{0b1101, regions});
     CHECK((d.region_union(e)) == bigrig::dist_t{0b1101, regions});
     CHECK((d & e) == bigrig::dist_t{0b1001, regions});
@@ -60,9 +60,9 @@ TEST_CASE("dist operations", "[dist]") {
       auto tmp = d.negate_bit(i);
       CHECK(tmp != d);
       CHECK((tmp ^ d).full_region_count() == 1);
-      CHECK(tmp.symmetric_difference(d).full_region_count() == 1);
-      CHECK(tmp.symmetric_difference_size(d) == 1);
-      CHECK(tmp.one_region_diff(d));
+      CHECK(tmp.region_symmetric_difference(d).full_region_count() == 1);
+      CHECK(tmp.region_symmetric_difference_size(d) == 1);
+      CHECK(tmp.one_region_off(d));
     }
   }
 
