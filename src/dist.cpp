@@ -44,8 +44,7 @@ determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
     if (left_dist == right_dist && left_dist.full_region_count() == 1) {
       return split_type_e::singleton;
     }
-    if (left_dist.full_region_count() != 1
-        && right_dist.full_region_count() != 1) {
+    if (!left_dist.singleton() && !right_dist.singleton()) {
       return split_type_e::invalid;
     }
     if ((left_dist & right_dist).full_region_count() == 1) {
@@ -54,7 +53,7 @@ determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
     if ((left_dist & right_dist).full_region_count() == 0) {
       return split_type_e::allopatric;
     }
-  } else if (left_dist.full_region_count() == 1 && right_dist == init_dist
+  } else if (left_dist.singleton() && right_dist == init_dist
              && (left_dist | init_dist).full_region_count()
                     == init_dist.full_region_count() + 1) {
     return split_type_e::jump;

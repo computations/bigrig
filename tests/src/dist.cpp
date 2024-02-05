@@ -60,6 +60,9 @@ TEST_CASE("dist operations", "[dist]") {
       auto tmp = d.negate_bit(i);
       CHECK(tmp != d);
       CHECK((tmp ^ d).full_region_count() == 1);
+      CHECK(tmp.symmetric_difference(d).full_region_count() == 1);
+      CHECK(tmp.symmetric_difference_size(d) == 1);
+      CHECK(tmp.one_region_diff(d));
     }
   }
 
@@ -126,7 +129,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
 
   double average_rate = dis * init_dist.empty_region_count();
 
-  if (init_dist.full_region_count() > 1) {
+  if (!init_dist.singleton() && !init_dist.empty()) {
     average_rate += ext * init_dist.full_region_count();
   }
 

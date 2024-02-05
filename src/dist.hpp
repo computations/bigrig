@@ -93,6 +93,10 @@ public:
     return *this ^ d;
   }
 
+  constexpr inline size_t symmetric_difference_size(dist_t d) const {
+    return symmetric_difference(d).popcount();
+  }
+
   constexpr inline dist_t operator^(dist_t d) const {
     return {_dist ^ d._dist, std::max(_regions, d._regions)};
   }
@@ -104,6 +108,14 @@ public:
   }
 
   constexpr inline dist_t region_intersection(dist_t d) { return *this & d; }
+
+  constexpr inline size_t region_intersection_size(dist_t d) {
+    return region_intersection(d).full_region_count();
+  }
+
+  constexpr inline bool one_region_diff(dist_t d) {
+    return (*this ^ d).popcount() == 1;
+  }
 
   constexpr inline dist_t operator&(dist_t d) const {
     return {_dist & d._dist, std::max(_regions, d._regions)};
@@ -297,7 +309,7 @@ transition_t sample_rejection(dist_t                                  init_dist,
                               std::uniform_random_bit_generator auto &gen) {
   auto [d, e] = model.rates();
 
-  bool singleton = init_dist.full_region_count() == 1;
+  bool singleton = init_dist.singleton();
 
   std::exponential_distribution<double> dis_die(d);
   std::exponential_distribution<double> exp_die(e);
@@ -323,7 +335,7 @@ transition_t sample_analytic(dist_t                                  init_dist,
                              std::uniform_random_bit_generator auto &gen) {
   auto [dispersion_rate, extinction_rate] = model.rates();
 
-  bool singleton = init_dist.full_region_count() == 1;
+  bool singleton = init_dist.singleton();
 
   double dispersion_weight = dispersion_rate * init_dist.empty_region_count();
   double extinction_weight = extinction_rate * init_dist.full_region_count();
