@@ -12,13 +12,13 @@
 #include <sstream>
 
 TEST_CASE("dist operations", "[dist]") {
-  constexpr size_t  regions = 4;
-  biogeosim::dist_t d       = {0b1001, regions};
-  biogeosim::dist_t e       = {0b1101, regions};
+  constexpr size_t regions = 4;
+  bigrig::dist_t   d       = {0b1001, regions};
+  bigrig::dist_t   e       = {0b1101, regions};
   SECTION("bitwise ops") {
-    CHECK((d ^ e) == biogeosim::dist_t{0b0100, regions});
-    CHECK((d | e) == biogeosim::dist_t{0b1101, regions});
-    CHECK((d & e) == biogeosim::dist_t{0b1001, regions});
+    CHECK((d ^ e) == bigrig::dist_t{0b0100, regions});
+    CHECK((d | e) == bigrig::dist_t{0b1101, regions});
+    CHECK((d & e) == bigrig::dist_t{0b1001, regions});
   }
 
   SECTION("access operator") {
@@ -35,17 +35,17 @@ TEST_CASE("dist operations", "[dist]") {
 
   SECTION("log2") {
     CHECK(d.log2() == 4);
-    CHECK((biogeosim::dist_t(0b1, 1).log2()) == 1);
+    CHECK((bigrig::dist_t(0b1, 1).log2()) == 1);
   }
 
   SECTION("valid") {
-    CHECK(biogeosim::valid_dist({0b11'0011, 6}, 6));
-    CHECK(!biogeosim::valid_dist({0b11'0011, 6}, 5));
+    CHECK(bigrig::valid_dist({0b11'0011, 6}, 6));
+    CHECK(!bigrig::valid_dist({0b11'0011, 6}, 5));
   }
 
   SECTION("addition") {
     auto f = d + 1;
-    CHECK(f == biogeosim::dist_t{0b1010, d.regions()});
+    CHECK(f == bigrig::dist_t{0b1010, d.regions()});
   }
 
   SECTION("negate bit") {
@@ -57,16 +57,16 @@ TEST_CASE("dist operations", "[dist]") {
   }
 
   SECTION("string constructor") {
-    CHECK(biogeosim::dist_t("1010") == biogeosim::dist_t{0b1010, 4});
-    CHECK(biogeosim::dist_t("0000") == biogeosim::dist_t{0b0000, 4});
-    CHECK(biogeosim::dist_t("1011111") == biogeosim::dist_t{0b101'1111, 7});
+    CHECK(bigrig::dist_t("1010") == bigrig::dist_t{0b1010, 4});
+    CHECK(bigrig::dist_t("0000") == bigrig::dist_t{0b0000, 4});
+    CHECK(bigrig::dist_t("1011111") == bigrig::dist_t{0b101'1111, 7});
   }
 
   SECTION("stream operator") {
-    CHECK("1010" == biogeosim::dist_t{0b1010, 4}.to_str());
-    CHECK("0000" == biogeosim::dist_t{0b0000, 4}.to_str());
-    CHECK(biogeosim::dist_t("1011111").to_str()
-          == biogeosim::dist_t{0b101'1111, 7}.to_str());
+    CHECK("1010" == bigrig::dist_t{0b1010, 4}.to_str());
+    CHECK("0000" == bigrig::dist_t{0b0000, 4}.to_str());
+    CHECK(bigrig::dist_t("1011111").to_str()
+          == bigrig::dist_t{0b101'1111, 7}.to_str());
   }
 }
 
@@ -76,17 +76,17 @@ TEST_CASE("sample", "[sample]") {
 
   uint16_t regions = GENERATE(4, 8, 16, 32);
 
-  biogeosim::substitution_model_t model(dis, ext, regions, true);
-  biogeosim::dist_t               init_dist = {0b0101, regions};
+  bigrig::substitution_model_t model(dis, ext, regions, true);
+  bigrig::dist_t               init_dist = {0b0101, regions};
 
   pcg64_fast gen(Catch::getSeed());
 
-  auto t = biogeosim::sample(init_dist, model, gen);
+  auto t = bigrig::sample(init_dist, model, gen);
   CHECK(t.initial_state == init_dist);
   CHECK(t.initial_state != t.final_state);
 
   BENCHMARK("sample " + std::to_string(regions) + " regions") {
-    return biogeosim::sample(init_dist, model, gen);
+    return bigrig::sample(init_dist, model, gen);
   };
 }
 
@@ -106,13 +106,13 @@ TEST_CASE("stats for sample", "[sample][stats]") {
 
   pcg64 gen(Catch::getSeed());
 
-  biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b0001, regions},
-                                         biogeosim::dist_t{0b0010, regions},
-                                         biogeosim::dist_t{0b0100, regions},
-                                         biogeosim::dist_t{0b1000, regions},
-                                         biogeosim::dist_t{0b1010, regions},
-                                         biogeosim::dist_t{0b1110, regions},
-                                         biogeosim::dist_t{0b1111, regions});
+  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b0001, regions},
+                                      bigrig::dist_t{0b0010, regions},
+                                      bigrig::dist_t{0b0100, regions},
+                                      bigrig::dist_t{0b1000, regions},
+                                      bigrig::dist_t{0b1010, regions},
+                                      bigrig::dist_t{0b1110, regions},
+                                      bigrig::dist_t{0b1111, regions});
 
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
@@ -124,7 +124,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   double mu    = 1 / (average_rate);
   double sigma = mu * mu;
 
-  biogeosim::substitution_model_t model(dis, ext, regions, true);
+  bigrig::substitution_model_t model(dis, ext, regions, true);
 
   INFO("dis: " << dis << " ext: " << ext << " dist: " << init_dist);
 
@@ -132,7 +132,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   double sumsq = 0;
 
   for (size_t i = 0; i < iters; ++i) {
-    auto t  = biogeosim::sample(init_dist, model, gen);
+    auto t  = bigrig::sample(init_dist, model, gen);
     sum    += t.waiting_time;
     sumsq  += t.waiting_time * t.waiting_time;
   }
@@ -163,24 +163,24 @@ TEST_CASE("sample regression") {
 
   pcg64 gen(Catch::getSeed());
 
-  biogeosim::dist_t init_dist = GENERATE(biogeosim::dist_t{0b0001, regions},
-                                         biogeosim::dist_t{0b0100, regions},
-                                         biogeosim::dist_t{0b1010, regions},
-                                         biogeosim::dist_t{0b1110, regions},
-                                         biogeosim::dist_t{0b1111, regions});
+  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b0001, regions},
+                                      bigrig::dist_t{0b0100, regions},
+                                      bigrig::dist_t{0b1010, regions},
+                                      bigrig::dist_t{0b1110, regions},
+                                      bigrig::dist_t{0b1111, regions});
 
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
 
-  biogeosim::substitution_model_t model(dis, ext, regions, true);
+  bigrig::substitution_model_t model(dis, ext, regions, true);
 
   double rej_total = 0;
   double ana_total = 0;
 
   for (size_t i = 0; i < iters; ++i) {
-    auto rej_res  = biogeosim::sample_rejection(init_dist, model, gen);
+    auto rej_res  = bigrig::sample_rejection(init_dist, model, gen);
     rej_total    += rej_res.waiting_time;
-    auto ana_res  = biogeosim::sample_analytic(init_dist, model, gen);
+    auto ana_res  = bigrig::sample_analytic(init_dist, model, gen);
     ana_total    += ana_res.waiting_time;
   }
 

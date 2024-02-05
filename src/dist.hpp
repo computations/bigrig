@@ -17,7 +17,7 @@
 #include <x86intrin.h>
 #endif
 
-namespace biogeosim {
+namespace bigrig {
 
 typedef uint64_t dist_base_t;
 
@@ -156,7 +156,7 @@ private:
   static auto compute_skips_power_of_2(size_t k, size_t n) -> size_t {
     size_t skips = 0;
     for (size_t i = n + 1; i < k; ++i) {
-      skips += biogeosim::util::combinations(k - 1, i);
+      skips += bigrig::util::combinations(k - 1, i);
     }
     return skips;
   }
@@ -258,4 +258,4 @@ transition_t sample_analytic(dist_t                                  init_dist,
   return {waiting_time, init_dist, init_dist.negate_bit(negate_index)};
 }
 
-} // namespace biogeosim
+} // namespace bigrig

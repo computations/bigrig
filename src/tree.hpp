@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace biogeosim {
+namespace bigrig {
 class tree_t {
 public:
   explicit tree_t(const std::filesystem::path &tree_filename) {
@@ -107,4 +107,4 @@ private:
 
   std::shared_ptr<node_t> _tree;
 };
-} // namespace biogeosim
+} // namespace bigrig

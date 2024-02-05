@@ -19,7 +19,7 @@ int main() {
           | logger::log_level::important | logger::log_level::error
           | logger::log_level::progress);
 
-  CLI::App app{"Biogeosim"};
+  CLI::App app{"bigrig"};
 
   cli_options_t cli_options;
 
@@ -74,12 +74,12 @@ int main() {
   }
 
   MESSAGE_INFO("Parsing tree");
-  auto tree = biogeosim::tree_t(cli_options.tree_filename.value());
+  auto tree = bigrig::tree_t(cli_options.tree_filename.value());
 
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
-  biogeosim::substitution_model_t model(
+  bigrig::substitution_model_t model(
       cli_options.dispersion_rate.value(),
       cli_options.extinction_rate.value(),
       cli_options.root_distribution.value().regions(),

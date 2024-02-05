@@ -74,7 +74,7 @@ struct cli_options_t {
   /**
    * Starting distribution for the simulation.
    */
-  std::optional<biogeosim::dist_t> root_distribution;
+  std::optional<bigrig::dist_t> root_distribution;
 
   /**
    * Dispersion rate which was provided by the user.

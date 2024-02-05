@@ -12,7 +12,7 @@ std::vector<std::string> tree_strings = {};
 TEST_CASE("tree constructor", "[tree]") {
   const std::string tree_str = "((a,b),c);";
 
-  biogeosim::tree_t tree(tree_str);
+  bigrig::tree_t tree(tree_str);
 
   CHECK(tree.to_newick() == "((a:0,b:0)1:0,c:0)0:0");
   CHECK(tree.node_count() == 5);
@@ -100,12 +100,12 @@ TEST_CASE("tree sample", "[tree]") {
       "aa:0.5272,(az:0.6393,(do:0.0054,bh:0.6231):0.1945):0.9229):0.9103,ck:0."
       "2594):0.1416):0.2421):0.7125):0.9754):0.4298);");
 
-  biogeosim::substitution_model_t model(dis, ext, regions, true);
-  biogeosim::dist_t               init_dist = {0b0101, regions};
+  bigrig::substitution_model_t model(dis, ext, regions, true);
+  bigrig::dist_t               init_dist = {0b0101, regions};
   model.set_cladogenesis_params(
       {.copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 1.0});
 
-  biogeosim::tree_t tree(tree_str);
+  bigrig::tree_t tree(tree_str);
 
   pcg64_fast gen(Catch::getSeed());
 

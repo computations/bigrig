@@ -1,6 +1,6 @@
 #include "split.hpp"
 
-namespace biogeosim {
+namespace bigrig {
 std::string split_t::to_nhx_string() const {
   std::ostringstream oss;
   oss << "left-split=" << left << ":"
@@ -27,4 +27,4 @@ std::string type_string(const split_type_e &st) {
 }
 
 std::string split_t::to_type_string() const { return type_string(type); }
-} // namespace biogeosim
+} // namespace bigrig

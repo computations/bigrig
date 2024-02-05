@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace biogeosim::util {
+namespace bigrig::util {
 
 constexpr size_t factorial_table_size = 11;
 
@@ -39,4 +39,4 @@ constexpr auto NEWICK_EXT = ".nwk";
 constexpr auto YAML_EXT   = ".yaml";
 constexpr auto JSON_EXT   = ".json";
 
-} // namespace biogeosim::util
+} // namespace bigrig::util

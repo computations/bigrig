@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-namespace biogeosim {
+namespace bigrig {
 
 dist_t::dist_t(const std::string &dist_string) {
   if (dist_string.size() > 64) {
@@ -75,4 +75,4 @@ determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
   return split_type_e::invalid;
 }
 
-} // namespace biogeosim
+} // namespace bigrig

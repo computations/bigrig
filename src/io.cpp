@@ -14,8 +14,8 @@ void write_header(const cli_options_t &cli_options) {
            cli_options.root_distribution.value().to_str().c_str());
 }
 
-std::string to_phylip(const biogeosim::tree_t              &tree,
-                      const biogeosim::substitution_model_t model) {
+std::string to_phylip(const bigrig::tree_t              &tree,
+                      const bigrig::substitution_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.leaf_count()) << " " << model.region_count()
       << "\n";
@@ -25,8 +25,8 @@ std::string to_phylip(const biogeosim::tree_t              &tree,
   return oss.str();
 }
 
-std::string to_phylip_extended(const biogeosim::tree_t              &tree,
-                               const biogeosim::substitution_model_t model) {
+std::string to_phylip_extended(const bigrig::tree_t              &tree,
+                               const bigrig::substitution_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.node_count()) << " " << model.region_count()
       << "\n";
@@ -207,7 +207,7 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
   return cli_options;
 }
 
-void write_yaml_file(std::ostream &os, const biogeosim::tree_t &tree) {
+void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
   YAML::Emitter yaml;
   yaml << YAML::BeginMap;
   yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
@@ -266,7 +266,7 @@ void write_yaml_file(std::ostream &os, const biogeosim::tree_t &tree) {
   os << yaml.c_str() << std::endl;
 }
 
-void write_json_file(std::ostream &os, const biogeosim::tree_t &tree) {
+void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
   nlohmann::json j;
 
   j["tree"] = tree.to_newick();
@@ -307,8 +307,8 @@ void write_json_file(std::ostream &os, const biogeosim::tree_t &tree) {
 }
 
 void write_output_files(const cli_options_t                   &cli_options,
-                        const biogeosim::tree_t               &tree,
-                        const biogeosim::substitution_model_t &model) {
+                        const bigrig::tree_t               &tree,
+                        const bigrig::substitution_model_t &model) {
   auto phylip_filename  = cli_options.prefix.value();
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
@@ -319,7 +319,7 @@ void write_output_files(const cli_options_t                   &cli_options,
   std::ofstream phylip_all_file(phylip_all_filename);
   phylip_all_file << to_phylip_extended(tree, model);
 
-  auto cb = [](std::ostream &os, biogeosim::node_t n) {
+  auto cb = [](std::ostream &os, bigrig::node_t n) {
     if (n.is_leaf()) {
       os << n.label();
     } else {
@@ -332,7 +332,7 @@ void write_output_files(const cli_options_t                   &cli_options,
 
   auto annotated_tree_filename  = cli_options.prefix.value();
   annotated_tree_filename      += ".annotated";
-  annotated_tree_filename      += biogeosim::util::NEWICK_EXT;
+  annotated_tree_filename      += bigrig::util::NEWICK_EXT;
   std::ofstream annotated_tree_file(annotated_tree_filename);
   annotated_tree_file << tree.to_newick(cb) << std::endl;
 

@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-namespace biogeosim {
+namespace bigrig {
 
 class dist_t;
 
@@ -179,4 +179,4 @@ private:
 
   size_t _region_count;
 };
-} // namespace biogeosim
+} // namespace bigrig

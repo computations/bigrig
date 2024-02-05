@@ -2,19 +2,19 @@
 
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();
-  tmp      += biogeosim::util::PHYILP_EXT;
+  tmp      += bigrig::util::PHYILP_EXT;
   return tmp;
 }
 
 std::filesystem::path cli_options_t::yaml_filename() const {
   auto tmp  = prefix.value();
-  tmp      += biogeosim::util::YAML_EXT;
+  tmp      += bigrig::util::YAML_EXT;
   return tmp;
 }
 
 std::filesystem::path cli_options_t::json_filename() const {
   auto tmp  = prefix.value();
-  tmp      += biogeosim::util::JSON_EXT;
+  tmp      += bigrig::util::JSON_EXT;
   return tmp;
 }
 

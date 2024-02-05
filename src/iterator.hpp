@@ -3,7 +3,7 @@
 
 #include <stack>
 
-namespace biogeosim {
+namespace bigrig {
 
 class preorder_iterator {
 public:
@@ -39,4 +39,4 @@ private:
   std::stack<std::shared_ptr<node_t>> _stack;
 };
 
-} // namespace biogeosim
+} // namespace bigrig

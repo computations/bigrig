@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace biogeosim {
+namespace bigrig {
 
 class node_t {
 public:
@@ -177,4 +177,4 @@ private:
   std::vector<transition_t>            _transitions;
   size_t                               _node_id;
 };
-} // namespace biogeosim
+} // namespace bigrig

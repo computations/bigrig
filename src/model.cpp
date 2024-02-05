@@ -2,7 +2,7 @@
 
 #include "dist.hpp"
 
-namespace biogeosim {
+namespace bigrig {
 
 double substitution_model_t::compute_denominator(size_t active_regions) const {
   if (active_regions == 1) [[unlikely]] {
@@ -57,4 +57,4 @@ double substitution_model_t::copy_weight(const dist_t &dist) const {
   return copy_count(dist) * _clad_params.copy;
 }
 
-} // namespace biogeosim
+} // namespace bigrig

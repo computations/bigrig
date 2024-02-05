@@ -4,7 +4,7 @@
 
 constexpr size_t VECTOR_INITIAL_RESERVE = 10;
 
-namespace biogeosim {
+namespace bigrig {
 enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
 std::string type_string(const split_type_e &st);
@@ -186,4 +186,4 @@ split_dist_rejection_method(dist_t                                  init_dist,
   LOG_DEBUG("Splitting took %lu samples", sample_count);
   return {left_dist, right_dist, split_type};
 }
-} // namespace biogeosim
+} // namespace bigrig
