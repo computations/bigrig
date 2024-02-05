@@ -41,7 +41,7 @@ generate_samples(dist_t                                  init_dist,
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const substitution_model_t             &model,
                              std::uniform_random_bit_generator auto &gen) {
-  if (init_dist.popcount() == 1) {
+  if (init_dist.full_region_count() == 1) {
     double copy_weight = model.copy_weight(init_dist);
     double jump_weight = model.jump_weight(init_dist);
 
@@ -101,7 +101,7 @@ split_t split_dist(dist_t                                  init_dist,
                    const substitution_model_t             &model,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
-  if (!model.jumps_ok() && init_dist.popcount() == 1) {
+  if (!model.jumps_ok() && init_dist.full_region_count() == 1) {
     LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
     return {init_dist, init_dist, split_type_e::singleton};
   }
@@ -112,8 +112,8 @@ split_t split_dist(dist_t                                  init_dist,
     return {init_dist, init_dist, split_type_e::singleton};
   }
 
-  size_t max_index = type == split_type_e::jump ? init_dist.unpopcount()
-                                                : init_dist.popcount();
+  size_t max_index = type == split_type_e::jump ? init_dist.empty_region_count()
+                                                : init_dist.full_region_count();
   size_t flipped_index
       = std::uniform_int_distribution<size_t>(0, max_index - 1)(gen);
 
@@ -145,7 +145,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
                             const substitution_model_t             &model,
                             std::uniform_random_bit_generator auto &gen) {
   // Singleton case
-  if (!model.jumps_ok() && init_dist.popcount() == 1) {
+  if (!model.jumps_ok() && init_dist.full_region_count() == 1) {
     LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
     return {init_dist, init_dist, split_type_e::singleton};
   }

@@ -26,19 +26,20 @@ substitution_model_t::normalized_cladogenesis_params() const {
 }
 
 size_t substitution_model_t::jump_count(const dist_t &dist) const {
-  return (dist.regions() - dist.popcount()) * 2;
+  return dist.empty_region_count() * 2;
 }
 
 size_t substitution_model_t::allopatry_count(const dist_t &dist) const {
-  return dist.popcount() * 2 - _duplicity * (dist.popcount() == 2) * 2;
+  return dist.full_region_count() * 2
+       - _duplicity * (dist.full_region_count() == 2) * 2;
 }
 
 size_t substitution_model_t::sympatry_count(const dist_t &dist) const {
-  return dist.popcount() * 2;
+  return dist.full_region_count() * 2;
 }
 
 size_t substitution_model_t::copy_count(const dist_t &dist) const {
-  return (dist.popcount() == 1) * (2 * _duplicity);
+  return (dist.full_region_count() == 1) * (2 * _duplicity);
 }
 
 double substitution_model_t::jump_weight(const dist_t &dist) const {

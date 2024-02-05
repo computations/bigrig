@@ -17,8 +17,11 @@ TEST_CASE("dist operations", "[dist]") {
   bigrig::dist_t   e       = {0b1101, regions};
   SECTION("bitwise ops") {
     CHECK((d ^ e) == bigrig::dist_t{0b0100, regions});
+    CHECK((d.symmetric_difference(e)) == bigrig::dist_t{0b0100, regions});
     CHECK((d | e) == bigrig::dist_t{0b1101, regions});
+    CHECK((d.region_union(e)) == bigrig::dist_t{0b1101, regions});
     CHECK((d & e) == bigrig::dist_t{0b1001, regions});
+    CHECK((d.region_intersection(e)) == bigrig::dist_t{0b1001, regions});
   }
 
   SECTION("access operator") {
@@ -33,14 +36,18 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(e[3] == 1);
   }
 
-  SECTION("log2") {
-    CHECK(d.log2() == 4);
-    CHECK((bigrig::dist_t(0b1, 1).log2()) == 1);
+  SECTION("last set bit") {
+    CHECK(d.last_full_region() == 4);
+    CHECK((bigrig::dist_t(0b1, 1).last_full_region()) == 1);
   }
 
   SECTION("valid") {
-    CHECK(bigrig::valid_dist({0b11'0011, 6}, 6));
-    CHECK(!bigrig::valid_dist({0b11'0011, 6}, 5));
+    bigrig::dist_t valid{0b11'0011, 6};
+    bigrig::dist_t invalid{0b11'0011, 5};
+    CHECK(valid.valid_dist(6));
+    CHECK(valid.valid_dist());
+    CHECK(!invalid.valid_dist(5));
+    CHECK(!invalid.valid_dist());
   }
 
   SECTION("addition") {
@@ -52,7 +59,7 @@ TEST_CASE("dist operations", "[dist]") {
     for (size_t i = 0; i < regions; ++i) {
       auto tmp = d.negate_bit(i);
       CHECK(tmp != d);
-      CHECK((tmp ^ d).popcount() == 1);
+      CHECK((tmp ^ d).full_region_count() == 1);
     }
   }
 
@@ -117,9 +124,11 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
 
-  double average_rate = dis * init_dist.unpopcount();
+  double average_rate = dis * init_dist.empty_region_count();
 
-  if (init_dist.popcount() > 1) { average_rate += ext * init_dist.popcount(); }
+  if (init_dist.full_region_count() > 1) {
+    average_rate += ext * init_dist.full_region_count();
+  }
 
   double mu    = 1 / (average_rate);
   double sigma = mu * mu;

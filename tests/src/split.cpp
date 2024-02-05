@@ -40,9 +40,9 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.right);
     REQUIRE(sp.type == bigrig::split_type_e::allopatric);
     CHECK(sp.left != sp.right);
-    CHECK((sp.left.popcount() == 1 || sp.right.popcount() == 1));
+    CHECK((sp.left.full_region_count() == 1 || sp.right.full_region_count() == 1));
     CHECK((sp.left | sp.right) == init_dist);
-    CHECK((sp.left & sp.right).popcount() == 0);
+    CHECK((sp.left & sp.right).full_region_count() == 0);
   }
 
   SECTION("sympatry") {
@@ -60,10 +60,10 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.right);
     REQUIRE(sp.type == bigrig::split_type_e::sympatric);
     CHECK(sp.left != sp.right);
-    CHECK((sp.left.popcount() == 1 || sp.right.popcount() == 1));
+    CHECK((sp.left.full_region_count() == 1 || sp.right.full_region_count() == 1));
     CHECK((sp.left | sp.right) == init_dist);
-    CHECK((sp.left & sp.right).popcount()
-          == std::min(sp.left.popcount(), sp.right.popcount()));
+    CHECK((sp.left & sp.right).full_region_count()
+          == std::min(sp.left.full_region_count(), sp.right.full_region_count()));
   }
 
   SECTION("jump") {
@@ -80,9 +80,9 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.right);
     REQUIRE(sp.type == bigrig::split_type_e::jump);
     CHECK(sp.left != sp.right);
-    CHECK((sp.left.popcount() == 1 || sp.right.popcount() == 1));
+    CHECK((sp.left.full_region_count() == 1 || sp.right.full_region_count() == 1));
     CHECK((sp.left | sp.right) != init_dist);
-    CHECK((sp.left & sp.right).popcount() == 0);
+    CHECK((sp.left & sp.right).full_region_count() == 0);
   }
 
   SECTION("benchmark") {
