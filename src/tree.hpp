@@ -17,17 +17,9 @@
 namespace bigrig {
 class tree_t {
 public:
-  explicit tree_t(const std::filesystem::path &tree_filename) {
-    auto corax_tree = corax_utree_parse_newick_rooted(tree_filename.c_str());
+  explicit tree_t(const std::filesystem::path &tree_filename);
 
-    convert_tree(corax_tree);
-  }
-
-  explicit tree_t(const std::string &tree_str) {
-    auto corax_tree = corax_utree_parse_newick_string_rooted(tree_str.c_str());
-
-    convert_tree(corax_tree);
-  }
+  explicit tree_t(const std::string &tree_str);
 
   tree_t(const tree_t &)            = delete;
   tree_t &operator=(const tree_t &) = delete;
@@ -46,64 +38,28 @@ public:
     _tree->sample(initial_distribution, model, gen);
   }
 
-  std::optional<dist_t> get_dist_by_string_id(const std::string &key) const {
-    for (const auto &n : *this) {
-      if (n->string_id() == key) { return n->final_state(); }
-    }
-    return {};
-  }
+  std::optional<dist_t> get_dist_by_string_id(const std::string &key) const;
 
-  std::string to_newick() const {
-    std::stringstream oss;
-    _tree->to_newick(oss);
-    return oss.str();
-  }
+  std::string to_newick() const;
 
   std::string
-  to_newick(std::function<void(std::ostream &, const node_t &)> cb) const {
-    std::stringstream oss;
-    _tree->to_newick(oss, cb);
-    return oss.str();
-  }
+  to_newick(std::function<void(std::ostream &, const node_t &)> cb) const;
 
-  std::string to_phylip_body() const {
-    std::stringstream oss;
-    to_phylip_body(oss);
-    return oss.str();
-  }
+  std::string to_phylip_body() const;
 
-  std::string to_phylip_body_extended() const {
-    std::stringstream oss;
-    to_phylip_body(oss, true);
-    return oss.str();
-  }
+  std::string to_phylip_body_extended() const;
 
-  std::ostream &to_phylip_body(std::ostream &os, bool all = false) const {
-    size_t padding = _tree->get_string_id_len_max(all) + 1;
-    _tree->to_phylip_line(os, padding, all);
-    return os;
-  }
+  std::ostream &to_phylip_body(std::ostream &os, bool all = false) const;
 
-  size_t node_count() const { return _tree->node_count(); }
+  size_t node_count() const;
 
-  size_t leaf_count() const { return _tree->leaf_count(); }
+  size_t leaf_count() const;
 
-  preorder_iterator begin() const { return preorder_iterator(_tree); }
-  preorder_iterator end() const { return preorder_iterator(); }
+  preorder_iterator begin() const;
+  preorder_iterator end() const;
 
 private:
-  void convert_tree(corax_utree_t *corax_tree) {
-    _tree = std::make_unique<node_t>();
-    _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->back));
-    _tree->add_child(std::make_shared<node_t>(corax_tree->vroot->next->back));
-    if (corax_tree->vroot->label) {
-      _tree->set_label(corax_tree->vroot->label);
-    }
-    _tree->assign_id_root();
-    _tree->assign_abs_time_root();
-
-    corax_utree_destroy(corax_tree, nullptr);
-  }
+  void convert_tree(corax_utree_t *corax_tree);
 
   std::shared_ptr<node_t> _tree;
 };
