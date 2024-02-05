@@ -113,41 +113,18 @@ public:
 
   double compute_denominator(size_t active_regions) const;
 
-  substitution_model_t &set_params(rate_params_t p) {
-    _rate_params = p;
-    return *this;
-  }
+  substitution_model_t &set_params(rate_params_t p);
 
-  substitution_model_t &set_params(double d, double e) {
-    return set_params({.dis = d, .ext = e});
-  }
+  substitution_model_t &set_params(double d, double e);
 
-  substitution_model_t &set_region_count(size_t regions) {
-    _region_count = regions;
-    return *this;
-  }
+  substitution_model_t &set_region_count(size_t regions);
 
   substitution_model_t &
-  set_cladogenesis_params(double y, double s, double v, double j) {
-    _clad_params.copy      = y;
-    _clad_params.sympatry  = s;
-    _clad_params.allopatry = v;
-    _clad_params.jump      = j;
+  set_cladogenesis_params(double y, double s, double v, double j);
 
-    return *this;
-  }
+  substitution_model_t &set_cladogenesis_params(const cladogenesis_params_t &p);
 
-  substitution_model_t &
-  set_cladogenesis_params(const cladogenesis_params_t &p) {
-    _clad_params = p;
-
-    return *this;
-  }
-
-  substitution_model_t &set_two_region_duplicity(bool d) {
-    _duplicity = d;
-    return *this;
-  }
+  substitution_model_t &set_two_region_duplicity(bool d);
 
   cladogenesis_params_t cladogenesis_params() const { return _clad_params; }
 
@@ -163,13 +140,13 @@ public:
   double sympatry_weight(const dist_t &dist) const;
   double copy_weight(const dist_t &dist) const;
 
-  uint64_t valid_mask() const {
+  constexpr uint64_t valid_mask() const {
     uint64_t mask = 0;
     for (size_t i = 0; i < _region_count; ++i) { mask |= 1ul << i; }
     return mask;
   }
 
-  bool jumps_ok() const { return _clad_params.jump != 0.0; }
+  constexpr bool jumps_ok() const { return _clad_params.jump != 0.0; }
 
 private:
   rate_params_t         _rate_params;

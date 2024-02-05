@@ -57,4 +57,41 @@ double substitution_model_t::copy_weight(const dist_t &dist) const {
   return copy_count(dist) * _clad_params.copy;
 }
 
+substitution_model_t &substitution_model_t::set_params(rate_params_t p) {
+  _rate_params = p;
+  return *this;
+}
+substitution_model_t &substitution_model_t::set_params(double d, double e) {
+  return set_params({.dis = d, .ext = e});
+}
+
+substitution_model_t &substitution_model_t::set_region_count(size_t regions) {
+  _region_count = regions;
+  return *this;
+}
+
+substitution_model_t &substitution_model_t::set_cladogenesis_params(double y,
+                                                                    double s,
+                                                                    double v,
+                                                                    double j) {
+  _clad_params.copy      = y;
+  _clad_params.sympatry  = s;
+  _clad_params.allopatry = v;
+  _clad_params.jump      = j;
+
+  return *this;
+}
+
+substitution_model_t &
+substitution_model_t::set_cladogenesis_params(const cladogenesis_params_t &p) {
+  _clad_params = p;
+
+  return *this;
+}
+
+substitution_model_t &substitution_model_t::set_two_region_duplicity(bool d) {
+  _duplicity = d;
+  return *this;
+}
+
 } // namespace bigrig
