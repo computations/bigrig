@@ -9,9 +9,13 @@ enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
 std::string type_string(const split_type_e &st);
 
+/**
+ * Struct to contain the information of a split.
+ */
 struct split_t {
   dist_t       left;
   dist_t       right;
+  dist_t       top;
   split_type_e type;
 
   std::string to_nhx_string() const;
@@ -59,11 +63,7 @@ split_type_e roll_split_type(dist_t                                  init_dist,
 
   double sum = allo_weight + sym_weight + jump_weight;
 
-  allo_weight /= sum;
-  sym_weight  /= sum;
-  jump_weight /= sum;
-
-  double roll = std::uniform_real_distribution<double>()(gen);
+  double roll = std::uniform_real_distribution<double>()(gen) * sum;
 
   const std::array<const std::pair<double, split_type_e>, 3> options{
       std::pair{allo_weight, split_type_e::allopatric},
@@ -103,13 +103,13 @@ split_t split_dist(dist_t                                  init_dist,
   // Singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {
     LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
-    return {init_dist, init_dist, split_type_e::singleton};
+    return {init_dist, init_dist, init_dist, split_type_e::singleton};
   }
 
   auto type = roll_split_type(init_dist, model, gen);
 
   if (type == split_type_e::singleton) {
-    return {init_dist, init_dist, split_type_e::singleton};
+    return {init_dist, init_dist, init_dist, split_type_e::singleton};
   }
 
   size_t max_index = (type == split_type_e::jump)
@@ -135,7 +135,7 @@ split_t split_dist(dist_t                                  init_dist,
   std::bernoulli_distribution coin(0.5);
   if (coin(gen)) { std::swap(left_dist, right_dist); }
 
-  return {left_dist, right_dist, type};
+  return {left_dist, right_dist, init_dist, type};
 }
 
 split_type_e
@@ -148,7 +148,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
   // Singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {
     LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
-    return {init_dist, init_dist, split_type_e::singleton};
+    return {init_dist, init_dist, init_dist, split_type_e::singleton};
   }
   auto max_dist = (1ul << init_dist.regions()) - 1;
   std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
@@ -185,6 +185,6 @@ split_dist_rejection_method(dist_t                                  init_dist,
     }
   }
   LOG_DEBUG("Splitting took %lu samples", sample_count);
-  return {left_dist, right_dist, split_type};
+  return {left_dist, right_dist, init_dist, split_type};
 }
 } // namespace bigrig

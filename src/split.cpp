@@ -3,7 +3,8 @@
 namespace bigrig {
 std::string split_t::to_nhx_string() const {
   std::ostringstream oss;
-  oss << "left-split=" << left << ":"
+  oss << "init-dist=" << top << ":"
+      << "left-split=" << left << ":"
       << "right-split=" << right << ":";
   oss << "split-type=";
 
