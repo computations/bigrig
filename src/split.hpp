@@ -25,7 +25,7 @@ struct split_t {
 std::vector<transition_t>
 generate_samples(dist_t                                  init_dist,
                  double                                  brlen,
-                 const substitution_model_t             &model,
+                 const biogeo_model_t                   &model,
                  std::uniform_random_bit_generator auto &gen) {
   std::vector<transition_t> results;
   results.reserve(VECTOR_INITIAL_RESERVE);
@@ -43,7 +43,7 @@ generate_samples(dist_t                                  init_dist,
 }
 
 split_type_e roll_split_type(dist_t                                  init_dist,
-                             const substitution_model_t             &model,
+                             const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
   if (init_dist.singleton()) {
     double copy_weight = model.copy_weight(init_dist);
@@ -98,7 +98,7 @@ split_type_e roll_split_type(dist_t                                  init_dist,
  *  support this option.
  */
 split_t split_dist(dist_t                                  init_dist,
-                   const substitution_model_t             &model,
+                   const biogeo_model_t                   &model,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {
@@ -143,7 +143,7 @@ determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist);
 
 split_t
 split_dist_rejection_method(dist_t                                  init_dist,
-                            const substitution_model_t             &model,
+                            const biogeo_model_t                   &model,
                             std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {

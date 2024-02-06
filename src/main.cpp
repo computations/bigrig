@@ -79,11 +79,10 @@ int main() {
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
-  bigrig::substitution_model_t model(
-      cli_options.dispersion_rate.value(),
-      cli_options.extinction_rate.value(),
-      cli_options.root_distribution.value().regions(),
-      cli_options.two_region_duplicity.value_or(true));
+  bigrig::biogeo_model_t model(cli_options.dispersion_rate.value(),
+                               cli_options.extinction_rate.value(),
+                               cli_options.root_distribution.value().regions(),
+                               cli_options.two_region_duplicity.value_or(true));
 
   MESSAGE_INFO("Sampling from tree")
   tree.sample(cli_options.root_distribution.value(), model, gen);

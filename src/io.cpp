@@ -14,8 +14,8 @@ void write_header(const cli_options_t &cli_options) {
            cli_options.root_distribution.value().to_str().c_str());
 }
 
-std::string to_phylip(const bigrig::tree_t              &tree,
-                      const bigrig::substitution_model_t model) {
+std::string to_phylip(const bigrig::tree_t        &tree,
+                      const bigrig::biogeo_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.leaf_count()) << " " << model.region_count()
       << "\n";
@@ -25,8 +25,8 @@ std::string to_phylip(const bigrig::tree_t              &tree,
   return oss.str();
 }
 
-std::string to_phylip_extended(const bigrig::tree_t              &tree,
-                               const bigrig::substitution_model_t model) {
+std::string to_phylip_extended(const bigrig::tree_t        &tree,
+                               const bigrig::biogeo_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.node_count()) << " " << model.region_count()
       << "\n";
@@ -306,9 +306,9 @@ void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
   os << j.dump() << std::endl;
 }
 
-void write_output_files(const cli_options_t                &cli_options,
-                        const bigrig::tree_t               &tree,
-                        const bigrig::substitution_model_t &model) {
+void write_output_files(const cli_options_t          &cli_options,
+                        const bigrig::tree_t         &tree,
+                        const bigrig::biogeo_model_t &model) {
   auto phylip_filename  = cli_options.prefix.value();
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);

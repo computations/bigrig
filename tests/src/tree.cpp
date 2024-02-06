@@ -100,7 +100,7 @@ TEST_CASE("tree sample", "[tree]") {
       "aa:0.5272,(az:0.6393,(do:0.0054,bh:0.6231):0.1945):0.9229):0.9103,ck:0."
       "2594):0.1416):0.2421):0.7125):0.9754):0.4298);");
 
-  bigrig::substitution_model_t model(dis, ext, regions, true);
+  bigrig::biogeo_model_t model(dis, ext, regions, true);
   bigrig::dist_t               init_dist = {0b0101, regions};
   model.set_cladogenesis_params(
       {.copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 1.0});

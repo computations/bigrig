@@ -77,7 +77,7 @@ public:
    * Check if the dist is valid, constrained to a given number of regions, given
    * by the substitution model.
    */
-  inline bool valid_dist(const substitution_model_t &model) {
+  inline bool valid_dist(const biogeo_model_t &model) {
     return valid_dist(model.region_count());
   }
 
@@ -343,7 +343,7 @@ public:
  * want to revert to the rejection method.
  */
 transition_t sample(dist_t                                  init_dist,
-                    const substitution_model_t             &model,
+                    const biogeo_model_t                   &model,
                     std::uniform_random_bit_generator auto &gen) {
   return sample_analytic(init_dist, model, gen);
 }
@@ -355,7 +355,7 @@ transition_t sample(dist_t                                  init_dist,
  * to use as a check against the results of `sample_analytic`.
  */
 transition_t sample_rejection(dist_t                                  init_dist,
-                              const substitution_model_t             &model,
+                              const biogeo_model_t                   &model,
                               std::uniform_random_bit_generator auto &gen) {
   auto [d, e] = model.rates();
 
@@ -388,16 +388,10 @@ transition_t sample_rejection(dist_t                                  init_dist,
  * Linear in the number of regions, if there is no BMI2 instruction set.
  */
 transition_t sample_analytic(dist_t                                  init_dist,
-                             const substitution_model_t             &model,
+                             const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
-  auto [dispersion_rate, extinction_rate] = model.rates();
-
-  bool singleton = init_dist.singleton();
-
-  double dispersion_weight = dispersion_rate * init_dist.empty_region_count();
-  double extinction_weight
-      = singleton ? 0.0 : (extinction_rate * init_dist.full_region_count());
-  double total_weight = dispersion_weight + extinction_weight;
+  double dispersion_weight = model.dispersion_weight(init_dist);
+  double total_weight      = model.total_rate_weight(init_dist);
 
   std::exponential_distribution<double> wait_time_distribution(total_weight);
 

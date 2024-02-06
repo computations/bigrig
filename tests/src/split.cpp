@@ -12,7 +12,7 @@ TEST_CASE("splitting", "[sample]") {
   constexpr size_t regions = 4;
   pcg64_fast       gen(Catch::getSeed());
 
-  bigrig::substitution_model_t model;
+  bigrig::biogeo_model_t model;
   model.set_params(1.0, 1.0)
       .set_cladogenesis_params(1.0, 1.0, 1.0, 0.0)
       .set_region_count(4)
@@ -151,7 +151,7 @@ TEST_CASE("split regression") {
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
-  bigrig::substitution_model_t model;
+  bigrig::biogeo_model_t model;
   model.set_params(1.0, 1.0).set_region_count(4).set_two_region_duplicity(true);
   INFO("init dist:" << init_dist);
   INFO("model params: " << params.to_debug_string());

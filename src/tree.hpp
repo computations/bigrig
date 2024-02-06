@@ -28,7 +28,7 @@ public:
   tree_t &operator=(tree_t &&) = default;
 
   void sample(dist_t                                  initial_distribution,
-              const substitution_model_t             &model,
+              const biogeo_model_t                   &model,
               std::uniform_random_bit_generator auto &gen) {
     if (!initial_distribution.valid_dist(model)) {
       throw invalid_dist{"Invalid dist provided as a start dist"};
