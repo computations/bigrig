@@ -12,6 +12,21 @@ add_library(bigrig_interface_obj OBJECT
   io.cpp
   )
 
+option(ENABLE_BMI "Enable Bit Manipulation Instructions (BMI) instructions" ON)
+if(ENABLE_BMI)
+  target_compile_options(bigrig_obj PUBLIC -mbmi)
+endif()
+
+option(ENABLE_BMI2 "Enable Bit Manipulation Instructions 2 (BMI2) instructions" ON)
+if(ENABLE_BMI2)
+  target_compile_options(bigrig_obj PUBLIC -mbmi2)
+endif()
+
+option(ENABLE_ABM "Enable Advanced Bit Manipulation (ABM) instructions" ON)
+if(ENABLE_ABM)
+  target_compile_options(bigrig_obj PUBLIC -mabm)
+endif()
+
 target_link_libraries(bigrig_obj PUBLIC corax logger)
 target_include_directories(bigrig_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
