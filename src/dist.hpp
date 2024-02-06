@@ -197,8 +197,8 @@ public:
   constexpr inline size_t set_index(size_t index) const {
     size_t tmp_index = 0;
     while (true) {
-      if (index == 0 && (*this)[tmp_index] == 1) { break; }
-      if ((*this)[tmp_index] == 1) { index -= 1; }
+      if (index == 0 && bextr(tmp_index)) { break; }
+      if (bextr(tmp_index)) { index -= 1; }
       tmp_index++;
     }
     return tmp_index;
@@ -216,8 +216,8 @@ public:
   constexpr inline size_t unset_index(size_t index) const {
     size_t tmp_index = 0;
     while (true) {
-      if (index == 0 && (*this)[tmp_index] == 0) { break; }
-      if ((*this)[tmp_index] == 0) { index -= 1; }
+      if (index == 0 && !bextr(tmp_index)) { break; }
+      if (!bextr(tmp_index)) { index -= 1; }
       tmp_index++;
     }
     return tmp_index;
