@@ -164,12 +164,12 @@ TEST_CASE("sample regression") {
   constexpr size_t regions = 4;
 
 #if D_RIGOROUS
-  /* Values stolen from the split regression test. I assume that the problem is
-   * the same, and so the values should be the same. */
-  constexpr size_t iters   = 487'791'396;
+  /* 99.999% confidence that error is less than 0.001 */
+  constexpr size_t iters   = 1'886'084'219;
   constexpr double abs_tol = 1.0e-4;
 #else
-  constexpr size_t iters   = 48'780;
+  /* 99.999% confidence that error is less than 0.01 */
+  constexpr size_t iters   = 188'609;
   constexpr double abs_tol = 1.0e-2;
 #endif
 
