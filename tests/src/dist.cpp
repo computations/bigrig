@@ -114,7 +114,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   constexpr double abs_tol = 1.0e-2;
 #endif
 
-  pcg64 gen(Catch::getSeed());
+  pcg64_fast gen(Catch::getSeed());
 
   bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b0001, regions},
                                       bigrig::dist_t{0b0010, regions},
@@ -173,7 +173,7 @@ TEST_CASE("sample regression") {
   constexpr double abs_tol = 1.0e-2;
 #endif
 
-  pcg64 gen(Catch::getSeed());
+  pcg64_fast gen(Catch::getSeed());
 
   bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b0001, regions},
                                       bigrig::dist_t{0b0100, regions},
