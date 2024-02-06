@@ -195,9 +195,6 @@ public:
    * a full region.
    */
   constexpr inline size_t set_index(size_t index) const {
-#if __BMI2__
-    return __builtin_ctz(_pdep_u64(_dist, index));
-#else
     size_t tmp_index = 0;
     while (true) {
       if (index == 0 && (*this)[tmp_index] == 1) { break; }
@@ -205,7 +202,6 @@ public:
       tmp_index++;
     }
     return tmp_index;
-#endif
   }
 
   constexpr inline dist_t set_by_count(size_t count) {
@@ -218,10 +214,6 @@ public:
    * empty region.
    */
   constexpr inline size_t unset_index(size_t index) const {
-#if __BMI2__
-    uint64_t mask = (1ul << regions()) - 1;
-    return __builtin_ctz(_pdep_u64(~_dist & mask, index));
-#else
     size_t tmp_index = 0;
     while (true) {
       if (index == 0 && (*this)[tmp_index] == 0) { break; }
@@ -229,7 +221,6 @@ public:
       tmp_index++;
     }
     return tmp_index;
-#endif
   }
 
   constexpr inline dist_t unset_by_count(size_t count) {
@@ -264,30 +255,42 @@ private:
   /**
    * Computes the number of unset bits, given the region count restriction.
    */
+  inline constexpr size_t unpopcount() const { return regions() - popcount(); }
 
-  inline constexpr size_t unpopcount() const {
-    return static_cast<size_t>(
-        __builtin_popcountll((~_dist) & valid_region_mask()));
-  }
-
+  /**
+   * Extract a specific bit and set it to the first bit. Specifically, returns 0
+   * if the ith bit is unset, and 1 if it is set.
+   */
   constexpr inline uint64_t bextr(size_t index) const {
     return (_dist >> index) & 1ull;
   }
 
+  /**
+   * Computes a fast log2 that is rounded down to the nearest integer.
+   */
   inline constexpr size_t log2() const {
     constexpr size_t BITS_IN_BYTE = 8;
     return sizeof(_dist) * BITS_IN_BYTE - clz();
   }
 
+  /**
+   * Count leading zeros
+   */
   inline constexpr size_t clz() const {
     return static_cast<size_t>(__builtin_clzll(_dist));
   }
 
+  /**
+   * Count leading zeros, with a saftey for when _dist == 0
+   */
   inline constexpr size_t clz_min() const {
     return static_cast<size_t>(__builtin_clzll(_dist | 1ull));
   }
 
-  constexpr static auto compute_skips_power_of_2(size_t k, size_t n) -> size_t {
+  /**
+   * Inner function for compute skips.
+   */
+  constexpr static size_t compute_skips_power_of_2(size_t k, size_t n) {
     size_t skips = 0;
     for (size_t i = n + 1; i < k; ++i) {
       skips += bigrig::util::combinations(k - 1, i);
@@ -295,11 +298,14 @@ private:
     return skips;
   }
 
-  constexpr static auto compute_skips(size_t i, size_t n) -> size_t {
+  /**
+   * Compute the number of skipped dists for dist i given a limit n
+   */
+  constexpr static size_t compute_skips(size_t i, size_t n) {
     constexpr size_t BITS_IN_BYTE = 8;
     size_t           skips        = 0;
     while (i != 0 && n != 0) {
-      size_t first_index  = sizeof(i) * BITS_IN_BYTE - __builtin_clzll(i | 1);
+      size_t first_index  = sizeof(i) * BITS_IN_BYTE - __builtin_clzll(i | 1ul);
       skips              += compute_skips_power_of_2(first_index, n);
       n                  -= 1;
       i                  -= 1 << (first_index - 1);
@@ -309,7 +315,7 @@ private:
   }
 
   constexpr uint64_t valid_region_mask() const {
-    uint64_t mask = (1 << regions()) - 1;
+    uint64_t mask = (1ul << regions()) - 1;
     return mask;
   }
 
@@ -317,6 +323,10 @@ private:
   uint16_t _regions;
 };
 
+/**
+ * Data class to store the results of a sample. Records an initial state (as a
+ * dist) a final state (as a dist) and the waiting time.
+ */
 class transition_t {
 public:
   transition_t() = default;
@@ -328,12 +338,22 @@ public:
   dist_t final_state;
 };
 
+/**
+ * Wrapper function around sample for refactoring. I keep it around in case I
+ * want to revert to the rejection method.
+ */
 transition_t sample(dist_t                                  init_dist,
                     const substitution_model_t             &model,
                     std::uniform_random_bit_generator auto &gen) {
   return sample_analytic(init_dist, model, gen);
 }
 
+/**
+ * Samples a `transition_t` via rejection. That is, it imagines each dist
+ * as a independent Poisson process, and rolls them all. It picks the lowest of
+ * all the processes. Linear in the number regions. This function exists mostly
+ * to use as a check against the results of `sample_analytic`.
+ */
 transition_t sample_rejection(dist_t                                  init_dist,
                               const substitution_model_t             &model,
                               std::uniform_random_bit_generator auto &gen) {
@@ -360,6 +380,13 @@ transition_t sample_rejection(dist_t                                  init_dist,
   return min_ele;
 }
 
+/**
+ * Samples a `transition_t` by combining the independent processes, and only
+ * rolling once for the waiting time. There are 2 additional rolls, one for the
+ * type, and one for the region.
+ *
+ * Linear in the number of regions, if there is no BMI2 instruction set.
+ */
 transition_t sample_analytic(dist_t                                  init_dist,
                              const substitution_model_t             &model,
                              std::uniform_random_bit_generator auto &gen) {
@@ -368,17 +395,15 @@ transition_t sample_analytic(dist_t                                  init_dist,
   bool singleton = init_dist.singleton();
 
   double dispersion_weight = dispersion_rate * init_dist.empty_region_count();
-  double extinction_weight = extinction_rate * init_dist.full_region_count();
-  double waiting_time_parameter
-      = dispersion_weight + (singleton ? 0.0 : extinction_weight);
+  double extinction_weight
+      = singleton ? 0.0 : (extinction_rate * init_dist.full_region_count());
+  double total_weight = dispersion_weight + extinction_weight;
 
-  std::exponential_distribution<double> wait_time_distribution(
-      waiting_time_parameter);
+  std::exponential_distribution<double> wait_time_distribution(total_weight);
 
   double waiting_time = wait_time_distribution(gen);
 
-  std::bernoulli_distribution type_coin(dispersion_weight
-                                        / (waiting_time_parameter));
+  std::bernoulli_distribution type_coin(dispersion_weight / (total_weight));
 
   auto type = type_coin(gen);
 

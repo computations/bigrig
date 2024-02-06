@@ -6,6 +6,12 @@
 
 namespace bigrig {
 
+/**
+ * String constrctor. Takes a string and makes a dist. When modifying this
+ * function, care should be taken to ensure that the order is correct. The
+ * string is indexed in big endian fashion, but the uint64_t in little endian
+ * fashion.
+ */
 dist_t::dist_t(const std::string &dist_string) {
   if (dist_string.size() > 64) {
     throw std::runtime_error{"Tried to make a dist with too many regions"};
@@ -34,6 +40,15 @@ std::string dist_t::to_str() const {
   return oss.str();
 }
 
+/**
+ * Given a triplet of `dist_t`s determine what type of split it is between:
+ *  - singleton (i.e. copy)
+ *  - sympatric
+ *  - allopatric
+ *  - invalid
+ * Generally speaking, this function is pretty slow, and so should be avoided.
+ * If possible
+ */
 split_type_e
 determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
   if (left_dist.full_region_count() > right_dist.full_region_count()) {
