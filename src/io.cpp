@@ -354,7 +354,6 @@ bool validate_options(cli_options_t &cli_options) {
       auto cli_options_tmp
           = parse_yaml_options(cli_options.config_filename.value());
       cli_options.merge(cli_options_tmp);
-      //if (!validate_cli_options(cli_options)) { return false; }
     } catch (const YAML::Exception &e) {
       LOG_ERROR("Failed to parse the config file: %s", e.what());
       return false;

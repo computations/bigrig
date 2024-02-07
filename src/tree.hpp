@@ -35,7 +35,7 @@ public:
     }
     LOG_DEBUG("Starting sample with init dist = %lb",
               static_cast<uint64_t>(initial_distribution));
-    _tree->sample(initial_distribution, model, gen);
+    _tree->simulate(initial_distribution, model, gen);
   }
 
   std::optional<dist_t> get_dist_by_string_id(const std::string &key) const;

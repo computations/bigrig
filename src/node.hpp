@@ -23,9 +23,19 @@ public:
 
   void add_child(const std::shared_ptr<node_t> &n);
 
-  void sample(dist_t                                  initial_distribution,
-              const biogeo_model_t                   &model,
-              std::uniform_random_bit_generator auto &gen) {
+  /**
+   * Run the simulation, given the initial distribution, model and RNG.
+   *
+   * Modifies the state of the node_t, so that once the function is finished,
+   * the _transitions vector is full, _final_state is occupied, and _split is
+   * computed.
+   *
+   * Also, this is a recursive function that is top down. After the results for
+   * this node are computed, the results for the children are computed.
+   */
+  void simulate(dist_t                                  initial_distribution,
+                const biogeo_model_t                   &model,
+                std::uniform_random_bit_generator auto &gen) {
     LOG_DEBUG("Node sampling with initial_distribution = %s",
               initial_distribution.to_str().c_str());
     _transitions = generate_samples(initial_distribution, _brlen, model, gen);
@@ -38,8 +48,8 @@ public:
     _split = split_dist(_final_state, model, gen);
 
     if (!is_leaf()) {
-      _children[0]->sample(_split.left, model, gen);
-      _children[1]->sample(_split.right, model, gen);
+      _children[0]->simulate(_split.left, model, gen);
+      _children[1]->simulate(_split.right, model, gen);
     }
   }
 

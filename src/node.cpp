@@ -2,6 +2,11 @@
 
 namespace bigrig {
 
+/**
+ * Constructs a tree from a corax tree node.
+ *
+ * This function will copy the label and branch length, but nothing else.
+ */
 node_t::node_t(corax_unode_t *n) {
   _brlen = n->length;
   if (n->label) { _label = n->label; }
@@ -19,7 +24,13 @@ void node_t::add_child(const std::shared_ptr<node_t> &n) {
   _children.push_back(n);
 }
 
-
+/**
+ * Convert the node_t into a newick string, with a formatting callback
+ *
+ * The callback is to format the label and branch length parameters, and any
+ * other information that needs to be included. For example, the callback can
+ * also construct NHX extension information.
+ */
 std::ostream &node_t::to_newick(
     std::ostream                                       &os,
     std::function<void(std::ostream &, const node_t &)> cb) const {
@@ -37,20 +48,31 @@ std::ostream &node_t::to_newick(
   return os;
 }
 
+/**
+ * Convert the node_t to newick, standard method
+ *
+ * This will convert the node into a newick string and store it in `os`. This
+ * function is just a wrapper around the "normal" callback, which is canned and
+ * ready.
+ */
 std::ostream &node_t::to_newick(std::ostream &os) const {
-  auto cb = [](std::ostream &os, const node_t &n) {
+  constexpr auto cb = [](std::ostream &os, const node_t &n) {
     os << n.string_id() << ":" << n._brlen;
   };
   return to_newick(os, cb);
 }
 
+/**
+ * Converts the current node into a phylip row.
+ *
+ * When outputting results, the dist and taxa are stored as a row in a phylip
+ * file. Here, we convert the current node into a row. We also output the
+ * simulated dists for internal nodes. If this behavior is required, then all
+ * should be set to true.
+ */
 std::ostream &
 node_t::to_phylip_line(std::ostream &os, size_t pad_to, bool all) const {
-  for (const auto &child : _children) {
-    child->to_phylip_line(os, pad_to, all);
-  }
   if (_children.size() == 0 || all) {
-    // os << string_id() << " " << _final_state << "\n";
     auto tmp_name = string_id();
     os << tmp_name;
     if (pad_to != 0) {
@@ -62,11 +84,16 @@ node_t::to_phylip_line(std::ostream &os, size_t pad_to, bool all) const {
 
     for (size_t i = 0; i < pad_to; ++i) { os << " "; }
 
-    os << _final_state << "\n";
+    os << _final_state;
   }
   return os;
 }
 
+/**
+ * Count the number of leaves in the tree.
+ *
+ * Linear complexity, use sparingly.
+ */
 size_t node_t::leaf_count() const {
   if (is_leaf()) { return 1; }
   size_t count = 0;
@@ -74,14 +101,25 @@ size_t node_t::leaf_count() const {
   return count;
 }
 
+/**
+ * Count the number of nodes in the tree.
+ *
+ * Linear complexity, use sparingly.
+ */
 size_t node_t::node_count() const {
   size_t count = 0;
   for (const auto &child : _children) { count += child->node_count(); }
   return count + 1;
 }
 
+/**
+ * Start assigning ids. Starts from index 0.
+ */
 void node_t::assign_id_root() { assign_id(0); }
 
+/**
+ * Recursively assign ids in a preorder fashion.
+ */
 size_t node_t::assign_id(size_t next) {
   if (is_leaf()) { return next; }
   _node_id = next++;
@@ -93,6 +131,11 @@ size_t node_t::get_string_id_len_max(bool all) {
   return get_string_id_len_max(0, all);
 }
 
+/**
+ * Get the length of the label as a string.
+ *
+ * Used to compute the padding for the phylip file
+ */
 size_t node_t::get_string_id_len_max(size_t max, bool all) {
   if (is_leaf() || all) {
     size_t label_size = string_id().size();
@@ -122,6 +165,9 @@ std::vector<std::shared_ptr<node_t>> node_t::children() const {
 std::vector<transition_t>  node_t::transitions() const { return _transitions; }
 std::vector<transition_t> &node_t::transitions() { return _transitions; }
 
+/**
+ * Compute the absolute time for the current node, as measured from the root.
+ */
 void node_t::assign_abs_time(double t) {
   _abs_time = t + _brlen;
   for (auto &c : children()) { c->assign_abs_time(_abs_time); }
