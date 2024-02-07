@@ -2,7 +2,7 @@
 
 #include <random>
 
-constexpr size_t VECTOR_INITIAL_RESERVE = 10;
+constexpr size_t VECTOR_INITIAL_RESERVE = 8;
 
 namespace bigrig {
 enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
@@ -22,11 +22,19 @@ struct split_t {
   std::string to_type_string() const;
 };
 
+/**
+ * Generate transitions for a branch.
+ *
+ * Simulates transitions by simulating a single transition and subtracting the
+ * waiting time from the branch length. If the branch length is still positive
+ * or zero, then we record the sample and continue. The process repeats until
+ * the branch length is negative.
+ */
 std::vector<transition_t>
-generate_samples(dist_t                                  init_dist,
-                 double                                  brlen,
-                 const biogeo_model_t                   &model,
-                 std::uniform_random_bit_generator auto &gen) {
+simulate_transitions(dist_t                                  init_dist,
+                     double                                  brlen,
+                     const biogeo_model_t                   &model,
+                     std::uniform_random_bit_generator auto &gen) {
   std::vector<transition_t> results;
   results.reserve(VECTOR_INITIAL_RESERVE);
   while (true) {
@@ -42,6 +50,14 @@ generate_samples(dist_t                                  init_dist,
   return results;
 }
 
+/**
+ * Simulates a split type based on some model parameters.
+ *
+ * When using the fast method for computing splits, we simulate a split type
+ * first, and then compute the split based on that type. The specific
+ * probability for each type depends on the dist to be split. See the model
+ * docmentation for more information.
+ */
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
@@ -63,7 +79,12 @@ split_type_e roll_split_type(dist_t                                  init_dist,
 
   double sum = allo_weight + sym_weight + jump_weight;
 
-  double roll = std::uniform_real_distribution<double>()(gen) * sum;
+  /*
+   * There is a function in the standard lib that will do this, but I measured
+   * it to be slower than this... So we are just going to stick with this
+   * method.
+   */
+  double roll = std::uniform_real_distribution<double>(0, sum)(gen);
 
   const std::array<const std::pair<double, split_type_e>, 3> options{
       std::pair{allo_weight, split_type_e::allopatric},
@@ -89,13 +110,16 @@ split_type_e roll_split_type(dist_t                                  init_dist,
  *  - Singleton
  *  - Allopatric
  *  - Sympatric
- *  Allopatric and Sympatric are not the names used in the original Ree paper,
- *  and they shouldn't be used in user facing descriptions, as they are very
- *  misleading. Regions are large enough that both Allopatry and Sympatry can
- *  occur, but the idea maps well, so I use it internally.
+ * Allopatric and Sympatric are not the names used in the original Ree paper,
+ * and they shouldn't be used in user facing descriptions, as they are very
+ * misleading. In the Ree paper, they use the terms "case 1" and "case 2".
+ * However, these cases are very directly inspired by the processes of
+ * allopatric and sympatric speciation. Additionally, Matzke uses _essentially_
+ * these names for the parameters to his cladogenesis model, so what are you
+ * going to do.
  *
- *  In additoin, Matzke introduced a jump parameter, making it +J. We optionally
- *  support this option.
+ * In addition, Matzke introduced a jump parameter, making it +J. We optionally
+ * support this option.
  */
 split_t split_dist(dist_t                                  init_dist,
                    const biogeo_model_t                   &model,
@@ -141,6 +165,17 @@ split_t split_dist(dist_t                                  init_dist,
 split_type_e
 determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist);
 
+/**
+ * Split a dist via a rejection method.
+ *
+ * In this type, we generate 2 _completely_ random dists, and then check to see
+ * which kind of split this is. If it is a valid type, we return the generated
+ * split with probability equal to the corresponding normalized parameter.
+ *
+ * This function does _not_ support duplicity with allopatric and copy splits.
+ * This is a good argument against duplicity. However, I could probably change
+ * this function so that it _does_ count duplicity.
+ */
 split_t
 split_dist_rejection_method(dist_t                                  init_dist,
                             const biogeo_model_t                   &model,
@@ -156,11 +191,8 @@ split_dist_rejection_method(dist_t                                  init_dist,
   auto model_params = model.cladogenesis_params().normalize();
 
   std::bernoulli_distribution sympatry_coin(model_params.sympatry);
-
   std::bernoulli_distribution allopatry_coin(model_params.allopatry);
-
   std::bernoulli_distribution copy_coin(model_params.copy);
-
   std::bernoulli_distribution jump_coin(model_params.jump);
 
   dist_t       left_dist, right_dist;

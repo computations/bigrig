@@ -28,4 +28,40 @@ std::string type_string(const split_type_e &st) {
 }
 
 std::string split_t::to_type_string() const { return type_string(type); }
+
+/**
+ * Given a triplet of `dist_t`s determine what type of split it is between:
+ *  - singleton (i.e. copy)
+ *  - sympatric
+ *  - allopatric
+ *  - invalid
+ * Generally speaking, this function is pretty slow, and so should be avoided.
+ * If possible
+ */
+split_type_e
+determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
+  if (left_dist.full_region_count() > right_dist.full_region_count()) {
+    std::swap(left_dist, right_dist);
+  }
+
+  if ((left_dist | right_dist) == init_dist) {
+    if (left_dist == right_dist && left_dist.full_region_count() == 1) {
+      return split_type_e::singleton;
+    }
+    if (!left_dist.singleton() && !right_dist.singleton()) {
+      return split_type_e::invalid;
+    }
+    if ((left_dist & right_dist).full_region_count() == 1) {
+      return split_type_e::sympatric;
+    }
+    if ((left_dist & right_dist).full_region_count() == 0) {
+      return split_type_e::allopatric;
+    }
+  } else if (left_dist.singleton() && right_dist == init_dist
+             && (left_dist | init_dist).full_region_count()
+                    == init_dist.full_region_count() + 1) {
+    return split_type_e::jump;
+  }
+  return split_type_e::invalid;
+}
 } // namespace bigrig

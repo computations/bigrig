@@ -28,21 +28,80 @@ double biogeo_model_t::total_rate_weight(const dist_t &dist) const {
   return extinction_weight(dist) + dispersion_weight(dist);
 }
 
+/**
+ * Count the number of jump splits possible.
+ *
+ * A jump split is
+ *
+ *     10
+ *    /  \
+ *   01  10
+ *
+ * In this case, it is the number of empty regions times 2. Because the region
+ * that is "jump started" can be either on the left or right, and the left and
+ * right branches are distinct.
+ */
 size_t biogeo_model_t::jump_count(const dist_t &dist) const {
   return dist.empty_region_count() * 2;
 }
 
+/**
+ * Count the number of allopatric splits for a given dist.
+ *
+ * An allopatric split is
+ *
+ *     111
+ *    /   \
+ *  011   100
+ *
+ * The number of allopatric splits is 2 times the number of full regions. The
+ * idea is that we pick a full region to split, and then pick which branch the
+ * split gets assigned to.
+ *
+ * Because the split in this case is disjoint, there is a weird duplicity case
+ * when there are 2 regions. If you count by _outcomes_ you get two less
+ * possible allopatric splits the if you count by _process_. By default, we
+ * don't allow this as this is what was done by Matzke for DEC+J. However, we do
+ * support the other method.
+ */
 size_t biogeo_model_t::allopatry_count(const dist_t &dist) const {
   return dist.full_region_count() * 2
-       - _duplicity * (dist.full_region_count() == 2) * 2;
+       - ((!_duplicity && dist.full_region_count() == 2) ? 2 : 0);
 }
 
+/**
+ * Compute the number of sympatric splits 
+ *
+ * A sympatric split is
+ *
+ *     11
+ *    /  \
+ *   11  10
+ *
+ * In this case, the number of splits is 2 times the full splits. The idea is
+ * that we pick a full region to split, and then pick the left or right branch.
+ */
 size_t biogeo_model_t::sympatry_count(const dist_t &dist) const {
   return dist.full_region_count() * 2;
 }
 
+/**
+ * Compute the number of copy splits
+ *
+ * A copy split is
+ *
+ *     10
+ *    /  \
+ *   10  10
+ *
+ * Copies can only occur on singleton regions. Again, there is a duplicity issue
+ * here, though I am less confident here. In one sense, there is no process, so
+ * the left and right branches being distinguished doesn't matter. In another
+ * sense, we distinguish the branches in all other cases, so why should we stop
+ * for this one.
+ */
 size_t biogeo_model_t::copy_count(const dist_t &dist) const {
-  return (dist.full_region_count() == 1) * (2 * _duplicity);
+  return (dist.full_region_count() == 1) * (_duplicity ? 1 : 2);
 }
 
 double biogeo_model_t::jump_weight(const dist_t &dist) const {

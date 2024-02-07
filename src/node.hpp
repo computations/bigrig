@@ -38,7 +38,8 @@ public:
                 std::uniform_random_bit_generator auto &gen) {
     LOG_DEBUG("Node sampling with initial_distribution = %s",
               initial_distribution.to_str().c_str());
-    _transitions = generate_samples(initial_distribution, _brlen, model, gen);
+    _transitions
+        = simulate_transitions(initial_distribution, _brlen, model, gen);
     LOG_DEBUG("Finished sampling with %lu transitions", _transitions.size());
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;

@@ -16,7 +16,7 @@ TEST_CASE("splitting", "[sample]") {
   model.set_params(1.0, 1.0)
       .set_cladogenesis_params(1.0, 1.0, 1.0, 0.0)
       .set_region_count(4)
-      .set_two_region_duplicity(true);
+      .set_two_region_duplicity(false);
 
   SECTION("singleton") {
     bigrig::dist_t init_dist = {0b1000, regions};
@@ -40,7 +40,8 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.right);
     REQUIRE(sp.type == bigrig::split_type_e::allopatric);
     CHECK(sp.left != sp.right);
-    CHECK((sp.left.full_region_count() == 1 || sp.right.full_region_count() == 1));
+    CHECK((sp.left.full_region_count() == 1
+           || sp.right.full_region_count() == 1));
     CHECK((sp.left | sp.right) == init_dist);
     CHECK((sp.left & sp.right).full_region_count() == 0);
   }
@@ -60,10 +61,12 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.right);
     REQUIRE(sp.type == bigrig::split_type_e::sympatric);
     CHECK(sp.left != sp.right);
-    CHECK((sp.left.full_region_count() == 1 || sp.right.full_region_count() == 1));
+    CHECK((sp.left.full_region_count() == 1
+           || sp.right.full_region_count() == 1));
     CHECK((sp.left | sp.right) == init_dist);
-    CHECK((sp.left & sp.right).full_region_count()
-          == std::min(sp.left.full_region_count(), sp.right.full_region_count()));
+    CHECK(
+        (sp.left & sp.right).full_region_count()
+        == std::min(sp.left.full_region_count(), sp.right.full_region_count()));
   }
 
   SECTION("jump") {
@@ -80,7 +83,8 @@ TEST_CASE("splitting", "[sample]") {
     CHECK(sp.right);
     REQUIRE(sp.type == bigrig::split_type_e::jump);
     CHECK(sp.left != sp.right);
-    CHECK((sp.left.full_region_count() == 1 || sp.right.full_region_count() == 1));
+    CHECK((sp.left.full_region_count() == 1
+           || sp.right.full_region_count() == 1));
     CHECK((sp.left | sp.right) != init_dist);
     CHECK((sp.left & sp.right).full_region_count() == 0);
   }
@@ -152,13 +156,15 @@ TEST_CASE("split regression") {
                  bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_region_count(4).set_two_region_duplicity(true);
+  model.set_params(1.0, 1.0).set_region_count(4).set_two_region_duplicity(
+      false);
   INFO("init dist:" << init_dist);
   INFO("model params: " << params.to_debug_string());
 
   model.set_cladogenesis_params(params);
   std::unordered_map<bigrig::split_type_e, size_t> regression_split_type_counts;
   std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
+
   for (size_t i = 0; i < iters; ++i) {
     auto rej_res = bigrig::split_dist_rejection_method(init_dist, model, gen);
     regression_split_type_counts[rej_res.type] += 1;
@@ -166,11 +172,12 @@ TEST_CASE("split regression") {
     auto new_res = bigrig::split_dist(init_dist, model, gen);
     split_type_counts[new_res.type] += 1;
   }
+
   for (const auto &key : keys) {
-    double reg_val
+    double rejection_value
         = static_cast<double>(regression_split_type_counts[key]) / iters;
     double new_val = static_cast<double>(split_type_counts[key]) / iters;
     INFO("clado type: " << bigrig::type_string(key));
-    CHECK_THAT(reg_val, Catch::Matchers::WithinAbs(new_val, abs_tol));
+    CHECK_THAT(rejection_value, Catch::Matchers::WithinAbs(new_val, abs_tol));
   }
 }

@@ -195,7 +195,7 @@ private:
   rate_params_t         _rate_params;
   cladogenesis_params_t _clad_params;
 
-  bool _duplicity = true;
+  bool _duplicity = false;
 
   size_t _region_count;
 };
