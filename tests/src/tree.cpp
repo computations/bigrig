@@ -101,7 +101,7 @@ TEST_CASE("tree sample", "[tree]") {
       "2594):0.1416):0.2421):0.7125):0.9754):0.4298);");
 
   bigrig::biogeo_model_t model(dis, ext, regions, true);
-  bigrig::dist_t               init_dist = {0b0101, regions};
+  bigrig::dist_t         init_dist = {0b0101, regions};
   model.set_cladogenesis_params(
       {.copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 1.0});
 
@@ -109,10 +109,10 @@ TEST_CASE("tree sample", "[tree]") {
 
   pcg64_fast gen(Catch::getSeed());
 
-  tree.sample(init_dist, model, gen);
+  tree.simulate(init_dist, model, gen);
   for (const auto &n : tree) { CHECK((bool)n->final_state()); }
 
   BENCHMARK("sample: " + std::to_string(tree.leaf_count())) {
-    tree.sample(init_dist, model, gen);
+    tree.simulate(init_dist, model, gen);
   };
 }

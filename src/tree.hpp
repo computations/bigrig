@@ -15,6 +15,12 @@
 #include <string>
 
 namespace bigrig {
+/**
+ * Top level class around `node_t`.
+ *
+ * Uses the coraxlib newick parser to parse the tree, but then immediatly
+ * converts the tree into `node_t`s.
+ */
 class tree_t {
 public:
   explicit tree_t(const std::filesystem::path &tree_filename);
@@ -27,9 +33,12 @@ public:
   tree_t(tree_t &&)            = default;
   tree_t &operator=(tree_t &&) = default;
 
-  void sample(dist_t                                  initial_distribution,
-              const biogeo_model_t                   &model,
-              std::uniform_random_bit_generator auto &gen) {
+  /**
+   * Simulate the whole tree from an initial dist.
+   */
+  void simulate(dist_t                                  initial_distribution,
+                const biogeo_model_t                   &model,
+                std::uniform_random_bit_generator auto &gen) {
     if (!initial_distribution.valid_dist(model)) {
       throw invalid_dist{"Invalid dist provided as a start dist"};
     }
@@ -52,8 +61,10 @@ public:
   std::ostream &to_phylip_body(std::ostream &os, bool all = false) const;
 
   size_t node_count() const;
-
   size_t leaf_count() const;
+
+  bool is_binary() const;
+  bool is_valid() const;
 
   preorder_iterator begin() const;
   preorder_iterator end() const;

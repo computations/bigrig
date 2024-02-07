@@ -76,6 +76,16 @@ int main() {
   MESSAGE_INFO("Parsing tree");
   auto tree = bigrig::tree_t(cli_options.tree_filename.value());
 
+  if (!tree.is_valid()) {
+    MESSAGE_ERROR("The tree provided is not valid, exiting");
+    return 1;
+  }
+
+  if (!tree.is_binary()) {
+    MESSAGE_ERROR("The tree provided is not a binary tree, refusing to run");
+    return 1;
+  }
+
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
@@ -85,7 +95,7 @@ int main() {
                                cli_options.two_region_duplicity.value_or(true));
 
   MESSAGE_INFO("Sampling from tree")
-  tree.sample(cli_options.root_distribution.value(), model, gen);
+  tree.simulate(cli_options.root_distribution.value(), model, gen);
 
   MESSAGE_INFO("Writing results to files")
   write_output_files(cli_options, tree, model);

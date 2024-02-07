@@ -66,8 +66,9 @@ public:
   inline bool is_leaf() const { return _children.size() == 0; }
 
   size_t leaf_count() const;
-
   size_t node_count() const;
+
+  bool is_binary() const;
 
   void assign_id_root();
 

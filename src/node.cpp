@@ -176,4 +176,12 @@ void node_t::assign_abs_time(double t) {
 void node_t::assign_abs_time_root() { assign_abs_time(0); }
 
 void node_t::set_label(const std::string &str) { _label = str; }
+
+bool node_t::is_binary() const {
+  if (_children.size() != 0 && _children.size() != 2) { return false; }
+  for (const auto &c : _children) {
+    if (!c->is_binary()) { return false; }
+  }
+  return true;
+}
 } // namespace bigrig
