@@ -349,12 +349,12 @@ void write_output_files(const cli_options_t          &cli_options,
 }
 
 bool validate_options(cli_options_t &cli_options) {
-  bool ok = true;
   if (cli_options.config_filename.has_value() && config_or_cli(cli_options)) {
     try {
       auto cli_options_tmp
           = parse_yaml_options(cli_options.config_filename.value());
       cli_options.merge(cli_options_tmp);
+      //if (!validate_cli_options(cli_options)) { return false; }
     } catch (const YAML::Exception &e) {
       LOG_ERROR("Failed to parse the config file: %s", e.what());
       return false;
@@ -375,13 +375,13 @@ bool validate_options(cli_options_t &cli_options) {
   }
 
   if (!check_existing_results(cli_options)) {
-    if (!cli_options.redo.value()) {
+    if (!cli_options.redo.value_or(false)) {
       MESSAGE_ERROR("Refusing to run with existing results. Please specify the "
-                    "--redo option if you want to overwrite existig results");
+                    "--redo option if you want to overwrite existing results");
       return false;
     }
   }
-  return ok;
+  return true;
 }
 
 [[nodiscard]] bool config_or_cli(const cli_options_t &cli_options) {
@@ -389,7 +389,7 @@ bool validate_options(cli_options_t &cli_options) {
 
   if (cli_options.config_filename.has_value()
       && cli_options.cli_arg_specified()) {
-    MESSAGE_ERROR("Both config and CLI arguements have been specified. Please "
+    MESSAGE_ERROR("Both config and CLI arguments have been specified. Please "
                   "only specify one");
     ok = false;
   }
