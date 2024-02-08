@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <format>
+#include <optional>
 
 /**
  * Print the message at the start of the run.
@@ -59,9 +60,14 @@ std::string to_phylip_all_nodes(const bigrig::tree_t        &tree,
 /**
  * Check that the tree file path is ok to use.
  */
-[[nodiscard]] bool
-validate_tree_filename(const std::filesystem::path &tree_filename) {
-  bool ok = true;
+[[nodiscard]] bool validate_tree_filename(
+    const std::optional<std::filesystem::path> &tree_filename_option) {
+  if (!tree_filename_option.has_value()) {
+    MESSAGE_ERROR("No tree file was provided");
+    return false;
+  }
+  const auto &tree_filename = tree_filename_option.value();
+  bool        ok            = true;
   if (!std::filesystem::exists(tree_filename)) {
     LOG_ERROR("The tree file '%s' does not exist", tree_filename.c_str());
     ok = false;
@@ -97,9 +103,14 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
  * When the user passes a prefix, we need to check that its all kosher, and then
  * _actually_ make the directories. We make them here.
  */
-[[nodiscard]] bool
-validate_and_make_prefix(const std::filesystem::path &prefix) {
-  bool ok = true;
+[[nodiscard]] bool validate_and_make_prefix(
+    const std::optional<std::filesystem::path> &prefix_option) {
+  if (!prefix_option.has_value()) {
+    MESSAGE_ERROR("No prefix was provided");
+    return false;
+  }
+  auto prefix = prefix_option.value();
+  bool ok     = true;
   if (!std::filesystem::exists(prefix.parent_path())) {
     LOG_WARNING("The path '%s' does not exist", prefix.parent_path().c_str());
 
@@ -128,8 +139,8 @@ validate_and_make_prefix(const std::filesystem::path &prefix) {
 [[nodiscard]] bool validate_cli_options(const cli_options_t &cli_options) {
   bool ok = true;
 
-  ok &= validate_tree_filename(cli_options.tree_filename.value());
-  ok &= validate_and_make_prefix(cli_options.prefix.value());
+  ok &= validate_tree_filename(cli_options.tree_filename);
+  ok &= validate_and_make_prefix(cli_options.prefix);
 
   if (!cli_options.root_distribution.has_value()) {
     MESSAGE_ERROR("The root distribution was not provided. Please provide a "
@@ -195,6 +206,8 @@ bool normalize_paths(cli_options_t &cli_options) {
               cli_options.tree_filename.value().c_str(),
               err.what());
     ok = false;
+  } catch (const std::bad_optional_access &err) {
+    return false;
   }
   try {
     cli_options.prefix = std::filesystem::weakly_canonical(
@@ -209,7 +222,7 @@ bool normalize_paths(cli_options_t &cli_options) {
 }
 
 /**
- * Check if results files exist already. 
+ * Check if results files exist already.
  *
  * Again, we use the philosophy that we should check as much as possible. So, we
  * check all the possible outputs, as long as they are set.
@@ -248,7 +261,7 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
 }
 
 /**
- * Write the output as a YAML file. 
+ * Write the output as a YAML file.
  */
 void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
   YAML::Emitter yaml;
@@ -407,7 +420,8 @@ void write_output_files(const cli_options_t          &cli_options,
  * - Checking existing results
  */
 bool validate_options(cli_options_t &cli_options) {
-  if (cli_options.config_filename.has_value() && config_compatible(cli_options)) {
+  if (cli_options.config_filename.has_value()
+      && config_compatible(cli_options)) {
     try {
       auto cli_options_tmp
           = parse_yaml_options(cli_options.config_filename.value());
@@ -423,13 +437,14 @@ bool validate_options(cli_options_t &cli_options) {
   }
 
   normalize_paths(cli_options);
-  write_header(cli_options);
 
   if (!validate_cli_options(cli_options)) {
     MESSAGE_ERROR(
         "We can't continue with the current options, exiting instead");
     return false;
   }
+
+  write_header(cli_options);
 
   if (!check_existing_results(cli_options)) {
     if (!cli_options.redo.value_or(false)) {
