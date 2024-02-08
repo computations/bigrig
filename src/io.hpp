@@ -10,10 +10,10 @@
 std::string to_phylip(const bigrig::tree_t        &tree,
                       const bigrig::biogeo_model_t model);
 
-std::string to_phylip_extended(const bigrig::tree_t        &tree,
+std::string to_phylip_all_nodes(const bigrig::tree_t        &tree,
                                const bigrig::biogeo_model_t model);
 
-[[nodiscard]] bool config_or_cli(const cli_options_t &cli_options);
+[[nodiscard]] bool config_compatible(const cli_options_t &cli_options);
 
 bool validate_options(cli_options_t &cli_options);
 

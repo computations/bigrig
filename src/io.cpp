@@ -6,6 +6,9 @@
 #include <filesystem>
 #include <format>
 
+/**
+ * Print the message at the start of the run.
+ */
 void write_header(const cli_options_t &cli_options) {
   MESSAGE_INFO("Running simulation with the following parameters:");
   LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
@@ -14,6 +17,9 @@ void write_header(const cli_options_t &cli_options) {
            cli_options.root_distribution.value().to_str().c_str());
 }
 
+/**
+ * Produce a phylip file as a string.
+ */
 std::string to_phylip(const bigrig::tree_t        &tree,
                       const bigrig::biogeo_model_t model) {
   std::ostringstream oss;
@@ -25,8 +31,11 @@ std::string to_phylip(const bigrig::tree_t        &tree,
   return oss.str();
 }
 
-std::string to_phylip_extended(const bigrig::tree_t        &tree,
-                               const bigrig::biogeo_model_t model) {
+/**
+ * Produce a phylip file as a string, including inner nodes.
+ */
+std::string to_phylip_all_nodes(const bigrig::tree_t        &tree,
+                                const bigrig::biogeo_model_t model) {
   std::ostringstream oss;
   oss << std::to_string(tree.node_count()) << " " << model.region_count()
       << "\n";
@@ -36,7 +45,7 @@ std::string to_phylip_extended(const bigrig::tree_t        &tree,
   return oss.str();
 }
 
-[[nodiscard]] bool verify_is_readable(const std::filesystem::path &path) {
+[[nodiscard]] bool verify_path_is_readable(const std::filesystem::path &path) {
   bool ok     = true;
   auto status = std::filesystem::status(path);
   if ((std::filesystem::perms::owner_read & status.permissions())
@@ -47,6 +56,9 @@ std::string to_phylip_extended(const bigrig::tree_t        &tree,
   return ok;
 }
 
+/**
+ * Check that the tree file path is ok to use.
+ */
 [[nodiscard]] bool
 validate_tree_filename(const std::filesystem::path &tree_filename) {
   bool ok = true;
@@ -58,7 +70,7 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
               tree_filename.c_str());
     ok = false;
   }
-  if (!verify_is_readable(tree_filename)) {
+  if (!verify_path_is_readable(tree_filename)) {
     LOG_ERROR("The tree file '%s' can't be read by us as we don't have the "
               "permissions",
               tree_filename.c_str());
@@ -67,7 +79,7 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
   return ok;
 }
 
-[[nodiscard]] bool verify_is_writable(const std::filesystem::path &path) {
+[[nodiscard]] bool verify_path_is_writable(const std::filesystem::path &path) {
   bool ok             = true;
   auto status         = std::filesystem::status(path);
   auto required_perms = std::filesystem::perms::owner_write
@@ -79,7 +91,14 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
   return ok;
 }
 
-[[nodiscard]] bool validate_prefix(const std::filesystem::path &prefix) {
+/**
+ * Checks that the prefix is alright, and then make the directories.
+ *
+ * When the user passes a prefix, we need to check that its all kosher, and then
+ * _actually_ make the directories. We make them here.
+ */
+[[nodiscard]] bool
+validate_and_make_prefix(const std::filesystem::path &prefix) {
   bool ok = true;
   if (!std::filesystem::exists(prefix.parent_path())) {
     LOG_WARNING("The path '%s' does not exist", prefix.parent_path().c_str());
@@ -90,7 +109,7 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
       LOG_ERROR("%s", err.what());
       ok = false;
     }
-  } else if (!verify_is_writable(prefix.parent_path())) {
+  } else if (!verify_path_is_writable(prefix.parent_path())) {
     LOG_ERROR("The prefix '%s' is not writable", prefix.c_str());
     ok = false;
   }
@@ -98,11 +117,19 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
   return ok;
 }
 
+/**
+ * Check that the program options are valid
+ *
+ * Check that the program options work. Note, it tries to be thorough when
+ * checking, as the loop of "change a thing, find something else wrong" is
+ * annoying. So, this function tries to check as much as it can, and not to bail
+ * out at the first error.
+ */
 [[nodiscard]] bool validate_cli_options(const cli_options_t &cli_options) {
   bool ok = true;
 
   ok &= validate_tree_filename(cli_options.tree_filename.value());
-  ok &= validate_prefix(cli_options.prefix.value());
+  ok &= validate_and_make_prefix(cli_options.prefix.value());
 
   if (!cli_options.root_distribution.has_value()) {
     MESSAGE_ERROR("The root distribution was not provided. Please provide a "
@@ -136,13 +163,14 @@ validate_tree_filename(const std::filesystem::path &tree_filename) {
 
   return ok;
 }
+
 [[nodiscard]] bool
 verify_config_file(const std::filesystem::path &config_filename) {
   bool ok = true;
   if (!std::filesystem::exists(config_filename)) {
     LOG_ERROR("The config file %s does not exist", config_filename.c_str());
     ok = false;
-  } else if (!verify_is_readable(config_filename)) {
+  } else if (!verify_path_is_readable(config_filename)) {
     LOG_ERROR("We don't have the permissions to read the config file %s",
               config_filename.c_str());
     ok = false;
@@ -151,6 +179,9 @@ verify_config_file(const std::filesystem::path &config_filename) {
   return ok;
 }
 
+/**
+ * Make the paths in a cli_options_t absolute, or at least simpler
+ */
 bool normalize_paths(cli_options_t &cli_options) {
   bool ok = true;
   // std::filesystem::canonical will throw an error here, and we might want to
@@ -177,6 +208,12 @@ bool normalize_paths(cli_options_t &cli_options) {
   return ok;
 }
 
+/**
+ * Check if results files exist already. 
+ *
+ * Again, we use the philosophy that we should check as much as possible. So, we
+ * check all the possible outputs, as long as they are set.
+ */
 [[nodiscard]] bool check_existing_results(const cli_options_t &cli_options) {
   bool ok = true;
 
@@ -200,6 +237,9 @@ bool normalize_paths(cli_options_t &cli_options) {
   return ok;
 }
 
+/**
+ * Convert a yaml file into cli_options_t
+ */
 cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
   auto          yaml = YAML::LoadFile(config_filename);
   cli_options_t cli_options(yaml);
@@ -207,6 +247,9 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
   return cli_options;
 }
 
+/**
+ * Write the output as a YAML file. 
+ */
 void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
   YAML::Emitter yaml;
   yaml << YAML::BeginMap;
@@ -306,6 +349,12 @@ void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
   os << j.dump() << std::endl;
 }
 
+/**
+ * Write the output files given a sampled tree and model.
+ *
+ * Automatically selects which outputs need to be created based on
+ * `cli_options_t`.
+ */
 void write_output_files(const cli_options_t          &cli_options,
                         const bigrig::tree_t         &tree,
                         const bigrig::biogeo_model_t &model) {
@@ -317,7 +366,7 @@ void write_output_files(const cli_options_t          &cli_options,
   auto phylip_all_filename  = cli_options.prefix.value();
   phylip_all_filename      += ".all.phy";
   std::ofstream phylip_all_file(phylip_all_filename);
-  phylip_all_file << to_phylip_extended(tree, model);
+  phylip_all_file << to_phylip_all_nodes(tree, model);
 
   auto cb = [](std::ostream &os, bigrig::node_t n) {
     if (n.is_leaf()) {
@@ -348,8 +397,17 @@ void write_output_files(const cli_options_t          &cli_options,
   }
 }
 
+/**
+ * Validate the CLI options, and merge the config file if passed
+ *
+ * This does much of the setup for the runtime of the program, including:
+ * - Merging the config file with the current `cli_options_t`.
+ * - Making directories
+ * - Normalizing paths
+ * - Checking existing results
+ */
 bool validate_options(cli_options_t &cli_options) {
-  if (cli_options.config_filename.has_value() && config_or_cli(cli_options)) {
+  if (cli_options.config_filename.has_value() && config_compatible(cli_options)) {
     try {
       auto cli_options_tmp
           = parse_yaml_options(cli_options.config_filename.value());
@@ -383,7 +441,10 @@ bool validate_options(cli_options_t &cli_options) {
   return true;
 }
 
-[[nodiscard]] bool config_or_cli(const cli_options_t &cli_options) {
+/**
+ * Checks that the config file and the cli options are compatible
+ */
+[[nodiscard]] bool config_compatible(const cli_options_t &cli_options) {
   bool ok = true;
 
   if (cli_options.config_filename.has_value()
