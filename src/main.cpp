@@ -19,7 +19,7 @@ int main() {
           | logger::log_level::important | logger::log_level::error
           | logger::log_level::progress);
 
-  CLI::App app{"A tool to simulate (ancestal) range distribution under the "
+  CLI::App app{"A tool to simulate (ancestal) range distributions under the "
                "DEC[+J] model."};
 
   cli_options_t cli_options;

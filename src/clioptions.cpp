@@ -131,7 +131,7 @@ cli_options_t::cli_options_t(const YAML::Node &yaml) {
     two_region_duplicity = yaml[DUPLICITY_KEY].as<bool>();
   }
 
-  constexpr auto ROOT_DIST_KEY = "root-dist";
+  constexpr auto ROOT_DIST_KEY = "root-range";
   if (yaml[ROOT_DIST_KEY]) {
     root_distribution = yaml[ROOT_DIST_KEY].as<std::string>();
   }

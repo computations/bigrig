@@ -14,13 +14,13 @@ void write_header(const cli_options_t &cli_options) {
   MESSAGE_INFO("Running simulation with the following options:");
   LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
   LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
-  LOG_INFO("   Root Distribution: %s",
+  LOG_INFO("   Root range: %s",
            cli_options.root_distribution.value().to_str().c_str());
-  MESSAGE_INFO("   Rate Parameters:");
+  MESSAGE_INFO("   Rate parameters:");
   LOG_INFO("       Dispersion (d): %.2f, Extinction (e): %.2f",
            cli_options.dispersion_rate.value(),
            cli_options.extinction_rate.value());
-  MESSAGE_INFO("   Cladogenesis Parameters:");
+  MESSAGE_INFO("   Cladogenesis parameters:");
   LOG_INFO("       Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
            "Jump(j): %.2f",
            cli_options.allopatry_rate.value(),
@@ -154,8 +154,8 @@ std::string to_phylip_all_nodes(const bigrig::tree_t        &tree,
   ok &= validate_and_make_prefix(cli_options.prefix);
 
   if (!cli_options.root_distribution.has_value()) {
-    MESSAGE_ERROR("The root distribution was not provided. Please provide a "
-                  "value for the root distribution");
+    MESSAGE_ERROR("The root range was not provided. Please provide a value for "
+                  "the root distribution");
     ok = false;
   } else if (cli_options.root_distribution.value().regions() > 64) {
     LOG_ERROR("Simulating with %u regions is unsupported. Please choose a "
