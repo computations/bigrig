@@ -59,7 +59,6 @@ std::ostream &tree_t::to_phylip_body(std::ostream &os, bool all) const {
   size_t padding = _tree->get_string_id_len_max(all) + 1;
   for (const auto &c : *this) {
     c->to_phylip_line(os, padding, all);
-    os << "\n";
   }
   // remove the last newline
   os.seekp(-1, std::ios_base::end);

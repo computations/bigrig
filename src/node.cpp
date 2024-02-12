@@ -85,6 +85,7 @@ node_t::to_phylip_line(std::ostream &os, size_t pad_to, bool all) const {
     for (size_t i = 0; i < pad_to; ++i) { os << " "; }
 
     os << _final_state;
+    os << "\n";
   }
   return os;
 }
