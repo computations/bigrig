@@ -391,14 +391,14 @@ void write_output_files(const cli_options_t          &cli_options,
   phylip_all_file << to_phylip_all_nodes(tree, model);
 
   auto cb = [](std::ostream &os, bigrig::node_t n) {
+    os << n.string_id();
+    os << "[&&NHX:";
     if (n.is_leaf()) {
-      os << n.label();
+      os << "dist=" << n.final_state().to_str();
     } else {
-      os << n.node_id();
-      os << "[&&NHX:";
       os << n.node_split().to_nhx_string();
-      os << "]";
     }
+    os << "]";
   };
 
   auto annotated_tree_filename  = cli_options.prefix.value();
