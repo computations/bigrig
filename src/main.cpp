@@ -19,44 +19,57 @@ int main() {
           | logger::log_level::important | logger::log_level::error
           | logger::log_level::progress);
 
-  CLI::App app{"bigrig"};
+  CLI::App app{"A tool to simulate (ancestal) range distribution under the "
+               "DEC[+J] model."};
 
   cli_options_t cli_options;
 
-  app.add_option(
-      "--config", cli_options.config_filename, "Config file with options");
+  app.add_option("--config",
+                 cli_options.config_filename,
+                 "[Optional] YAML file containing the program configuration.");
   app.add_option("--tree",
                  cli_options.tree_filename,
-                 "A file containing a newick encoded tree which will be used "
-                 "to perform the simulation");
-  app.add_option("--prefix", cli_options.prefix, "prefix for the output files");
-  app.add_option("--root-dist",
-                 cli_options.root_distribution,
-                 "Distribution at the root at the start of the simulation");
-  app.add_option("--d", cli_options.dispersion_rate, "Dispersion rate");
-  app.add_option("--e", cli_options.extinction_rate, "Extinction rate");
-  app.add_flag("--redo", cli_options.redo, "Extinction rate")
-      ->default_val(false);
+                 "[Required] A file containing a newick encoded tree which "
+                 "will be used to perform the simulation.");
+  app.add_option("--prefix",
+                 cli_options.prefix,
+                 "[Optional] Prefix for the output files.");
+  app.add_option(
+      "--root-dist",
+      cli_options.root_distribution,
+      "[Required] Range for the species at the root for the start of the "
+      "simulation. Should be given as a binary string (e.g. 1010).");
+  app.add_option("--d",
+                 cli_options.dispersion_rate,
+                 "[Required] The dispersion rate for the simulation.");
+  app.add_option("--e",
+                 cli_options.extinction_rate,
+                 "[Required] The extinction rate for the simulation.");
+  app.add_flag(
+         "--redo", cli_options.redo, "[Optional] Ignore existing result files")
+      ->default_val("yes");
   app.add_flag("--debug-log",
                cli_options.debug_log,
-               "Create a file in the prefix that contains the debug log");
+               "[Optional] Create a file in the prefix that contains the debug "
+               "log. Don't enable this without a good reason.");
   app.add_flag(
       "--json",
       [&cli_options](std::int64_t count) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::JSON;
       },
-      "Output results in JSON, where possible");
+      "[Optional] Output results in a JSON file.");
   app.add_flag(
       "--yaml",
       [&cli_options](std::int64_t count) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::YAML;
       },
-      "Output results in YAML, where possible");
+      "[Optional] Output results in a YAML file.");
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
-               "Allow for outcome duplicity in the case of 2 region splits");
+               "[Optional] Allow for outcome duplicity in the case of 2 region "
+               "splits. See the README.md for more information.");
 
   CLI11_PARSE(app);
 
