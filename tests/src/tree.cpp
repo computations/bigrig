@@ -17,6 +17,8 @@ TEST_CASE("tree constructor", "[tree]") {
   CHECK(tree.to_newick() == "((a:0,b:0)1:0,c:0)0:0");
   CHECK(tree.node_count() == 5);
   CHECK(tree.leaf_count() == 3);
+  CHECK(tree.is_binary());
+  CHECK(tree.is_valid());
 }
 
 TEST_CASE("tree sample", "[tree]") {
