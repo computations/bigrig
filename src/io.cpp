@@ -11,11 +11,22 @@
  * Print the message at the start of the run.
  */
 void write_header(const cli_options_t &cli_options) {
-  MESSAGE_INFO("Running simulation with the following parameters:");
+  MESSAGE_INFO("Running simulation with the following options:");
   LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
   LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
   LOG_INFO("   Root Distribution: %s",
            cli_options.root_distribution.value().to_str().c_str());
+  MESSAGE_INFO("   Rate Parameters:");
+  LOG_INFO("       Dispersion (d): %.2f, Extinction (e): %.2f",
+           cli_options.dispersion_rate.value(),
+           cli_options.extinction_rate.value());
+  MESSAGE_INFO("   Cladogenesis Parameters:");
+  LOG_INFO("       Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
+           "Jump(j): %.2f",
+           cli_options.allopatry_rate.value(),
+           cli_options.sympatry_rate.value(),
+           cli_options.copy_rate.value(),
+           cli_options.jump_rate.value());
 }
 
 /**
@@ -206,9 +217,7 @@ bool normalize_paths(cli_options_t &cli_options) {
               cli_options.tree_filename.value().c_str(),
               err.what());
     ok = false;
-  } catch (const std::bad_optional_access &err) {
-    return false;
-  }
+  } catch (const std::bad_optional_access &err) { return false; }
   try {
     cli_options.prefix = std::filesystem::weakly_canonical(
         std::filesystem::absolute(cli_options.prefix.value()));

@@ -137,6 +137,15 @@ public:
         _duplicity{duplicity},
         _region_count{r} {}
 
+  biogeo_model_t(const rate_params_t         &rp,
+                 const cladogenesis_params_t &cp,
+                 size_t                       r,
+                 bool                         duplicity)
+      : _rate_params{rp},
+        _clad_params{cp},
+        _duplicity{duplicity},
+        _region_count{r} {}
+
   /**
    * Returns the pair (e,d) for a simple 2 parameter dec model.
    */

@@ -45,6 +45,24 @@ int main() {
   app.add_option("--e",
                  cli_options.extinction_rate,
                  "[Required] The extinction rate for the simulation.");
+
+  app.add_option("--v",
+                 cli_options.allopatry_rate,
+                 "[Optional] The allopatry/vicariance rate for cladogenesis "
+                 "for the simulation.");
+  app.add_option(
+         "--s",
+         cli_options.sympatry_rate,
+         "[Optional] The sympatry rate for cladogenesis for the simulation.");
+  app.add_option(
+         "--y",
+         cli_options.copy_rate,
+         "[Optional] The copy rate for cladogenesis for the simulation.");
+  app.add_option(
+         "--j",
+         cli_options.jump_rate,
+         "[Optional] The jump rate for cladogenesis for the simulation.");
+
   app.add_flag(
          "--redo", cli_options.redo, "[Optional] Ignore existing result files")
       ->default_val("yes");
@@ -102,8 +120,12 @@ int main() {
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
-  bigrig::biogeo_model_t model(cli_options.dispersion_rate.value(),
-                               cli_options.extinction_rate.value(),
+  bigrig::biogeo_model_t model({.dis = cli_options.dispersion_rate.value(),
+                                .ext = cli_options.extinction_rate.value()},
+                               {.copy      = cli_options.copy_rate.value(),
+                                .sympatry  = cli_options.sympatry_rate.value(),
+                                .allopatry = cli_options.allopatry_rate.value(),
+                                .jump      = cli_options.jump_rate.value()},
                                cli_options.root_distribution.value().regions(),
                                cli_options.two_region_duplicity.value_or(true));
 

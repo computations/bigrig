@@ -1,5 +1,7 @@
 #include "clioptions.hpp"
 
+#include "logger.hpp"
+
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();
   tmp      += bigrig::util::PHYILP_EXT;
@@ -68,12 +70,27 @@ void cli_options_t::merge(const cli_options_t &other) {
   if (other.root_distribution.has_value()) {
     root_distribution = other.root_distribution;
   }
-  if (other.dispersion_rate.has_value()) {
+
+  if (other.dispersion_rate.has_value() && !dispersion_rate.has_value()) {
     dispersion_rate = other.dispersion_rate;
   }
-  if (other.extinction_rate.has_value()) {
+  if (other.extinction_rate.has_value() && !extinction_rate.has_value()) {
     extinction_rate = other.extinction_rate;
   }
+
+  if (other.allopatry_rate.has_value() && !allopatry_rate.has_value()) {
+    allopatry_rate = other.allopatry_rate;
+  }
+  if (other.sympatry_rate.has_value() && !sympatry_rate.has_value()) {
+    sympatry_rate = other.sympatry_rate;
+  }
+  if (other.copy_rate.has_value() && !copy_rate.has_value()) {
+    copy_rate = other.copy_rate;
+  }
+  if (other.jump_rate.has_value() && !jump_rate.has_value()) {
+    jump_rate = other.jump_rate;
+  }
+
   if (other.redo.has_value()) { redo = other.redo; }
   if (other.two_region_duplicity.has_value()) {
     two_region_duplicity = other.two_region_duplicity;
@@ -85,14 +102,21 @@ void cli_options_t::merge(const cli_options_t &other) {
  * for the details.
  */
 cli_options_t::cli_options_t(const YAML::Node &yaml) {
-  tree_filename = yaml["tree"].as<std::string>();
-  if (yaml["prefix"]) { prefix = yaml["prefix"].as<std::string>(); }
-  if (yaml["debug-log"]) { debug_log = yaml["debug-log"].as<bool>(); }
-  if (yaml["output-format"]) {
-    if (yaml["output-format"].as<std::string>() == "json") {
+  constexpr auto TREE_KEY = "tree";
+  tree_filename           = yaml[TREE_KEY].as<std::string>();
+
+  constexpr auto PREFIX_KEY = "prefix";
+  if (yaml[PREFIX_KEY]) { prefix = yaml[PREFIX_KEY].as<std::string>(); }
+
+  constexpr auto DEBUG_LOG_KEY = "debug-log";
+  if (yaml[DEBUG_LOG_KEY]) { debug_log = yaml[DEBUG_LOG_KEY].as<bool>(); }
+
+  constexpr auto OUPUT_FORMAT_KEY = "output-format";
+  if (yaml[OUPUT_FORMAT_KEY]) {
+    if (yaml[OUPUT_FORMAT_KEY].as<std::string>() == "json") {
       output_format_type = output_format_type_e::JSON;
     }
-    if (yaml["output-format"].as<std::string>() == "yaml") {
+    if (yaml[OUPUT_FORMAT_KEY].as<std::string>() == "yaml") {
       output_format_type = output_format_type_e::YAML;
     }
   }
@@ -101,12 +125,50 @@ cli_options_t::cli_options_t(const YAML::Node &yaml) {
         "Output format specified in both the config file and on the command "
         "line. Using the specification from the config file.");
   }
-  if (yaml["two-region-duplicity"]) {
-    two_region_duplicity = yaml["two-region-duplicity"].as<bool>();
+
+  constexpr auto DUPLICITY_KEY = "two-region-duplicity";
+  if (yaml[DUPLICITY_KEY]) {
+    two_region_duplicity = yaml[DUPLICITY_KEY].as<bool>();
   }
-  if (yaml["root-dist"]) {
-    root_distribution = yaml["root-dist"].as<std::string>();
+
+  constexpr auto ROOT_DIST_KEY = "root-dist";
+  if (yaml[ROOT_DIST_KEY]) {
+    root_distribution = yaml[ROOT_DIST_KEY].as<std::string>();
   }
-  if (yaml["dispersion"]) { dispersion_rate = yaml["dispersion"].as<double>(); }
-  if (yaml["extinction"]) { extinction_rate = yaml["extinction"].as<double>(); }
+
+  constexpr auto RATE_DICT_KEY = "rates";
+  if (yaml[RATE_DICT_KEY]) {
+    auto rates = yaml[RATE_DICT_KEY];
+
+    constexpr auto DISPERSION_KEY = "dispersion";
+    if (rates[DISPERSION_KEY]) {
+      dispersion_rate = rates[DISPERSION_KEY].as<double>();
+    }
+
+    constexpr auto EXTINCTION_KEY = "extinction";
+    if (rates[EXTINCTION_KEY]) {
+      extinction_rate = rates[EXTINCTION_KEY].as<double>();
+    }
+  }
+
+  constexpr auto CLADO_DICT_KEY = "cladogenesis";
+  if (yaml[CLADO_DICT_KEY]) {
+    auto clado = yaml[CLADO_DICT_KEY];
+
+    constexpr auto ALLOPATRY_KEY = "allopatry";
+    if (clado[ALLOPATRY_KEY]) {
+      allopatry_rate = clado[ALLOPATRY_KEY].as<double>();
+    }
+
+    constexpr auto SYMPATRY_KEY = "sympatry";
+    if (clado[SYMPATRY_KEY]) {
+      sympatry_rate = clado[SYMPATRY_KEY].as<double>();
+    }
+
+    constexpr auto COPY_KEY = "copy";
+    if (clado[COPY_KEY]) { copy_rate = clado[COPY_KEY].as<double>(); }
+
+    constexpr auto JUMP_KEY = "jump";
+    if (clado[JUMP_KEY]) { jump_rate = clado[JUMP_KEY].as<double>(); }
+  }
 }

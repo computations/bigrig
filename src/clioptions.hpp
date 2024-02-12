@@ -87,6 +87,26 @@ struct cli_options_t {
   std::optional<double> extinction_rate;
 
   /**
+   * Allopatry rate for cladogenesis which was provide by the user.
+   */
+  std::optional<double> allopatry_rate;
+
+  /**
+   * Sympatry rate for cladogenesis which was provide by the user.
+   */
+  std::optional<double> sympatry_rate;
+
+  /**
+   * Copy rate for cladogenesis which was provide by the user.
+   */
+  std::optional<double> copy_rate;
+
+  /**
+   * Jump rate for cladogenesis which was provide by the user.
+   */
+  std::optional<double> jump_rate;
+
+  /**
    * Enable overwriting the exsisting result files.
    */
   std::optional<bool> redo;
