@@ -63,6 +63,41 @@ Additionally, there are a number of optional parameters:
 
 # Config file
 
+The config file is an alternative way of specifying the program options. Options written into a YAML file, which is then
+passed to bigrig using the `--config` switch. The name of options differ slightly between the command line and the
+config file. Here is the schema:
+
+```.yaml
+rates:
+  dispersion: <FLOAT>
+  extinction: <FLOAT>
+cladogenesis:
+  allopatry: <FLOAT>
+  copy: <FLOAT>
+  jump: <FLOAT>
+  sympatry: <FLOAT>
+root-range: <ROOT-RANGE>
+tree: <FILE>
+redo: <BOOL>
+debug-log: <BOOL>
+output-format: [YAML|JSON]
+prefix: <PATH>
+```
+
+If both the a command line option and a config option are set, for example in the command
+
+```
+bigrig --config config.yaml --d 1.23
+```
+
+Then the value from the command line is used instead. The idea here is to have a "base" config with all the normal
+values, and the other values can be played with rapidly by changing them on the command line. When this is done, there
+is a warning that is emitted, like this:
+
+```
+[  0.00s] [WARN] The dispersion rate is specified in both the config file and the command line. Using the value from the command line
+```
+
 # Result files
 
 A given simulation will always produce the following result files:
@@ -113,8 +148,9 @@ then command `./bigrig --config config.yaml` might produce
 [  0.00s]    Tree file: /home/user/wrk/test.nwk
 [  0.00s]    Prefix: /home/user/wrk/test.nwk
 [  0.00s]    Root range: 11010
+[  0.00s]    Region count: 5
 [  0.00s]    Rate parameters:
-[  0.00s]        Dispersion (d): 1.00, Extinction (e): 1.00
+[  0.00s]        Dispersion(d): 1.00, Extinction(e): [1 00](1.00)
 [  0.00s]    Cladogenesis parameters:
 [  0.00s]        Allopatry(v): 1.00, Sympatry(s): 1.00, Copy(y): 1.00, Jump(j): 1.00
 [  0.00s] Parsing tree
