@@ -41,9 +41,6 @@ simulate_transitions(dist_t                                  init_dist,
     auto r  = sample(init_dist, model, gen);
     brlen  -= r.waiting_time;
     if (brlen < 0.0) { return results; }
-    LOG_DEBUG("adding transition from %s to %s",
-              r.initial_state.to_str().c_str(),
-              r.final_state.to_str().c_str());
     init_dist = r.final_state;
     results.push_back(r);
   }
@@ -126,7 +123,6 @@ split_t split_dist(dist_t                                  init_dist,
                    std::uniform_random_bit_generator auto &gen) {
   // Singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {
-    LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
     return {init_dist, init_dist, init_dist, split_type_e::singleton};
   }
 

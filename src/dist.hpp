@@ -412,8 +412,6 @@ transition_t sample_analytic(dist_t                                  init_dist,
   auto new_dist = type ? init_dist.unset_by_count(index_picker(gen))
                        : init_dist.set_by_count(index_picker(gen));
 
-  LOG_DEBUG("waiting time: %f", waiting_time);
-
   return {waiting_time, init_dist, new_dist};
 }
 
