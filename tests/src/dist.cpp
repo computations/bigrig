@@ -17,7 +17,8 @@ TEST_CASE("dist operations", "[dist]") {
   bigrig::dist_t   e       = {0b1101, regions};
   SECTION("bitwise ops") {
     CHECK((d ^ e) == bigrig::dist_t{0b0100, regions});
-    CHECK((d.region_symmetric_difference(e)) == bigrig::dist_t{0b0100, regions});
+    CHECK((d.region_symmetric_difference(e))
+          == bigrig::dist_t{0b0100, regions});
     CHECK((d | e) == bigrig::dist_t{0b1101, regions});
     CHECK((d.region_union(e)) == bigrig::dist_t{0b1101, regions});
     CHECK((d & e) == bigrig::dist_t{0b1001, regions});
@@ -34,6 +35,8 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(e[1] == 0);
     CHECK(e[2] == 1);
     CHECK(e[3] == 1);
+
+    BENCHMARK("access operator") { return e[0]; };
   }
 
   SECTION("last set bit") {
@@ -78,6 +81,12 @@ TEST_CASE("dist operations", "[dist]") {
     CHECK(bigrig::dist_t("1011111").to_str()
           == bigrig::dist_t{0b101'1111, 7}.to_str());
   }
+
+  SECTION("popcount") {
+    bigrig::dist_t dist{0b11'0011, 6};
+    CHECK(dist.full_region_count() == 4);
+    BENCHMARK("popcount speed") { return dist.full_region_count(); };
+  }
 }
 
 TEST_CASE("sample", "[sample]") {
@@ -87,7 +96,7 @@ TEST_CASE("sample", "[sample]") {
   uint16_t regions = GENERATE(4, 8, 16, 32);
 
   bigrig::biogeo_model_t model(dis, ext, regions, true);
-  bigrig::dist_t               init_dist = {0b0101, regions};
+  bigrig::dist_t         init_dist = {0b0101, regions};
 
   pcg64_fast gen(Catch::getSeed());
 
