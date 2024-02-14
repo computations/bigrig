@@ -59,41 +59,124 @@ bool cli_options_t::json_file_set() const {
  *  - `two_region_duplicity`
  */
 void cli_options_t::merge(const cli_options_t &other) {
-  if (other.config_filename.has_value()) {
-    config_filename = other.config_filename;
+  if (other.tree_filename.has_value()) {
+    if (tree_filename.has_value()) {
+      MESSAGE_WARNING(
+          "A tree file is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      tree_filename = other.tree_filename;
+    }
   }
-  if (other.tree_filename.has_value()) { tree_filename = other.tree_filename; }
-  if (other.debug_log.has_value()) { debug_log = other.debug_log; }
+
+  if (other.debug_log.has_value()) {
+    if (debug_log.has_value()) {
+      MESSAGE_WARNING(
+          "The debug log option is specified in both the config file and the "
+          "command line. Using the value from the command line");
+    } else {
+      debug_log = other.debug_log;
+    }
+  }
+
   if (other.output_format_type.has_value()) {
-    output_format_type = other.output_format_type;
+    if (output_format_type.has_value()) {
+      MESSAGE_WARNING(
+          "The output format is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      output_format_type = other.output_format_type;
+    }
   }
+
   if (other.root_distribution.has_value()) {
-    root_distribution = other.root_distribution;
+    if (root_distribution.has_value()) {
+      MESSAGE_WARNING(
+          "The root range is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      root_distribution = other.root_distribution;
+    }
   }
 
-  if (other.dispersion_rate.has_value() && !dispersion_rate.has_value()) {
-    dispersion_rate = other.dispersion_rate;
-  }
-  if (other.extinction_rate.has_value() && !extinction_rate.has_value()) {
-    extinction_rate = other.extinction_rate;
-  }
-
-  if (other.allopatry_rate.has_value() && !allopatry_rate.has_value()) {
-    allopatry_rate = other.allopatry_rate;
-  }
-  if (other.sympatry_rate.has_value() && !sympatry_rate.has_value()) {
-    sympatry_rate = other.sympatry_rate;
-  }
-  if (other.copy_rate.has_value() && !copy_rate.has_value()) {
-    copy_rate = other.copy_rate;
-  }
-  if (other.jump_rate.has_value() && !jump_rate.has_value()) {
-    jump_rate = other.jump_rate;
+  if (other.dispersion_rate.has_value()) {
+    if (dispersion_rate.has_value()) {
+      MESSAGE_WARNING(
+          "The dispersion rate is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      dispersion_rate = other.dispersion_rate;
+    }
   }
 
-  if (other.redo.has_value()) { redo = other.redo; }
+  if (other.extinction_rate.has_value()) {
+    if (extinction_rate.has_value()) {
+      MESSAGE_WARNING(
+          "The extinction rate is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      extinction_rate = other.extinction_rate;
+    }
+  }
+
+  if (other.allopatry_rate.has_value()) {
+    if (allopatry_rate.has_value()) {
+      MESSAGE_WARNING(
+          "The allopatry rate is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      allopatry_rate = other.allopatry_rate;
+    }
+  }
+
+  if (other.sympatry_rate.has_value()) {
+    if (sympatry_rate.has_value()) {
+      MESSAGE_WARNING(
+          "The sympatry rate is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      sympatry_rate = other.sympatry_rate;
+    }
+  }
+
+  if (other.copy_rate.has_value()) {
+    if (copy_rate.has_value()) {
+      MESSAGE_WARNING(
+          "The copy rate is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      copy_rate = other.copy_rate;
+    }
+  }
+
+  if (other.jump_rate.has_value()) {
+    if (jump_rate.has_value()) {
+      MESSAGE_WARNING(
+          "The jump rate is specified in both the config file and "
+          "the command line. Using the value from the command line");
+    } else {
+      jump_rate = other.jump_rate;
+    }
+  }
+
+  if (other.redo.has_value()) {
+    if (redo.has_value()) {
+      MESSAGE_WARNING(
+          "Redo is specified in both the config file and the command "
+          "line. Using the value from the command line");
+    } else {
+      redo = other.redo;
+    }
+  }
+
   if (other.two_region_duplicity.has_value()) {
-    two_region_duplicity = other.two_region_duplicity;
+    if (two_region_duplicity.has_value()) {
+      MESSAGE_WARNING(
+          "The option two value duplicity is specified in both the config file "
+          "and the command line. Using the value from the command line");
+    } else {
+      two_region_duplicity = other.two_region_duplicity;
+    }
   }
 }
 
@@ -171,4 +254,7 @@ cli_options_t::cli_options_t(const YAML::Node &yaml) {
     constexpr auto JUMP_KEY = "jump";
     if (clado[JUMP_KEY]) { jump_rate = clado[JUMP_KEY].as<double>(); }
   }
+
+  constexpr auto REDO_KEY = "redo";
+  if (yaml[REDO_KEY]) { redo = yaml[REDO_KEY].as<bool>(); }
 }

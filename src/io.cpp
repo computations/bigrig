@@ -471,12 +471,6 @@ bool validate_options(cli_options_t &cli_options) {
 [[nodiscard]] bool config_compatible(const cli_options_t &cli_options) {
   bool ok = true;
 
-  if (cli_options.config_filename.has_value()
-      && cli_options.cli_arg_specified()) {
-    MESSAGE_ERROR("Both config and CLI arguments have been specified. Please "
-                  "only specify one");
-    ok = false;
-  }
   if (cli_options.config_filename.has_value()) {
     auto &config_filename = cli_options.config_filename.value();
     if (!verify_config_file(config_filename)) {
