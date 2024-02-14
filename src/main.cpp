@@ -51,17 +51,17 @@ int main() {
                  "[Optional] The allopatry/vicariance rate for cladogenesis "
                  "for the simulation.");
   app.add_option(
-         "--s",
-         cli_options.sympatry_rate,
-         "[Optional] The sympatry rate for cladogenesis for the simulation.");
+      "--s",
+      cli_options.sympatry_rate,
+      "[Optional] The sympatry rate for cladogenesis for the simulation.");
   app.add_option(
-         "--y",
-         cli_options.copy_rate,
-         "[Optional] The copy rate for cladogenesis for the simulation.");
+      "--y",
+      cli_options.copy_rate,
+      "[Optional] The copy rate for cladogenesis for the simulation.");
   app.add_option(
-         "--j",
-         cli_options.jump_rate,
-         "[Optional] The jump rate for cladogenesis for the simulation.");
+      "--j",
+      cli_options.jump_rate,
+      "[Optional] The jump rate for cladogenesis for the simulation.");
 
   app.add_flag(
          "--redo", cli_options.redo, "[Optional] Ignore existing result files")
@@ -117,6 +117,8 @@ int main() {
     return 1;
   }
 
+  LOG_INFO("Tree has %lu taxa", tree.leaf_count());
+
   pcg_extras::seed_seq_from<std::random_device> seed_source;
   pcg64_fast                                    gen(seed_source);
 
@@ -129,7 +131,7 @@ int main() {
                                cli_options.root_distribution.value().regions(),
                                cli_options.two_region_duplicity.value_or(true));
 
-  MESSAGE_INFO("Sampling from tree")
+  MESSAGE_INFO("Simulating ranges on the tree")
   tree.simulate(cli_options.root_distribution.value(), model, gen);
 
   MESSAGE_INFO("Writing results to files")
