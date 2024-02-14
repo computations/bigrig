@@ -255,7 +255,10 @@ private:
   /**
    * Computes the number of unset bits, given the region count restriction.
    */
-  inline constexpr size_t unpopcount() const { return regions() - popcount(); }
+  inline constexpr size_t unpopcount() const {
+    return static_cast<size_t>(
+        __builtin_popcountll((~_dist) & valid_region_mask()));
+  }
 
   /**
    * Extract a specific bit and set it to the first bit. Specifically, returns 0
@@ -315,8 +318,8 @@ private:
   }
 
   constexpr uint64_t valid_region_mask() const {
-    uint64_t mask = (1ul << regions()) - 1;
-    return mask;
+    uint64_t mask = (1 << regions()) - 1;
+    return static_cast<uint64_t>(mask);
   }
 
   uint64_t _dist;
