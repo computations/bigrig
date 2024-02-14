@@ -16,8 +16,9 @@ void write_header(const cli_options_t &cli_options) {
   LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
   LOG_INFO("   Root range: %s",
            cli_options.root_distribution.value().to_str().c_str());
+  LOG_INFO("   Region count: %u", cli_options.root_distribution->regions());
   MESSAGE_INFO("   Rate parameters:");
-  LOG_INFO("       Dispersion (d): %.2f, Extinction (e): %.2f",
+  LOG_INFO("       Dispersion(d): %.2f, Extinction(e): %.2f",
            cli_options.dispersion_rate.value(),
            cli_options.extinction_rate.value());
   MESSAGE_INFO("   Cladogenesis parameters:");
