@@ -9,9 +9,6 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
-#include <sstream>
-#include <stack>
-#include <stdexcept>
 #include <string>
 
 namespace bigrig {

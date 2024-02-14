@@ -2,6 +2,7 @@
 
 #include "clioptions.hpp"
 #include "logger.hpp"
+#include "util.hpp"
 
 #include <filesystem>
 #include <format>

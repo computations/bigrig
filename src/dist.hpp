@@ -3,19 +3,11 @@
 #include "model.hpp"
 #include "util.hpp"
 
-#include <algorithm>
 #include <cstdint>
-#include <format>
-#include <limits>
 #include <logger.hpp>
 #include <random>
-#include <sstream>
 #include <string>
 #include <vector>
-
-#if __BMI2__
-#include <x86intrin.h>
-#endif
 
 namespace bigrig {
 

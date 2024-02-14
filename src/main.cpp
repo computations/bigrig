@@ -6,11 +6,8 @@
 #include "tree.hpp"
 
 #include <corax/corax.hpp>
-#include <fstream>
 #include <iostream>
 #include <logger.hpp>
-#include <sstream>
-#include <string>
 
 int main() {
   logger::get_log_states().add_stream(

@@ -1,6 +1,7 @@
 #include "clioptions.hpp"
 
 #include "logger.hpp"
+#include "util.hpp"
 
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();

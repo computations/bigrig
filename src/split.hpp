@@ -1,7 +1,5 @@
 #include "dist.hpp"
 
-#include <random>
-
 constexpr size_t VECTOR_INITIAL_RESERVE = 8;
 
 namespace bigrig {

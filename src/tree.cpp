@@ -2,7 +2,6 @@
 
 #include "logger.hpp"
 
-#include <stdexcept>
 #include <corax/core/common.h>
 
 namespace bigrig {
