@@ -2,7 +2,6 @@
 
 #include "clioptions.hpp"
 #include "logger.hpp"
-#include "util.hpp"
 
 #include <filesystem>
 #include <format>
@@ -48,8 +47,8 @@ std::string to_phylip(const bigrig::tree_t        &tree,
 /**
  * Produce a phylip file as a string, including inner nodes.
  */
-std::string to_phylip_all_nodes(const bigrig::tree_t        &tree,
-                                const bigrig::biogeo_model_t model) {
+std::string to_phylip_all_nodes(const bigrig::tree_t         &tree,
+                                const bigrig::biogeo_model_t &model) {
   std::ostringstream oss;
   oss << std::to_string(tree.node_count()) << " " << model.region_count()
       << "\n";
