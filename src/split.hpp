@@ -36,7 +36,7 @@ simulate_transitions(dist_t                                  init_dist,
   std::vector<transition_t> results;
   results.reserve(VECTOR_INITIAL_RESERVE);
   while (true) {
-    auto r  = sample(init_dist, model, gen);
+    auto r  = spread(init_dist, model, gen);
     brlen  -= r.waiting_time;
     if (brlen < 0.0) { return results; }
     init_dist = r.final_state;

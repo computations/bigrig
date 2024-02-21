@@ -89,7 +89,7 @@ TEST_CASE("dist operations", "[dist]") {
   }
 }
 
-TEST_CASE("sample", "[sample]") {
+TEST_CASE("spread", "[spread]") {
   constexpr double dis = 1.0;
   constexpr double ext = 1.0;
 
@@ -100,16 +100,16 @@ TEST_CASE("sample", "[sample]") {
 
   pcg64_fast gen(Catch::getSeed());
 
-  auto t = bigrig::sample(init_dist, model, gen);
+  auto t = bigrig::spread(init_dist, model, gen);
   CHECK(t.initial_state == init_dist);
   CHECK(t.initial_state != t.final_state);
 
-  BENCHMARK("sample " + std::to_string(regions) + " regions") {
-    return bigrig::sample(init_dist, model, gen);
+  BENCHMARK("spread " + std::to_string(regions) + " regions") {
+    return bigrig::spread(init_dist, model, gen);
   };
 }
 
-TEST_CASE("stats for sample", "[sample][stats]") {
+TEST_CASE("stats for spread", "[spread][stats]") {
   constexpr size_t regions    = 4;
   constexpr double expected_t = 4.0;
 
@@ -153,7 +153,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   double sumsq = 0;
 
   for (size_t i = 0; i < iters; ++i) {
-    auto t  = bigrig::sample(init_dist, model, gen);
+    auto t  = bigrig::spread(init_dist, model, gen);
     sum    += t.waiting_time;
     sumsq  += t.waiting_time * t.waiting_time;
   }
@@ -169,7 +169,7 @@ TEST_CASE("stats for sample", "[sample][stats]") {
   CHECK_THAT(mean - mu, Catch::Matchers::WithinAbs(0, abs_tol));
 }
 
-TEST_CASE("sample regression") {
+TEST_CASE("spread regression") {
   constexpr size_t regions = 4;
 
 #if D_RIGOROUS
@@ -199,9 +199,9 @@ TEST_CASE("sample regression") {
   double ana_total = 0;
 
   for (size_t i = 0; i < iters; ++i) {
-    auto rej_res  = bigrig::sample_rejection(init_dist, model, gen);
+    auto rej_res  = bigrig::spread_rejection(init_dist, model, gen);
     rej_total    += rej_res.waiting_time;
-    auto ana_res  = bigrig::sample_analytic(init_dist, model, gen);
+    auto ana_res  = bigrig::spread_analytic(init_dist, model, gen);
     ana_total    += ana_res.waiting_time;
   }
 

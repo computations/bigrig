@@ -319,7 +319,7 @@ private:
 };
 
 /**
- * Data class to store the results of a sample. Records an initial state (as a
+ * Data class to store the results of a spread. Records an initial state (as a
  * dist) a final state (as a dist) and the waiting time.
  */
 class transition_t {
@@ -337,10 +337,10 @@ public:
  * Wrapper function around sample for refactoring. I keep it around in case I
  * want to revert to the rejection method.
  */
-transition_t sample(dist_t                                  init_dist,
+transition_t spread(dist_t                                  init_dist,
                     const biogeo_model_t                   &model,
                     std::uniform_random_bit_generator auto &gen) {
-  return sample_analytic(init_dist, model, gen);
+  return spread_analytic(init_dist, model, gen);
 }
 
 /**
@@ -349,7 +349,7 @@ transition_t sample(dist_t                                  init_dist,
  * all the processes. Linear in the number regions. This function exists mostly
  * to use as a check against the results of `sample_analytic`.
  */
-transition_t sample_rejection(dist_t                                  init_dist,
+transition_t spread_rejection(dist_t                                  init_dist,
                               const biogeo_model_t                   &model,
                               std::uniform_random_bit_generator auto &gen) {
   auto [d, e] = model.rates();
@@ -382,7 +382,7 @@ transition_t sample_rejection(dist_t                                  init_dist,
  *
  * Linear in the number of regions, if there is no BMI2 instruction set.
  */
-transition_t sample_analytic(dist_t                                  init_dist,
+transition_t spread_analytic(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
   double dispersion_weight = model.dispersion_weight(init_dist);
