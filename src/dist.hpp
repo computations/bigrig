@@ -380,7 +380,7 @@ transition_t spread_rejection(dist_t                                  init_dist,
  * rolling once for the waiting time. There are 2 additional rolls, one for the
  * type, and one for the region.
  *
- * Linear in the number of regions, if there is no BMI2 instruction set.
+ * Linear in the number of regions, due to the `[un]set_by_count` call
  */
 transition_t spread_analytic(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
