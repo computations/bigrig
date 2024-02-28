@@ -154,7 +154,7 @@ public:
 
   constexpr inline bool operator!=(dist_t d) const { return !(d == *this); }
 
-  constexpr inline dist_t negate_bit(size_t index) const {
+  constexpr inline dist_t flip_region(size_t index) const {
     return {_dist ^ (1ull << index), _regions};
   }
 
@@ -198,7 +198,7 @@ public:
 
   constexpr inline dist_t set_by_count(size_t count) {
     auto index = set_index(count);
-    return negate_bit(index);
+    return flip_region(index);
   }
 
   /**
@@ -217,7 +217,7 @@ public:
 
   constexpr inline dist_t unset_by_count(size_t count) {
     auto index = unset_index(count);
-    return negate_bit(index);
+    return flip_region(index);
   }
 
   /**
@@ -364,7 +364,7 @@ transition_t spread_rejection(dist_t                                  init_dist,
   for (size_t i = 0; i < model.region_count(); ++i) {
     if (singleton && init_dist[i]) { continue; }
     double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
-    rolls[i] = transition_t{waiting_time, init_dist, init_dist.negate_bit(i)};
+    rolls[i] = transition_t{waiting_time, init_dist, init_dist.flip_region(i)};
   }
 
   auto min_ele
@@ -385,26 +385,28 @@ transition_t spread_rejection(dist_t                                  init_dist,
 transition_t spread_analytic(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
-  double dispersion_weight = model.dispersion_weight(init_dist);
+  auto [d, e]              = model.rates();
   double total_weight      = model.total_rate_weight(init_dist);
 
   std::exponential_distribution<double> wait_time_distribution(total_weight);
 
   double waiting_time = wait_time_distribution(gen);
 
-  std::bernoulli_distribution type_coin(dispersion_weight / (total_weight));
+  std::uniform_real_distribution<double> region_dist(0, total_weight);
+  double                                 region_roll = region_dist(gen);
 
-  auto type = type_coin(gen);
-
-  auto index_picker
-      = type
-          ? std::uniform_int_distribution<>(0, init_dist.empty_region_count())
-          : std::uniform_int_distribution<>(0, init_dist.full_region_count());
-
-  auto new_dist = type ? init_dist.unset_by_count(index_picker(gen))
-                       : init_dist.set_by_count(index_picker(gen));
-
-  return {waiting_time, init_dist, new_dist};
+  for (size_t i = 0; i < init_dist.regions(); ++i) {
+    if (init_dist[i]) {
+      if (!init_dist.singleton()) { region_roll -= e; }
+    } else {
+      region_roll -= d;
+    }
+    if (region_roll <= 0) {
+      auto new_dist = init_dist.flip_region(i);
+      return {waiting_time, init_dist, new_dist};
+    }
+  }
+  throw std::runtime_error{"Failed to spread correctly"};
 }
 
 } // namespace bigrig

@@ -60,7 +60,7 @@ TEST_CASE("dist operations", "[dist]") {
 
   SECTION("negate bit") {
     for (size_t i = 0; i < regions; ++i) {
-      auto tmp = d.negate_bit(i);
+      auto tmp = d.flip_region(i);
       CHECK(tmp != d);
       CHECK((tmp ^ d).full_region_count() == 1);
       CHECK(tmp.region_symmetric_difference(d).full_region_count() == 1);

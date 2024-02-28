@@ -146,7 +146,7 @@ split_t split_dist(dist_t                                  init_dist,
   dist_t right_dist;
 
   if (type == split_type_e::allopatric) {
-    left_dist = init_dist.negate_bit(flipped_index);
+    left_dist = init_dist.flip_region(flipped_index);
   }
   right_dist = {1ul << flipped_index, init_dist.regions()};
 
