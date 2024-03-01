@@ -4,12 +4,8 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <dist.hpp>
-#include <iostream>
-#include <math.h>
 #include <model.hpp>
 #include <pcg_random.hpp>
-#include <random>
-#include <sstream>
 
 TEST_CASE("dist operations", "[dist]") {
   constexpr size_t regions = 4;

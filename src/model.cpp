@@ -70,7 +70,7 @@ size_t biogeo_model_t::allopatry_count(const dist_t &dist) const {
 }
 
 /**
- * Compute the number of sympatric splits 
+ * Compute the number of sympatric splits
  *
  * A sympatric split is
  *
