@@ -89,6 +89,18 @@ TEST_CASE("splitting", "[sample]") {
     CHECK((sp.left & sp.right).full_region_count() == 0);
   }
 
+  SECTION("jump with full range"){
+    bigrig::dist_t init_dist{0b1111, regions};
+
+    model.set_cladogenesis_params(0.0, 1.0, 0.0, 1.0);
+    auto sp = bigrig::split_dist(init_dist, model, gen);
+
+    INFO("init: " << init_dist);
+    INFO("d1: " << sp.left);
+    INFO("d2: " << sp.right);
+    REQUIRE(sp.type == bigrig::split_type_e::sympatric);
+  }
+
   SECTION("benchmark") {
     SECTION("generate") {
       bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1110, regions},

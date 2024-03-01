@@ -40,5 +40,12 @@ std::string dist_t::to_str() const {
   return oss.str();
 }
 
+dist_t make_full_dist(size_t regions) {
+  return {(1ul << regions) - 1, static_cast<uint16_t>(regions)};
+}
+
+dist_t make_singleton_dist(size_t regions) {
+  return {1ul, static_cast<uint16_t>(regions)};
+}
 
 } // namespace bigrig

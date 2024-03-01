@@ -51,18 +51,21 @@ simulate_transitions(dist_t                                  init_dist,
  * When using the fast method for computing splits, we simulate a split type
  * first, and then compute the split based on that type. The specific
  * probability for each type depends on the dist to be split. See the model
- * docmentation for more information.
+ * documentation for more information.
+ *
+ * If the weights for the model are something like s = 0.0, v = 0.0, j = 1.0,
+ * and init_dist.full() == true, then this function does some _wacky_ stuff.
+ * I've decided to not fix it, as it is a pretty _weird_ parameter set, that
+ * makes no sense. I basically need to check that the weight for
  */
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
   if (init_dist.singleton()) {
-    double copy_weight = model.copy_weight(init_dist);
-    double jump_weight = model.jump_weight(init_dist);
+    double total_weight = model.total_singleton_weight(init_dist);
+    double jump_weight  = model.jump_weight(init_dist);
 
-    double sum = copy_weight + jump_weight;
-
-    jump_weight /= sum;
+    jump_weight /= total_weight;
 
     std::bernoulli_distribution jump_coin(jump_weight);
     if (jump_coin(gen)) { return split_type_e::jump; }
@@ -72,14 +75,14 @@ split_type_e roll_split_type(dist_t                                  init_dist,
   double sym_weight  = model.sympatry_weight(init_dist);
   double jump_weight = model.jump_weight(init_dist);
 
-  double sum = allo_weight + sym_weight + jump_weight;
+  double total_weight = model.total_nonsingleton_weight(init_dist);
 
   /*
    * There is a function in the standard lib that will do this, but I measured
    * it to be slower than this... So we are just going to stick with this
    * method.
    */
-  double roll = std::uniform_real_distribution<double>(0, sum)(gen);
+  double roll = std::uniform_real_distribution<double>(0, total_weight)(gen);
 
   const std::array<const std::pair<double, split_type_e>, 3> options{
       std::pair{allo_weight, split_type_e::allopatric},
@@ -119,7 +122,7 @@ split_type_e roll_split_type(dist_t                                  init_dist,
 split_t split_dist(dist_t                                  init_dist,
                    const biogeo_model_t                   &model,
                    std::uniform_random_bit_generator auto &gen) {
-  // Singleton case
+  // Special check for the singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {
     return {init_dist, init_dist, init_dist, split_type_e::singleton};
   }

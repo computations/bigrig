@@ -120,6 +120,13 @@ double biogeo_model_t::copy_weight(const dist_t &dist) const {
   return copy_count(dist) * _clad_params.copy;
 }
 
+double biogeo_model_t::total_singleton_weight(const dist_t &dist) const {
+  return copy_weight(dist) + jump_weight(dist);
+}
+double biogeo_model_t::total_nonsingleton_weight(const dist_t &dist) const {
+  return sympatry_weight(dist) + allopatry_weight(dist) + jump_weight(dist);
+}
+
 biogeo_model_t &biogeo_model_t::set_params(rate_params_t p) {
   _rate_params = p;
   return *this;
@@ -157,4 +164,19 @@ biogeo_model_t &biogeo_model_t::set_two_region_duplicity(bool d) {
   return *this;
 }
 
+bool biogeo_model_t::check_cladogenesis_params_ok() const {
+  bool ok = true;
+  if (total_nonsingleton_weight(make_full_dist(region_count())) == 0.0) {
+    MESSAGE_ERROR("The sympatry, allopatry, or jump weights are invalid");
+    ok = false;
+  }
+  if (total_singleton_weight(make_singleton_dist(region_count())) == 0.0) {
+    MESSAGE_ERROR("The copy or jump weights are invalid");
+    ok = false;
+  }
+
+  return ok;
+}
+
+bool biogeo_model_t::check_ok() const { return check_cladogenesis_params_ok(); }
 } // namespace bigrig

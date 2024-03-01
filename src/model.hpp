@@ -191,12 +191,18 @@ public:
   double sympatry_weight(const dist_t &dist) const;
   double copy_weight(const dist_t &dist) const;
 
+  double total_singleton_weight(const dist_t &dist) const;
+  double total_nonsingleton_weight(const dist_t &dist) const;
+
   /**
    * Returns if jumps are enabled in the current model. This is done by
    * comparing the rate to zero. If the jump rate is not optimized, then
    * everything should be fine.
    */
   constexpr bool jumps_ok() const { return _clad_params.jump != 0.0; }
+
+  bool check_cladogenesis_params_ok() const;
+  bool check_ok() const;
 
 private:
   rate_params_t         _rate_params;

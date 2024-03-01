@@ -318,6 +318,9 @@ private:
   uint16_t _regions;
 };
 
+dist_t make_full_dist(size_t regions);
+dist_t make_singleton_dist(size_t regions);
+
 /**
  * Data class to store the results of a spread. Records an initial state (as a
  * dist) a final state (as a dist) and the waiting time.

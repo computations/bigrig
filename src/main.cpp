@@ -128,6 +128,11 @@ int main() {
                                cli_options.root_distribution.value().regions(),
                                cli_options.two_region_duplicity.value_or(true));
 
+  if(!model.check_ok()){
+      MESSAGE_ERROR("There is an issue with the model, we can't continue");
+      return 1;
+  }
+
   MESSAGE_INFO("Simulating ranges on the tree")
   tree.simulate(cli_options.root_distribution.value(), model, gen);
 
