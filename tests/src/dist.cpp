@@ -110,7 +110,7 @@ TEST_CASE("stats for spread", "[spread][stats]") {
   constexpr double expected_t = 4.0;
 
 #if D_RIGOROUS
-  /* 99.999% confidence that error is less than 0.001 */
+  /* 99.999% confidence that error is less than 0.0001 */
   constexpr size_t iters   = 1'886'084'219;
   constexpr double abs_tol = 1.0e-4;
 #else
@@ -169,7 +169,7 @@ TEST_CASE("spread regression") {
   constexpr size_t regions = 4;
 
 #if D_RIGOROUS
-  /* 99.999% confidence that error is less than 0.001 */
+  /* 99.999% confidence that error is less than 0.0001 */
   constexpr size_t iters   = 1'886'084'219;
   constexpr double abs_tol = 1.0e-4;
 #else

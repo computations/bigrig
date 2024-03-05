@@ -388,8 +388,8 @@ transition_t spread_rejection(dist_t                                  init_dist,
 transition_t spread_analytic(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
-  auto [d, e]              = model.rates();
-  double total_weight      = model.total_rate_weight(init_dist);
+  auto [d, e]         = model.rates();
+  double total_weight = model.total_rate_weight(init_dist);
 
   std::exponential_distribution<double> wait_time_distribution(total_weight);
 

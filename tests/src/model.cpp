@@ -11,7 +11,6 @@ TEST_CASE("model init") {
   model.set_region_count(REGIONS);
 
   SECTION("Setting parameters") {
-    bigrig::biogeo_model_t model;
     model.set_params(1.0, 1.0).set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
 
     CHECK(model.extinction_weight(sample_dist) == 2.0);
@@ -53,7 +52,6 @@ TEST_CASE("model init") {
   }
 
   SECTION("checks") {
-    bigrig::biogeo_model_t model;
     model.set_cladogenesis_params(0.0, 0.0, 0.0, 0.0);
     CHECK(!model.check_cladogenesis_params_ok());
     CHECK(!model.check_ok());
