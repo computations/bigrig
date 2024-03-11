@@ -102,19 +102,31 @@ TEST_CASE("splitting", "[sample]") {
   }
 
   SECTION("benchmark") {
-    SECTION("generate") {
+    SECTION("non-singletons") {
       bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1110, REGIONS},
                                           bigrig::dist_t{0b1010, REGIONS},
                                           bigrig::dist_t{0b1111, REGIONS},
                                           bigrig::dist_t{0b11'1100, 6},
                                           bigrig::dist_t{0b11'0000, 6},
-                                          bigrig::dist_t{0b11'1111, 6});
-      model.set_cladogenesis_params(1.0, 1.0, 1.0, 0.0);
-      INFO("init dist:" << init_dist);
+                                          bigrig::dist_t{0b11'1111, 6},
+                                          bigrig::dist_t{0b1111'1111, 8});
+      SECTION("without jumps") {
+        model.set_cladogenesis_params(1.0, 1.0, 1.0, 0.0);
+        INFO("init dist:" << init_dist);
 
-      BENCHMARK("split_dist: " + init_dist.to_str()) {
-        return bigrig::split_dist(init_dist, model, gen);
-      };
+        BENCHMARK("split_dist: " + init_dist.to_str()) {
+          return bigrig::split_dist(init_dist, model, gen);
+        };
+      }
+
+      SECTION("with jumps") {
+        model.set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
+        INFO("init dist:" << init_dist);
+
+        BENCHMARK("split_dist: " + init_dist.to_str()) {
+          return bigrig::split_dist(init_dist, model, gen);
+        };
+      }
     }
 
     SECTION("singletons") {
@@ -127,8 +139,7 @@ TEST_CASE("splitting", "[sample]") {
 }
 
 TEST_CASE("split stats") {
-  constexpr size_t REGIONS = 4;
-  pcg64_fast       gen(Catch::getSeed());
+  pcg64_fast gen(Catch::getSeed());
 
 #if D_RIGOROUS
   /* 99.999% confidence that error is less than 0.0001 */
@@ -140,11 +151,16 @@ TEST_CASE("split stats") {
   constexpr double abs_tol = 1.0e-2;
 #endif
 
-  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1000, REGIONS},
-                                      bigrig::dist_t{0b1110, REGIONS},
-                                      bigrig::dist_t{0b1100, REGIONS},
-                                      bigrig::dist_t{0b1011, REGIONS},
-                                      bigrig::dist_t{0b1111, REGIONS});
+  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
+                                      bigrig::dist_t{0b1110, 4},
+                                      bigrig::dist_t{0b1100, 4},
+                                      bigrig::dist_t{0b1011, 4},
+                                      bigrig::dist_t{0b1111, 4},
+                                      bigrig::dist_t{0b1111, 4},
+                                      bigrig::dist_t{0b10000000, 8},
+                                      bigrig::dist_t{0b11000111, 8},
+                                      bigrig::dist_t{0b10101010, 8},
+                                      bigrig::dist_t{0b11111111, 8});
 
   bigrig::cladogenesis_params_t params
       = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
@@ -153,13 +169,13 @@ TEST_CASE("split stats") {
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 2.0},
+                 bigrig::cladogenesis_params_t{1.0, 1.2, 1.1, 1.0},
                  bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 1.0});
 
   std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_region_count(REGIONS).set_cladogenesis_params(
-      params);
+  model.set_params(1.0, 1.0).set_cladogenesis_params(params);
 
   for (size_t i = 0; i < iters; ++i) {
     auto res                     = bigrig::split_dist(init_dist, model, gen);
@@ -222,8 +238,8 @@ TEST_CASE("split stats") {
  * In addition, there are 4 checks each.
  */
 TEST_CASE("split regression") {
-  constexpr size_t REGIONS = 4;
-  pcg64_fast       gen(Catch::getSeed());
+  // constexpr size_t REGIONS = 4;
+  pcg64_fast gen(Catch::getSeed());
 
 #if D_RIGOROUS
   /* These values for iters and abs_tol ensure with 99.999% confidence that
@@ -243,11 +259,12 @@ TEST_CASE("split regression") {
                bigrig::split_type_e::singleton,
                bigrig::split_type_e::invalid};
 
-  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1000, REGIONS},
-                                      bigrig::dist_t{0b1110, REGIONS},
-                                      bigrig::dist_t{0b1100, REGIONS},
-                                      bigrig::dist_t{0b1011, REGIONS},
-                                      bigrig::dist_t{0b1111, REGIONS});
+  bigrig::dist_t                init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
+                                      bigrig::dist_t{0b1110, 4},
+                                      bigrig::dist_t{0b1100, 4},
+                                      bigrig::dist_t{0b1011, 4},
+                                      bigrig::dist_t{0b1111, 4},
+                                      bigrig::dist_t{0b11'0011, 6});
   bigrig::cladogenesis_params_t params
       = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
                  bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
@@ -256,8 +273,7 @@ TEST_CASE("split regression") {
                  bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_region_count(REGIONS).set_two_region_duplicity(
-      false);
+  model.set_params(1.0, 1.0).set_two_region_duplicity(false);
   INFO("init dist:" << init_dist);
   INFO("model params: " << params.to_debug_string());
 
