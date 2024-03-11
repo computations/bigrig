@@ -36,9 +36,6 @@ public:
   void simulate(dist_t                                  initial_distribution,
                 const biogeo_model_t                   &model,
                 std::uniform_random_bit_generator auto &gen) {
-    if (!initial_distribution.valid_dist(model)) {
-      throw invalid_dist{"Invalid dist provided as a start dist"};
-    }
     LOG_DEBUG("Starting sample with init dist = %lb",
               static_cast<uint64_t>(initial_distribution));
     _tree->simulate(initial_distribution, model, gen);
@@ -62,6 +59,8 @@ public:
 
   bool is_binary() const;
   bool is_valid() const;
+
+  size_t region_count() const;
 
   preorder_iterator begin() const;
   preorder_iterator end() const;

@@ -91,7 +91,7 @@ TEST_CASE("spread", "[spread]") {
 
   uint16_t regions = GENERATE(4, 8, 16, 32);
 
-  bigrig::biogeo_model_t model(dis, ext, regions, true);
+  bigrig::biogeo_model_t model(dis, ext, true);
   bigrig::dist_t         init_dist = {0b0101, regions};
 
   pcg64_fast gen(Catch::getSeed());
@@ -141,7 +141,7 @@ TEST_CASE("stats for spread", "[spread][stats]") {
   double mu    = 1 / (average_rate);
   double sigma = mu * mu;
 
-  bigrig::biogeo_model_t model(dis, ext, regions, true);
+  bigrig::biogeo_model_t model(dis, ext, true);
 
   INFO("dis: " << dis << " ext: " << ext << " dist: " << init_dist);
 
@@ -189,7 +189,7 @@ TEST_CASE("spread regression") {
   double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
   double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
 
-  bigrig::biogeo_model_t model(dis, ext, regions, true);
+  bigrig::biogeo_model_t model(dis, ext, true);
 
   double rej_total = 0;
   double ana_total = 0;

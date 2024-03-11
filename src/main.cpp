@@ -125,19 +125,18 @@ int main() {
                                 .sympatry  = cli_options.sympatry_rate.value(),
                                 .allopatry = cli_options.allopatry_rate.value(),
                                 .jump      = cli_options.jump_rate.value()},
-                               cli_options.root_distribution.value().regions(),
                                cli_options.two_region_duplicity.value_or(true));
 
-  if(!model.check_ok()){
-      MESSAGE_ERROR("There is an issue with the model, we can't continue");
-      return 1;
+  if (!model.check_ok(cli_options.root_distribution.value().regions())) {
+    MESSAGE_ERROR("There is an issue with the model, we can't continue");
+    return 1;
   }
 
   MESSAGE_INFO("Simulating ranges on the tree")
   tree.simulate(cli_options.root_distribution.value(), model, gen);
 
   MESSAGE_INFO("Writing results to files")
-  write_output_files(cli_options, tree, model);
+  write_output_files(cli_options, tree);
 
   MESSAGE_INFO("Done!")
   return 0;

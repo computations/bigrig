@@ -66,14 +66,6 @@ public:
   inline constexpr uint16_t regions() const { return _regions; }
 
   /**
-   * Check if the dist is valid, constrained to a given number of regions, given
-   * by the substitution model.
-   */
-  inline bool valid_dist(const biogeo_model_t &model) {
-    return valid_dist(model.region_count());
-  }
-
-  /**
    * Check if the dist is valid, constrained to a given number of regions.
    */
   inline bool valid_dist(size_t required_regions) {
@@ -358,13 +350,14 @@ transition_t spread_rejection(dist_t                                  init_dist,
   auto [d, e] = model.rates();
 
   bool singleton = init_dist.singleton();
+  const auto region_count = init_dist.regions();
 
   std::exponential_distribution<double> dis_die(d);
   std::exponential_distribution<double> exp_die(e);
 
-  std::vector<transition_t> rolls(model.region_count());
+  std::vector<transition_t> rolls(region_count);
 
-  for (size_t i = 0; i < model.region_count(); ++i) {
+  for (size_t i = 0; i < region_count; ++i) {
     if (singleton && init_dist[i]) { continue; }
     double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
     rolls[i] = transition_t{waiting_time, init_dist, init_dist.flip_region(i)};

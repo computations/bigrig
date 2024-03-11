@@ -56,9 +56,7 @@ std::string tree_t::to_phylip_body_extended() const {
 
 std::ostream &tree_t::to_phylip_body(std::ostream &os, bool all) const {
   size_t padding = _tree->get_string_id_len_max(all) + 1;
-  for (const auto &c : *this) {
-    c->to_phylip_line(os, padding, all);
-  }
+  for (const auto &c : *this) { c->to_phylip_line(os, padding, all); }
   // remove the last newline
   os.seekp(-1, std::ios_base::end);
   return os;
@@ -72,6 +70,8 @@ bool tree_t::is_valid() const {
   if (!_tree) { return false; }
   return true;
 }
+
+size_t tree_t::region_count() const { return _tree->final_state().regions(); }
 
 preorder_iterator tree_t::begin() const { return preorder_iterator(_tree); }
 preorder_iterator tree_t::end() const { return preorder_iterator(); }

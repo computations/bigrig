@@ -8,7 +8,6 @@ TEST_CASE("model init") {
   SECTION("Basic constructor") { bigrig::biogeo_model_t model; }
 
   bigrig::biogeo_model_t model;
-  model.set_region_count(REGIONS);
 
   SECTION("Setting parameters") {
     model.set_params(1.0, 1.0).set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
@@ -53,19 +52,19 @@ TEST_CASE("model init") {
 
   SECTION("checks") {
     model.set_cladogenesis_params(0.0, 0.0, 0.0, 0.0);
-    CHECK(!model.check_cladogenesis_params_ok());
-    CHECK(!model.check_ok());
+    CHECK(!model.check_cladogenesis_params_ok(REGIONS));
+    CHECK(!model.check_ok(REGIONS));
 
     model.set_cladogenesis_params(1.0, 1.0, 1.0, 0.0);
-    CHECK(model.check_cladogenesis_params_ok());
-    CHECK(model.check_ok());
+    CHECK(model.check_cladogenesis_params_ok(REGIONS));
+    CHECK(model.check_ok(REGIONS));
 
     model.set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
-    CHECK(model.check_cladogenesis_params_ok());
-    CHECK(model.check_ok());
+    CHECK(model.check_cladogenesis_params_ok(REGIONS));
+    CHECK(model.check_ok(REGIONS));
 
     model.set_cladogenesis_params(1.0, 0.0, 0.0, 1.0);
-    CHECK(!model.check_cladogenesis_params_ok());
-    CHECK(!model.check_ok());
+    CHECK(!model.check_cladogenesis_params_ok(REGIONS));
+    CHECK(!model.check_ok(REGIONS));
   }
 }

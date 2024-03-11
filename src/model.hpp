@@ -128,31 +128,21 @@ class biogeo_model_t {
 public:
   biogeo_model_t() = default;
 
-  biogeo_model_t(double d, double e, size_t r, bool duplicity)
+  biogeo_model_t(double d, double e, bool duplicity)
       : _rate_params{.dis = d, .ext = e},
         _clad_params{
             .copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 0.0},
-        _duplicity{duplicity},
-        _region_count{r} {}
+        _duplicity{duplicity} {}
 
   biogeo_model_t(const rate_params_t         &rp,
                  const cladogenesis_params_t &cp,
-                 size_t                       r,
                  bool                         duplicity)
-      : _rate_params{rp},
-        _clad_params{cp},
-        _duplicity{duplicity},
-        _region_count{r} {}
+      : _rate_params{rp}, _clad_params{cp}, _duplicity{duplicity} {}
 
   /**
    * Returns the pair (e,d) for a simple 2 parameter dec model.
    */
   inline rate_params_t rates() const { return _rate_params; }
-
-  /**
-   * Returns the number of regions for the current model.
-   */
-  inline size_t region_count() const { return _region_count; }
 
   biogeo_model_t &set_params(rate_params_t p);
 
@@ -201,15 +191,13 @@ public:
    */
   constexpr bool jumps_ok() const { return _clad_params.jump != 0.0; }
 
-  bool check_cladogenesis_params_ok() const;
-  bool check_ok() const;
+  bool check_cladogenesis_params_ok(size_t region_count) const;
+  bool check_ok(size_t region_count) const;
 
 private:
   rate_params_t         _rate_params;
   cladogenesis_params_t _clad_params;
 
   bool _duplicity = false;
-
-  size_t _region_count;
 };
 } // namespace bigrig

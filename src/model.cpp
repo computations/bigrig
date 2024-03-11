@@ -135,11 +135,6 @@ biogeo_model_t &biogeo_model_t::set_params(double d, double e) {
   return set_params({.dis = d, .ext = e});
 }
 
-biogeo_model_t &biogeo_model_t::set_region_count(size_t regions) {
-  _region_count = regions;
-  return *this;
-}
-
 biogeo_model_t &biogeo_model_t::set_cladogenesis_params(double y,
                                                         double s,
                                                         double v,
@@ -164,13 +159,13 @@ biogeo_model_t &biogeo_model_t::set_two_region_duplicity(bool d) {
   return *this;
 }
 
-bool biogeo_model_t::check_cladogenesis_params_ok() const {
+bool biogeo_model_t::check_cladogenesis_params_ok(size_t region_count) const {
   bool ok = true;
-  if (total_nonsingleton_weight(make_full_dist(region_count())) == 0.0) {
+  if (total_nonsingleton_weight(make_full_dist(region_count)) == 0.0) {
     MESSAGE_ERROR("The sympatry, allopatry, or jump weights are invalid");
     ok = false;
   }
-  if (total_singleton_weight(make_singleton_dist(region_count())) == 0.0) {
+  if (total_singleton_weight(make_singleton_dist(region_count)) == 0.0) {
     MESSAGE_ERROR("The copy or jump weights are invalid");
     ok = false;
   }
@@ -178,5 +173,7 @@ bool biogeo_model_t::check_cladogenesis_params_ok() const {
   return ok;
 }
 
-bool biogeo_model_t::check_ok() const { return check_cladogenesis_params_ok(); }
+bool biogeo_model_t::check_ok(size_t region_count) const {
+  return check_cladogenesis_params_ok(region_count);
+}
 } // namespace bigrig

@@ -15,7 +15,6 @@ TEST_CASE("splitting", "[sample]") {
   bigrig::biogeo_model_t model;
   model.set_params(1.0, 1.0)
       .set_cladogenesis_params(1.0, 1.0, 1.0, 0.0)
-      .set_region_count(REGIONS)
       .set_two_region_duplicity(false);
 
   SECTION("singleton") {

@@ -33,10 +33,9 @@ void write_header(const cli_options_t &cli_options) {
 /**
  * Produce a phylip file as a string.
  */
-std::string to_phylip(const bigrig::tree_t        &tree,
-                      const bigrig::biogeo_model_t model) {
+std::string to_phylip(const bigrig::tree_t &tree) {
   std::ostringstream oss;
-  oss << std::to_string(tree.leaf_count()) << " " << model.region_count()
+  oss << std::to_string(tree.leaf_count()) << " " << tree.region_count()
       << "\n";
 
   tree.to_phylip_body(oss);
@@ -47,10 +46,9 @@ std::string to_phylip(const bigrig::tree_t        &tree,
 /**
  * Produce a phylip file as a string, including inner nodes.
  */
-std::string to_phylip_all_nodes(const bigrig::tree_t         &tree,
-                                const bigrig::biogeo_model_t &model) {
+std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
   std::ostringstream oss;
-  oss << std::to_string(tree.node_count()) << " " << model.region_count()
+  oss << std::to_string(tree.node_count()) << " " << tree.region_count()
       << "\n";
 
   tree.to_phylip_body(oss, true);
@@ -378,18 +376,17 @@ void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
  * Automatically selects which outputs need to be created based on
  * `cli_options_t`.
  */
-void write_output_files(const cli_options_t          &cli_options,
-                        const bigrig::tree_t         &tree,
-                        const bigrig::biogeo_model_t &model) {
+void write_output_files(const cli_options_t  &cli_options,
+                        const bigrig::tree_t &tree) {
   auto phylip_filename  = cli_options.prefix.value();
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
-  phylip_file << to_phylip(tree, model);
+  phylip_file << to_phylip(tree);
 
   auto phylip_all_filename  = cli_options.prefix.value();
   phylip_all_filename      += ".all.phy";
   std::ofstream phylip_all_file(phylip_all_filename);
-  phylip_all_file << to_phylip_all_nodes(tree, model);
+  phylip_all_file << to_phylip_all_nodes(tree);
 
   auto cb = [](std::ostream &os, bigrig::node_t n) {
     os << n.string_id();
