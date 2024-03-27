@@ -1,10 +1,8 @@
 #include "io.hpp"
 
-#include "clioptions.hpp"
 #include "logger.hpp"
 
 #include <filesystem>
-#include <format>
 #include <optional>
 
 /**
@@ -28,6 +26,11 @@ void write_header(const cli_options_t &cli_options) {
            cli_options.sympatry_rate.value(),
            cli_options.copy_rate.value(),
            cli_options.jump_rate.value());
+  if (cli_options.mode.has_value()
+      && cli_options.mode.value() == bigrig::operation_mode_e::SIM) {
+    MESSAGE_WARNING(
+        "Setting the operation mode to simulation, results will be slow");
+  }
 }
 
 /**

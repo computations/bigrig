@@ -89,7 +89,15 @@ int main() {
         (void)(count);
         cli_options.mode = bigrig::operation_mode_e::SIM;
       },
-      "[Optional] Run in simulation mode (warning: slow)");
+      "[Optional] Run in simulation mode (warning: slow).");
+
+  app.add_flag(
+      "--fast",
+      [&cli_options](std::int64_t count) {
+        (void)(count);
+        cli_options.mode = bigrig::operation_mode_e::FAST;
+      },
+      "[Optional] Run in fast mode.");
 
   CLI11_PARSE(app);
 

@@ -1,7 +1,10 @@
 #include "clioptions.hpp"
 
+#include "dist.hpp"
 #include "logger.hpp"
 #include "util.hpp"
+
+#include <algorithm>
 
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();
@@ -179,6 +182,16 @@ void cli_options_t::merge(const cli_options_t &other) {
       two_region_duplicity = other.two_region_duplicity;
     }
   }
+
+  if (other.mode.has_value()) {
+    if (mode.has_value()) {
+      MESSAGE_WARNING(
+          "The option mode is specified in both the config file "
+          "and the command line. Using the value from the command line");
+    } else {
+      mode = other.mode;
+    }
+  }
 }
 
 /**
@@ -258,4 +271,21 @@ cli_options_t::cli_options_t(const YAML::Node &yaml) {
 
   constexpr auto REDO_KEY = "redo";
   if (yaml[REDO_KEY]) { redo = yaml[REDO_KEY].as<bool>(); }
+
+  constexpr auto MODE_KEY = "mode";
+  if (yaml[MODE_KEY]) {
+    std::string value = yaml[MODE_KEY].as<std::string>();
+    std::transform(value.begin(),
+                   value.end(),
+                   value.begin(),
+                   [](char c) -> char { return std::tolower(c); });
+    if (value == "fast") {
+      mode = bigrig::operation_mode_e::FAST;
+    } else if (value == "sim") {
+      mode = bigrig::operation_mode_e::SIM;
+    } else {
+      throw cli_option_invalid_parameter{
+          "Failed to recognize the run mode in the config file"};
+    }
+  }
 }

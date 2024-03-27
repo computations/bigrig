@@ -23,6 +23,12 @@ public:
       : std::invalid_argument{msg} {}
 };
 
+class cli_option_invalid_parameter : std::invalid_argument {
+public:
+  cli_option_invalid_parameter(const std::string &msg)
+      : std::invalid_argument{msg} {}
+};
+
 /**
  * Semi-smart struct containing the parsed program options. Normally these are
  * passed on the command line, but they can also be provided via a config file.
@@ -115,7 +121,7 @@ struct cli_options_t {
    */
   std::optional<bool> two_region_duplicity;
 
-  std::optional<bigrig::operation_mode_e> mode = bigrig::operation_mode_e::FAST;
+  std::optional<bigrig::operation_mode_e> mode;
 
   std::filesystem::path phylip_filename() const;
 
