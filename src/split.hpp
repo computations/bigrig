@@ -32,11 +32,12 @@ std::vector<transition_t>
 simulate_transitions(dist_t                                  init_dist,
                      double                                  brlen,
                      const biogeo_model_t                   &model,
-                     std::uniform_random_bit_generator auto &gen) {
+                     std::uniform_random_bit_generator auto &gen,
+                     operation_mode_e                        mode) {
   std::vector<transition_t> results;
   results.reserve(VECTOR_INITIAL_RESERVE);
   while (true) {
-    auto r  = spread(init_dist, model, gen);
+    auto r  = spread(init_dist, model, gen, mode);
     brlen  -= r.waiting_time;
     if (brlen < 0.0) { return results; }
     init_dist = r.final_state;
@@ -102,6 +103,17 @@ split_type_e roll_split_type(dist_t                                  init_dist,
             jump_weight);
   return split_type_e::invalid;
 }
+split_t split_dist(dist_t                                  init_dist,
+                   const biogeo_model_t                   &model,
+                   std::uniform_random_bit_generator auto &gen,
+                   operation_mode_e mode = operation_mode_e::FAST) {
+  if (mode == operation_mode_e::FAST) {
+    return split_dist_fast(init_dist, model, gen);
+  } else if (mode == operation_mode_e::SIM) {
+    return split_dist_rejection_method(init_dist, model, gen);
+  }
+  throw std::runtime_error{"Could not recognize operation mode"};
+}
 
 /*
  * There are three types of splitting:
@@ -119,9 +131,9 @@ split_type_e roll_split_type(dist_t                                  init_dist,
  * In addition, Matzke introduced a jump parameter, making it +J. We optionally
  * support this option.
  */
-split_t split_dist(dist_t                                  init_dist,
-                   const biogeo_model_t                   &model,
-                   std::uniform_random_bit_generator auto &gen) {
+split_t split_dist_fast(dist_t                                  init_dist,
+                        const biogeo_model_t                   &model,
+                        std::uniform_random_bit_generator auto &gen) {
   // Special check for the singleton case
   if (!model.jumps_ok() && init_dist.singleton()) {
     return {init_dist, init_dist, init_dist, split_type_e::singleton};

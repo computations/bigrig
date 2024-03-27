@@ -6,10 +6,13 @@
 #include <cstdint>
 #include <logger.hpp>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace bigrig {
+
+enum class operation_mode_e { FAST, SIM };
 
 typedef uint64_t dist_base_t;
 
@@ -334,8 +337,14 @@ public:
  */
 transition_t spread(dist_t                                  init_dist,
                     const biogeo_model_t                   &model,
-                    std::uniform_random_bit_generator auto &gen) {
-  return spread_analytic(init_dist, model, gen);
+                    std::uniform_random_bit_generator auto &gen,
+                    operation_mode_e mode = operation_mode_e::FAST) {
+  if (mode == operation_mode_e::FAST) {
+    return spread_analytic(init_dist, model, gen);
+  } else if (mode == operation_mode_e::SIM) {
+    return spread_rejection(init_dist, model, gen);
+  }
+  throw std::runtime_error{"Run mode not recognized"};
 }
 
 /**

@@ -85,6 +85,13 @@ int main() {
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
                "splits. See the README.md for more information.");
+  app.add_flag(
+      "--sim",
+      [&cli_options](std::int64_t count) {
+        (void)(count);
+        cli_options.mode = bigrig::operation_mode_e::SIM;
+      },
+      "[Optional] Run in simulation mode (warning: slow)");
 
   CLI11_PARSE(app);
 
@@ -103,6 +110,7 @@ int main() {
 
   MESSAGE_INFO("Parsing tree");
   auto tree = bigrig::tree_t(cli_options.tree_filename.value());
+  tree.set_mode(cli_options.mode.value());
 
   if (!tree.is_valid()) {
     MESSAGE_ERROR("The tree provided is not valid, exiting");

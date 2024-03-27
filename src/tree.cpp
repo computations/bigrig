@@ -96,4 +96,6 @@ void tree_t::convert_tree(corax_utree_t *corax_tree) {
 
   corax_utree_destroy(corax_tree, nullptr);
 }
+
+void tree_t::set_mode(operation_mode_e mode) { _mode = mode; }
 } // namespace bigrig

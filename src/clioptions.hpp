@@ -117,6 +117,8 @@ struct cli_options_t {
    */
   std::optional<bool> two_region_duplicity;
 
+  std::optional<bigrig::operation_mode_e> mode = bigrig::operation_mode_e::FAST;
+
   std::filesystem::path phylip_filename() const;
 
   std::filesystem::path yaml_filename() const;

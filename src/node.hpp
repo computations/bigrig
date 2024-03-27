@@ -33,22 +33,23 @@ public:
    */
   void simulate(dist_t                                  initial_distribution,
                 const biogeo_model_t                   &model,
-                std::uniform_random_bit_generator auto &gen) {
+                std::uniform_random_bit_generator auto &gen,
+                operation_mode_e mode = operation_mode_e::FAST) {
     LOG_DEBUG("Node sampling with initial_distribution = %s",
               initial_distribution.to_str().c_str());
     _transitions
-        = simulate_transitions(initial_distribution, _brlen, model, gen);
+        = simulate_transitions(initial_distribution, _brlen, model, gen, mode);
     LOG_DEBUG("Finished sampling with %lu transitions", _transitions.size());
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;
     } else {
       _final_state = _transitions.back().final_state;
     }
-    _split = split_dist(_final_state, model, gen);
+    _split = split_dist(_final_state, model, gen, mode);
 
     if (!is_leaf()) {
-      _children[0]->simulate(_split.left, model, gen);
-      _children[1]->simulate(_split.right, model, gen);
+      _children[0]->simulate(_split.left, model, gen, mode);
+      _children[1]->simulate(_split.right, model, gen, mode);
     }
   }
 

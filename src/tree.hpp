@@ -38,7 +38,7 @@ public:
                 std::uniform_random_bit_generator auto &gen) {
     LOG_DEBUG("Starting sample with init dist = %lb",
               static_cast<uint64_t>(initial_distribution));
-    _tree->simulate(initial_distribution, model, gen);
+    _tree->simulate(initial_distribution, model, gen, _mode);
   }
 
   std::optional<dist_t> get_dist_by_string_id(const std::string &key) const;
@@ -65,9 +65,12 @@ public:
   preorder_iterator begin() const;
   preorder_iterator end() const;
 
+  void set_mode(operation_mode_e mode);
+
 private:
   void convert_tree(corax_utree_t *corax_tree);
 
   std::shared_ptr<node_t> _tree;
+  operation_mode_e        _mode = operation_mode_e::FAST;
 };
 } // namespace bigrig
