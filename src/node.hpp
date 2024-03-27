@@ -7,7 +7,6 @@
 #include <corax/tree/utree.h>
 #include <functional>
 #include <logger.hpp>
-#include <memory>
 #include <string>
 #include <vector>
 

@@ -358,7 +358,7 @@ transition_t spread_rejection(dist_t                                  init_dist,
                               std::uniform_random_bit_generator auto &gen) {
   auto [d, e] = model.rates();
 
-  bool singleton = init_dist.singleton();
+  bool       singleton    = init_dist.singleton();
   const auto region_count = init_dist.regions();
 
   std::exponential_distribution<double> dis_die(d);

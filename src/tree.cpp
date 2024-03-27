@@ -1,5 +1,6 @@
 #include "tree.hpp"
 
+#include "iterator.hpp"
 #include "logger.hpp"
 
 #include <corax/core/common.h>

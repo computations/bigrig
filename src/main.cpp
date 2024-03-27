@@ -1,12 +1,10 @@
 #include "clioptions.hpp"
+#include "dist.hpp"
 #include "io.hpp"
 #include "model.hpp"
-#include "node.hpp"
 #include "pcg_random.hpp"
-#include "tree.hpp"
 
 #include <corax/corax.hpp>
-#include <iostream>
 #include <logger.hpp>
 
 int main() {
