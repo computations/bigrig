@@ -92,7 +92,6 @@ int main() {
         cli_options.mode = bigrig::operation_mode_e::SIM;
       },
       "[Optional] Run in simulation mode (warning: slow).");
-
   app.add_flag(
       "--fast",
       [&cli_options](std::int64_t count) {
@@ -118,7 +117,7 @@ int main() {
 
   MESSAGE_INFO("Parsing tree");
   auto tree = bigrig::tree_t(cli_options.tree_filename.value());
-  tree.set_mode(cli_options.mode.value());
+  tree.set_mode(cli_options.mode.value_or(bigrig::operation_mode_e::FAST));
 
   if (!tree.is_valid()) {
     MESSAGE_ERROR("The tree provided is not valid, exiting");
