@@ -61,8 +61,7 @@ int main() {
   app.add_option("--seed", cli_options.rng_seed, "[Optional] Seed for the RNG");
 
   app.add_flag(
-         "--redo", cli_options.redo, "[Optional] Ignore existing result files")
-      ->default_val("yes");
+         "--redo", cli_options.redo, "[Optional] Ignore existing result files");
   app.add_flag("--debug-log",
                cli_options.debug_log,
                "[Optional] Create a file in the prefix that contains the debug "
