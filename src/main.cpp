@@ -34,30 +34,30 @@ int main() {
       "--root-dist",
       cli_options.root_distribution,
       "[Required] Range for the species at the root for the start of the "
-      "simulation. Should be given as a binary string (e.g. 1010).");
-  app.add_option("--d",
+      "simulation. Should be given as a binary string (e.g. 01010).");
+  app.add_option("-d,--dispersion",
                  cli_options.dispersion_rate,
                  "[Required] The dispersion rate for the simulation.");
-  app.add_option("--e",
+  app.add_option("-e,--extinction",
                  cli_options.extinction_rate,
                  "[Required] The extinction rate for the simulation.");
 
-  app.add_option("--v",
+  app.add_option("-v,--allopatry",
                  cli_options.allopatry_rate,
-                 "[Optional] The allopatry/vicariance rate for cladogenesis "
+                 "[Required] The allopatry/vicariance rate for cladogenesis "
                  "for the simulation.");
   app.add_option(
-      "--s",
+      "-s,--sympatry",
       cli_options.sympatry_rate,
-      "[Optional] The sympatry rate for cladogenesis for the simulation.");
+      "[Required] The sympatry rate for cladogenesis for the simulation.");
   app.add_option(
-      "--y",
+      "-y,--copy",
       cli_options.copy_rate,
-      "[Optional] The copy rate for cladogenesis for the simulation.");
+      "[Required] The copy rate for cladogenesis for the simulation.");
   app.add_option(
-      "--j",
+      "-j,--jump",
       cli_options.jump_rate,
-      "[Optional] The jump rate for cladogenesis for the simulation.");
+      "[Required] The jump rate for cladogenesis for the simulation.");
   app.add_option("--seed", cli_options.rng_seed, "[Optional] Seed for the RNG");
 
   app.add_flag(
@@ -84,7 +84,7 @@ int main() {
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
-               "splits. See the README.md for more information.");
+               "splits. See the README.md for more information.") ->group("");
   app.add_flag(
       "--sim",
       [&cli_options](std::int64_t count) {

@@ -52,8 +52,12 @@ The required parameters are:
 - `--tree`: Path to the tree file used for the simulation
 - `--root-range`: Range for the species at the root of the tree. Alternatively,
   the starting range.
-- `--d`: Dispersion rate for the simulation.
-- `--e`: Extinction rate for the simulation.
+- `-d/--dispersion`: Dispersion rate for the simulation.
+- `-e/--extinction`: Extinction rate for the simulation.
+- `-v/--allopatry`: Allopatry/vicariance rate for the simulation.
+- `-s/--sympatry`:  Sympatry rate for the simulation.
+- `-y/--copy`: Copy rate for the simulation.
+- `-j/--jump`: Jump rate for the simulation.
 
 Additionally, there are a number of optional parameters:
 
@@ -73,15 +77,17 @@ rates:
   extinction: <FLOAT>
 cladogenesis:
   allopatry: <FLOAT>
+  sympatry: <FLOAT>
   copy: <FLOAT>
   jump: <FLOAT>
-  sympatry: <FLOAT>
 root-range: <ROOT-RANGE>
 tree: <FILE>
 redo: <BOOL>
 debug-log: <BOOL>
 output-format: [YAML|JSON]
 prefix: <PATH>
+mode: [FAST|SIM]
+seed: <INT>
 ```
 
 If both the a command line option and a config option are set, for example in the command
@@ -95,7 +101,7 @@ values, and the other values can be played with rapidly by changing them on the 
 is a warning that is emitted, like this:
 
 ```
-[  0.00s] [WARN] The dispersion rate is specified in both the config file and the command line. Using the value from the command line
+[WARN] The 'rates:dispersion' option is specified in both the config file and the command line. Using the value from the command line
 ```
 
 # Result files
