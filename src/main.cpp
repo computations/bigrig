@@ -2,6 +2,7 @@
 #include "dist.hpp"
 #include "io.hpp"
 #include "model.hpp"
+#include "pcg_extras.hpp"
 #include "pcg_random.hpp"
 
 #include <corax/corax.hpp>
@@ -57,6 +58,7 @@ int main() {
       "--j",
       cli_options.jump_rate,
       "[Optional] The jump rate for cladogenesis for the simulation.");
+  app.add_option("--seed", cli_options.rng_seed, "[Optional] Seed for the RNG");
 
   app.add_flag(
          "--redo", cli_options.redo, "[Optional] Ignore existing result files")
@@ -130,8 +132,12 @@ int main() {
 
   LOG_INFO("Tree has %lu taxa", tree.leaf_count());
 
-  pcg_extras::seed_seq_from<std::random_device> seed_source;
-  pcg64_fast                                    gen(seed_source);
+  pcg64_fast gen;
+  if (cli_options.rng_seed.has_value()) {
+    gen.seed(cli_options.rng_seed.value());
+  } else {
+    gen.seed(pcg_extras::seed_seq_from<std::random_device>{});
+  }
 
   bigrig::biogeo_model_t model({.dis = cli_options.dispersion_rate.value(),
                                 .ext = cli_options.extinction_rate.value()},

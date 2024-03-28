@@ -123,6 +123,8 @@ struct cli_options_t {
 
   std::optional<bigrig::operation_mode_e> mode;
 
+  std::optional<uint64_t> rng_seed;
+
   std::filesystem::path phylip_filename() const;
 
   std::filesystem::path yaml_filename() const;

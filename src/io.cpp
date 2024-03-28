@@ -26,6 +26,9 @@ void write_header(const cli_options_t &cli_options) {
            cli_options.sympatry_rate.value(),
            cli_options.copy_rate.value(),
            cli_options.jump_rate.value());
+  if (cli_options.rng_seed.has_value()){
+    LOG_INFO("   Seed: %lu", cli_options.rng_seed.value());
+  }
   if (cli_options.mode.has_value()
       && cli_options.mode.value() == bigrig::operation_mode_e::SIM) {
     MESSAGE_WARNING(
