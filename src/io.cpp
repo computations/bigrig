@@ -26,7 +26,7 @@ void write_header(const cli_options_t &cli_options) {
            cli_options.sympatry_rate.value(),
            cli_options.copy_rate.value(),
            cli_options.jump_rate.value());
-  if (cli_options.rng_seed.has_value()){
+  if (cli_options.rng_seed.has_value()) {
     LOG_INFO("   Seed: %lu", cli_options.rng_seed.value());
   }
   if (cli_options.mode.has_value()
@@ -144,6 +144,24 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
   return ok;
 }
 
+[[nodiscard]] bool validate_model_parameter(const std::optional<double> &param,
+                                            const char                  *name) {
+  bool ok = true;
+  if (!param.has_value()) {
+    LOG_ERROR("The model parameter '%s' was not set. Please provide a "
+              "value for this parameter",
+              name);
+    ok = false;
+  } else if (param.value() < 0) {
+    LOG_ERROR("Simulating with '%s' = %f is not valid, please pick "
+              "a positive number",
+              name,
+              param.value());
+    ok = false;
+  }
+  return ok;
+}
+
 /**
  * Check that the program options are valid
  *
@@ -168,25 +186,15 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
               cli_options.root_distribution.value().regions());
     ok = false;
   }
-  if (!cli_options.dispersion_rate.has_value()) {
-    MESSAGE_ERROR("Dispersion rate was not set. Please provide a value for "
-                  "the dispersion rate");
-    ok = false;
-  } else if (cli_options.dispersion_rate.value() < 0) {
-    LOG_ERROR("Simulating with dispersion rate = %f is not valid, please pick "
-              "a positive number",
-              cli_options.dispersion_rate.value());
-    ok = false;
-  }
-  if (!cli_options.extinction_rate.has_value()) {
-    MESSAGE_ERROR("Extinction rate was not set. Please provide a value for "
-                  "the extinction rate");
-  } else if (cli_options.extinction_rate.value() < 0) {
-    LOG_ERROR("Simulating with dispersion rate = %f is not valid, please pick "
-              "a positive number",
-              cli_options.extinction_rate.value());
-    ok = false;
-  }
+
+  ok &= validate_model_parameter(cli_options.dispersion_rate, "dispersion");
+  ok &= validate_model_parameter(cli_options.extinction_rate, "extinction");
+
+  ok &= validate_model_parameter(cli_options.allopatry_rate, "allopatry");
+  ok &= validate_model_parameter(cli_options.sympatry_rate, "sympatry");
+  ok &= validate_model_parameter(cli_options.copy_rate, "copy");
+  ok &= validate_model_parameter(cli_options.jump_rate, "jump");
+
 
   return ok;
 }
