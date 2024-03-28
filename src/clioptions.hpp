@@ -140,5 +140,44 @@ struct cli_options_t {
   void merge(const cli_options_t &other);
 
   cli_options_t() = default;
-  cli_options_t(const YAML::Node &yaml);
+
+  /**
+   * Construct a cli_option_t from a YAML file. Please see the YAML file schema
+   * for the details.
+   */
+  cli_options_t(const YAML::Node &yaml)
+      : tree_filename{get_tree_filename(yaml)},
+        prefix{get_prefix(yaml)},
+        debug_log{get_debug_log(yaml)},
+        output_format_type{get_output_format(yaml)},
+        root_distribution{get_root_range(yaml)},
+        redo{get_redo(yaml)},
+        two_region_duplicity{get_two_region_duplicity(yaml)},
+        mode{get_mode(yaml)},
+        rng_seed{get_seed(yaml)} {
+    std::tie(dispersion_rate, extinction_rate) = get_rates(yaml);
+    std::tie(allopatry_rate, sympatry_rate, copy_rate, jump_rate)
+        = get_cladogenesis(yaml);
+  }
+
+private:
+  static std::filesystem::path get_tree_filename(const YAML::Node &);
+  static std::optional<std::filesystem::path> get_prefix(const YAML::Node &);
+  static std::optional<bool>                  get_debug_log(const YAML::Node &);
+  static std::optional<output_format_type_e>
+                             get_output_format(const YAML::Node &);
+  static std::optional<bool> get_two_region_duplicity(const YAML::Node &);
+  static std::optional<bigrig::dist_t> get_root_range(const YAML::Node &);
+  static std::tuple<std::optional<double>, std::optional<double>>
+  get_rates(const YAML::Node &yaml);
+
+  static std::tuple<std::optional<double>,
+                    std::optional<double>,
+                    std::optional<double>,
+                    std::optional<double>>
+  get_cladogenesis(const YAML::Node &yaml);
+
+  static std::optional<bool>                     get_redo(const YAML::Node &);
+  static std::optional<bigrig::operation_mode_e> get_mode(const YAML::Node &);
+  static std::optional<uint64_t>                 get_seed(const YAML::Node &);
 };

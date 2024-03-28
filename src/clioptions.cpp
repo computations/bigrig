@@ -5,6 +5,7 @@
 #include "util.hpp"
 
 #include <algorithm>
+#include <tuple>
 
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();
@@ -62,193 +63,114 @@ bool cli_options_t::json_file_set() const {
  *  - `redo`
  *  - `two_region_duplicity`
  */
-void cli_options_t::merge(const cli_options_t &other) {
-  if (other.tree_filename.has_value()) {
-    if (tree_filename.has_value()) {
-      MESSAGE_WARNING(
-          "A tree file is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      tree_filename = other.tree_filename;
-    }
-  }
 
-  if (other.debug_log.has_value()) {
-    if (debug_log.has_value()) {
-      MESSAGE_WARNING(
-          "The debug log option is specified in both the config file and the "
-          "command line. Using the value from the command line");
-    } else {
-      debug_log = other.debug_log;
-    }
-  }
+void print_config_cli_warning(const char *option_name) {
+  LOG_WARNING("The '%s' option is specified in both the config file and "
+              "the command line. Using the value from the command line",
+              option_name);
+}
 
-  if (other.output_format_type.has_value()) {
-    if (output_format_type.has_value()) {
-      MESSAGE_WARNING(
-          "The output format is specified in both the config file and "
-          "the command line. Using the value from the command line");
+template <typename T>
+void merge_variable(std::optional<T>       &ours,
+                    const std::optional<T> &theirs,
+                    const char             *name) {
+  if (theirs.has_value()) {
+    if (ours.has_value()) {
+      print_config_cli_warning(name);
     } else {
-      output_format_type = other.output_format_type;
-    }
-  }
-
-  if (other.root_distribution.has_value()) {
-    if (root_distribution.has_value()) {
-      MESSAGE_WARNING(
-          "The root range is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      root_distribution = other.root_distribution;
-    }
-  }
-
-  if (other.dispersion_rate.has_value()) {
-    if (dispersion_rate.has_value()) {
-      MESSAGE_WARNING(
-          "The dispersion rate is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      dispersion_rate = other.dispersion_rate;
-    }
-  }
-
-  if (other.extinction_rate.has_value()) {
-    if (extinction_rate.has_value()) {
-      MESSAGE_WARNING(
-          "The extinction rate is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      extinction_rate = other.extinction_rate;
-    }
-  }
-
-  if (other.allopatry_rate.has_value()) {
-    if (allopatry_rate.has_value()) {
-      MESSAGE_WARNING(
-          "The allopatry rate is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      allopatry_rate = other.allopatry_rate;
-    }
-  }
-
-  if (other.sympatry_rate.has_value()) {
-    if (sympatry_rate.has_value()) {
-      MESSAGE_WARNING(
-          "The sympatry rate is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      sympatry_rate = other.sympatry_rate;
-    }
-  }
-
-  if (other.copy_rate.has_value()) {
-    if (copy_rate.has_value()) {
-      MESSAGE_WARNING(
-          "The copy rate is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      copy_rate = other.copy_rate;
-    }
-  }
-
-  if (other.jump_rate.has_value()) {
-    if (jump_rate.has_value()) {
-      MESSAGE_WARNING(
-          "The jump rate is specified in both the config file and "
-          "the command line. Using the value from the command line");
-    } else {
-      jump_rate = other.jump_rate;
-    }
-  }
-
-  if (other.redo.has_value()) {
-    if (redo.has_value()) {
-      MESSAGE_WARNING(
-          "Redo is specified in both the config file and the command "
-          "line. Using the value from the command line");
-    } else {
-      redo = other.redo;
-    }
-  }
-
-  if (other.two_region_duplicity.has_value()) {
-    if (two_region_duplicity.has_value()) {
-      MESSAGE_WARNING(
-          "The option two value duplicity is specified in both the config file "
-          "and the command line. Using the value from the command line");
-    } else {
-      two_region_duplicity = other.two_region_duplicity;
-    }
-  }
-
-  if (other.mode.has_value()) {
-    if (mode.has_value()) {
-      MESSAGE_WARNING(
-          "The option mode is specified in both the config file "
-          "and the command line. Using the value from the command line");
-    } else {
-      mode = other.mode;
+      ours = theirs;
     }
   }
 }
 
-/**
- * Construct a cli_option_t from a YAML file. Please see the YAML file schema
- * for the details.
- */
-cli_options_t::cli_options_t(const YAML::Node &yaml) {
+void cli_options_t::merge(const cli_options_t &other) {
+  merge_variable(tree_filename, other.tree_filename, "tree");
+  merge_variable(debug_log, other.debug_log, "debug-log");
+  merge_variable(output_format_type, other.output_format_type, "output-format");
+  merge_variable(root_distribution, other.root_distribution, "root-range");
+  merge_variable(dispersion_rate, other.dispersion_rate, "rates:dispersion");
+  merge_variable(extinction_rate, other.extinction_rate, "rates:extinction");
+  merge_variable(
+      allopatry_rate, other.allopatry_rate, "cladogenesis:allopatry");
+  merge_variable(sympatry_rate, other.sympatry_rate, "cladogenesis:sympatry");
+  merge_variable(copy_rate, other.copy_rate, "cladogenesis:copy");
+  merge_variable(jump_rate, other.jump_rate, "cladogenesis:jump");
+  merge_variable(redo, other.redo, "redo");
+  merge_variable(
+      two_region_duplicity, other.two_region_duplicity, "two-region-duplicity");
+  merge_variable(mode, other.mode, "mode");
+  merge_variable(rng_seed, other.rng_seed, "seed");
+}
+
+std::filesystem::path cli_options_t::get_tree_filename(const YAML::Node &yaml) {
   constexpr auto TREE_KEY = "tree";
-  tree_filename           = yaml[TREE_KEY].as<std::string>();
+  return yaml[TREE_KEY].as<std::string>();
+}
 
+std::optional<std::filesystem::path>
+cli_options_t::get_prefix(const YAML::Node &yaml) {
   constexpr auto PREFIX_KEY = "prefix";
-  if (yaml[PREFIX_KEY]) { prefix = yaml[PREFIX_KEY].as<std::string>(); }
+  if (yaml[PREFIX_KEY]) { return yaml[PREFIX_KEY].as<std::string>(); }
+  return {};
+}
 
+std::optional<bool> cli_options_t::get_debug_log(const YAML::Node &yaml) {
   constexpr auto DEBUG_LOG_KEY = "debug-log";
-  if (yaml[DEBUG_LOG_KEY]) { debug_log = yaml[DEBUG_LOG_KEY].as<bool>(); }
+  if (yaml[DEBUG_LOG_KEY]) { return yaml[DEBUG_LOG_KEY].as<bool>(); }
+  return {};
+}
 
+std::optional<output_format_type_e>
+cli_options_t::get_output_format(const YAML::Node &yaml) {
   constexpr auto OUPUT_FORMAT_KEY = "output-format";
   if (yaml[OUPUT_FORMAT_KEY]) {
     if (yaml[OUPUT_FORMAT_KEY].as<std::string>() == "json") {
-      output_format_type = output_format_type_e::JSON;
+      return output_format_type_e::JSON;
     }
     if (yaml[OUPUT_FORMAT_KEY].as<std::string>() == "yaml") {
-      output_format_type = output_format_type_e::YAML;
+      return output_format_type_e::YAML;
     }
   }
-  if (output_format_type.has_value()) {
-    MESSAGE_WARNING(
-        "Output format specified in both the config file and on the command "
-        "line. Using the specification from the config file.");
-  }
+  return {};
+}
 
+std::optional<bool>
+cli_options_t::get_two_region_duplicity(const YAML::Node &yaml) {
   constexpr auto DUPLICITY_KEY = "two-region-duplicity";
-  if (yaml[DUPLICITY_KEY]) {
-    two_region_duplicity = yaml[DUPLICITY_KEY].as<bool>();
-  }
+  if (yaml[DUPLICITY_KEY]) { return yaml[DUPLICITY_KEY].as<bool>(); }
+  return {};
+}
 
+std::optional<bigrig::dist_t>
+cli_options_t::get_root_range(const YAML::Node &yaml) {
   constexpr auto ROOT_DIST_KEY = "root-range";
-  if (yaml[ROOT_DIST_KEY]) {
-    root_distribution = yaml[ROOT_DIST_KEY].as<std::string>();
-  }
+  if (yaml[ROOT_DIST_KEY]) { return yaml[ROOT_DIST_KEY].as<std::string>(); }
+  return {};
+}
 
-  constexpr auto RATE_DICT_KEY = "rates";
+std::tuple<std::optional<double>, std::optional<double>>
+cli_options_t::get_rates(const YAML::Node &yaml) {
+  std::optional<double> dis, ext;
+  constexpr auto        RATE_DICT_KEY = "rates";
   if (yaml[RATE_DICT_KEY]) {
     auto rates = yaml[RATE_DICT_KEY];
 
     constexpr auto DISPERSION_KEY = "dispersion";
-    if (rates[DISPERSION_KEY]) {
-      dispersion_rate = rates[DISPERSION_KEY].as<double>();
-    }
+    if (rates[DISPERSION_KEY]) { dis = rates[DISPERSION_KEY].as<double>(); }
 
     constexpr auto EXTINCTION_KEY = "extinction";
-    if (rates[EXTINCTION_KEY]) {
-      extinction_rate = rates[EXTINCTION_KEY].as<double>();
-    }
+    if (rates[EXTINCTION_KEY]) { ext = rates[EXTINCTION_KEY].as<double>(); }
   }
+  return {dis, ext};
+}
 
-  constexpr auto CLADO_DICT_KEY = "cladogenesis";
+std::tuple<std::optional<double>,
+           std::optional<double>,
+           std::optional<double>,
+           std::optional<double>>
+cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
+  std::optional<double> allopatry_rate, sympatry_rate, copy_rate, jump_rate;
+  constexpr auto        CLADO_DICT_KEY = "cladogenesis";
   if (yaml[CLADO_DICT_KEY]) {
     auto clado = yaml[CLADO_DICT_KEY];
 
@@ -268,10 +190,17 @@ cli_options_t::cli_options_t(const YAML::Node &yaml) {
     constexpr auto JUMP_KEY = "jump";
     if (clado[JUMP_KEY]) { jump_rate = clado[JUMP_KEY].as<double>(); }
   }
+  return {allopatry_rate, sympatry_rate, copy_rate, jump_rate};
+}
 
+std::optional<bool> cli_options_t::get_redo(const YAML::Node &yaml) {
   constexpr auto REDO_KEY = "redo";
-  if (yaml[REDO_KEY]) { redo = yaml[REDO_KEY].as<bool>(); }
+  if (yaml[REDO_KEY]) { return yaml[REDO_KEY].as<bool>(); }
+  return {};
+}
 
+std::optional<bigrig::operation_mode_e>
+cli_options_t::get_mode(const YAML::Node &yaml) {
   constexpr auto MODE_KEY = "mode";
   if (yaml[MODE_KEY]) {
     std::string value = yaml[MODE_KEY].as<std::string>();
@@ -280,12 +209,19 @@ cli_options_t::cli_options_t(const YAML::Node &yaml) {
                    value.begin(),
                    [](char c) -> char { return std::tolower(c); });
     if (value == "fast") {
-      mode = bigrig::operation_mode_e::FAST;
+      return bigrig::operation_mode_e::FAST;
     } else if (value == "sim") {
-      mode = bigrig::operation_mode_e::SIM;
+      return bigrig::operation_mode_e::SIM;
     } else {
       throw cli_option_invalid_parameter{
           "Failed to recognize the run mode in the config file"};
     }
   }
+  return {};
+}
+
+std::optional<uint64_t> cli_options_t::get_seed(const YAML::Node &yaml) {
+  constexpr auto SEED_KEY = "seed";
+  if (yaml[SEED_KEY]) { return yaml[SEED_KEY].as<uint64_t>(); }
+  return {};
 }
