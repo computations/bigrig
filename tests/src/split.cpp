@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
 #include <dist.hpp>
 #include <model.hpp>
 #include <pcg_random.hpp>
@@ -156,10 +157,10 @@ TEST_CASE("split stats") {
                                       bigrig::dist_t{0b1011, 4},
                                       bigrig::dist_t{0b1111, 4},
                                       bigrig::dist_t{0b1111, 4},
-                                      bigrig::dist_t{0b10000000, 8},
-                                      bigrig::dist_t{0b11000111, 8},
-                                      bigrig::dist_t{0b10101010, 8},
-                                      bigrig::dist_t{0b11111111, 8});
+                                      bigrig::dist_t{0b1000'0000, 8},
+                                      bigrig::dist_t{0b1100'0111, 8},
+                                      bigrig::dist_t{0b1010'1010, 8},
+                                      bigrig::dist_t{0b1111'1111, 8});
 
   bigrig::cladogenesis_params_t params
       = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
@@ -296,3 +297,59 @@ TEST_CASE("split regression") {
     CHECK_THAT(rejection_value, Catch::Matchers::WithinAbs(new_val, abs_tol));
   }
 }
+
+/*
+TEST_CASE("split regression g-test") {
+  pcg64_fast gen(Catch::getSeed());
+
+  constexpr size_t iters   = 2'019'696'124;
+  constexpr double abs_tol = 1.0e-4;
+
+  auto keys = {bigrig::split_type_e::jump,
+               bigrig::split_type_e::sympatric,
+               bigrig::split_type_e::allopatric,
+               bigrig::split_type_e::singleton,
+               bigrig::split_type_e::invalid};
+
+  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
+                                      bigrig::dist_t{0b1110, 4},
+                                      bigrig::dist_t{0b1100, 4},
+                                      bigrig::dist_t{0b1011, 4},
+                                      bigrig::dist_t{0b1111, 4},
+                                      bigrig::dist_t{0b11'0011, 6});
+
+  bigrig::cladogenesis_params_t params
+      = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
+                 bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
+                 bigrig::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
+                 bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
+                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
+
+  bigrig::biogeo_model_t model;
+  model.set_params(1.0, 1.0).set_two_region_duplicity(false);
+  INFO("init dist:" << init_dist);
+  INFO("model params: " << params.to_debug_string());
+
+  model.set_cladogenesis_params(params);
+  std::unordered_map<bigrig::split_type_e, size_t> regression_split_type_counts;
+  std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
+
+  for (size_t i = 0; i < iters; ++i) {
+    auto rej_res = bigrig::split_dist_rejection_method(init_dist, model, gen);
+    regression_split_type_counts[rej_res.type] += 1;
+
+    auto new_res = bigrig::split_dist(init_dist, model, gen);
+    split_type_counts[new_res.type] += 1;
+  }
+
+  double g = 0.0;
+  for (const auto &key : keys) {
+    if (regression_split_type_counts[key] == 0) { continue; }
+    double g_i = static_cast<double>(split_type_counts[key])
+               / static_cast<double>(regression_split_type_counts[key]);
+    g_i  = std::log(g_i);
+    g   += g_i * split_type_counts[key];
+  }
+  CHECK(g < 0.0002);
+}
+*/
