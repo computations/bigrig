@@ -1,6 +1,7 @@
 #include "io.hpp"
 
 #include "logger.hpp"
+#include "model.hpp"
 
 #include <filesystem>
 #include <optional>
@@ -284,7 +285,9 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
 /**
  * Write the output as a YAML file.
  */
-void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
+void write_yaml_file(std::ostream                 &os,
+                     const bigrig::tree_t         &tree,
+                     const bigrig::biogeo_model_t &model) {
   YAML::Emitter yaml;
   yaml << YAML::BeginMap;
   yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
@@ -311,6 +314,7 @@ void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
          << n->node_split().to_type_string();
     yaml << YAML::EndMap;
   }
+  yaml << YAML::EndMap;
 
   yaml << YAML::Key << "events";
   yaml << YAML::BeginMap;
@@ -339,18 +343,66 @@ void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
   }
   yaml << YAML::EndMap;
 
+  /* periods */
+  yaml << YAML::Key << "periods";
+  yaml << YAML::Value;
+  yaml << YAML::BeginSeq;
+
+  yaml << YAML::BeginMap;
+
+  yaml << YAML::Key << "start";
+  yaml << YAML::Value << 0.0;
+
+  auto [dis, ext] = model.rates();
+
+  yaml << YAML::Key << "rates";
+  yaml << YAML::Value;
+
+  yaml << YAML::BeginMap;
+
+  yaml << YAML::Key << "dispersion";
+  yaml << YAML::Value << dis;
+
+  yaml << YAML::Key << "extinction";
+  yaml << YAML::Value << ext;
+
+  yaml << YAML::EndMap;
+
+  auto [allo, symp, copy, jump] = model.cladogenesis_params();
+
+  yaml << YAML::Key << "cladogenesis";
+  yaml << YAML::Value;
+
+  yaml << YAML::BeginMap;
+  yaml << YAML::Key << "allopatry";
+  yaml << YAML::Value << allo;
+
+  yaml << YAML::Key << "sympatry";
+  yaml << YAML::Value << symp;
+
+  yaml << YAML::Key << "copy";
+  yaml << YAML::Value << copy;
+
+  yaml << YAML::Key << "jump";
+  yaml << YAML::Value << jump;
+  yaml << YAML::EndMap;
+
+  yaml << YAML::EndSeq;
+  yaml << YAML::EndMap;
+  /* end periods */
+
   yaml << YAML::EndMap;
   os << yaml.c_str() << std::endl;
 }
 
-void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
+void write_json_file(std::ostream                 &os,
+                     const bigrig::tree_t         &tree,
+                     const bigrig::biogeo_model_t &model) {
   nlohmann::json j;
 
   j["tree"] = tree.to_newick();
 
   for (const auto &n : tree) {
-    //// if (!n->is_leaf()) { continue; }
-
     j["align"][n->string_id()] = n->final_state().to_str();
   }
 
@@ -371,14 +423,32 @@ void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
       double total_time = 0;
       for (const auto &t : c->transitions()) {
         total_time += t.waiting_time;
-        j["events"][node_key].push_back(
-            {{"abs-time", n->abs_time() + total_time},
-             {"waiting_time", t.waiting_time},
-             {"initial-state", t.initial_state.to_str()},
-             {"final-state", t.final_state.to_str()}});
+        j["events"][node_key].push_back({
+            {"abs-time", n->abs_time() + total_time},
+            {"waiting_time", t.waiting_time},
+            {"initial-state", t.initial_state.to_str()},
+            {"final-state", t.final_state.to_str()},
+        });
       }
     }
   }
+
+  auto [dis, ext]               = model.rates();
+  auto [allo, symp, copy, jump] = model.cladogenesis_params();
+
+  j["periods"].push_back({{"start", 0.0},
+                          {"rates",
+                           {
+                               {"dispersion", dis},
+                               {"extinction", ext},
+                           }},
+                          {"cladogenesis",
+                           {
+                               {"allopatry", allo},
+                               {"sympatry", symp},
+                               {"copy", copy},
+                               {"jump", jump},
+                           }}});
 
   os << j.dump() << std::endl;
 }
@@ -389,8 +459,9 @@ void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
  * Automatically selects which outputs need to be created based on
  * `cli_options_t`.
  */
-void write_output_files(const cli_options_t  &cli_options,
-                        const bigrig::tree_t &tree) {
+void write_output_files(const cli_options_t          &cli_options,
+                        const bigrig::tree_t         &tree,
+                        const bigrig::biogeo_model_t &model) {
   auto phylip_filename  = cli_options.prefix.value();
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
@@ -421,12 +492,12 @@ void write_output_files(const cli_options_t  &cli_options,
   if (cli_options.yaml_file_set()) {
     auto          output_yaml_filename = cli_options.yaml_filename();
     std::ofstream output_yaml_file(output_yaml_filename);
-    write_yaml_file(output_yaml_file, tree);
+    write_yaml_file(output_yaml_file, tree, model);
   }
   if (cli_options.json_file_set()) {
     auto          output_json_filename = cli_options.json_filename();
     std::ofstream output_json_file(output_json_filename);
-    write_json_file(output_json_file, tree);
+    write_json_file(output_json_file, tree, model);
   }
 }
 

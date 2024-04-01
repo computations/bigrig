@@ -154,7 +154,7 @@ int main() {
   tree.simulate(cli_options.root_distribution.value(), model, gen);
 
   MESSAGE_INFO("Writing results to files")
-  write_output_files(cli_options, tree);
+  write_output_files(cli_options, tree, model);
 
   MESSAGE_INFO("Done!")
   return 0;
