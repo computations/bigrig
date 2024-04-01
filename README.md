@@ -57,7 +57,7 @@ The required parameters are:
 - `-v/--allopatry`: Allopatry/vicariance rate for the simulation.
 - `-s/--sympatry`:  Sympatry rate for the simulation.
 - `-y/--copy`: Copy rate for the simulation.
-- `-j/--jump`: Jump rate for the simulation.
+- `-j/--jump`:  rate for the simulation.
 
 Additionally, there are a number of optional parameters:
 

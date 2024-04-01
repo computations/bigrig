@@ -195,7 +195,6 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
   ok &= validate_model_parameter(cli_options.copy_rate, "copy");
   ok &= validate_model_parameter(cli_options.jump_rate, "jump");
 
-
   return ok;
 }
 
