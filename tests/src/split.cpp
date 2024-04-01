@@ -30,7 +30,7 @@ TEST_CASE("splitting", "[sample]") {
                                         bigrig::dist_t{0b1100, REGIONS},
                                         bigrig::dist_t{0b1011, REGIONS},
                                         bigrig::dist_t{0b1111, REGIONS});
-    model.set_cladogenesis_params(0.0, 0.0, 1.0, 0.0);
+    model.set_cladogenesis_params(1.0, 0.0, 0.0, 0.0);
     auto sp = bigrig::split_dist(init_dist, model, gen);
 
     INFO("init: " << init_dist);
@@ -164,13 +164,13 @@ TEST_CASE("split stats") {
 
   bigrig::cladogenesis_params_t params
       = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
-                 bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
+                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 0.0},
                  bigrig::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
-                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0},
+                 bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 1.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 2.0},
-                 bigrig::cladogenesis_params_t{1.0, 1.2, 1.1, 1.0},
-                 bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 1.0});
+                 bigrig::cladogenesis_params_t{1.1, 1.2, 1.0, 1.0},
+                 bigrig::cladogenesis_params_t{1.0, 2.0, 1.0, 1.0});
 
   std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
 
@@ -253,10 +253,10 @@ TEST_CASE("split regression") {
   constexpr double abs_tol = 1.0e-2;
 #endif
 
-  auto keys = {bigrig::split_type_e::jump,
+  auto keys = {bigrig::split_type_e::allopatric,
                bigrig::split_type_e::sympatric,
-               bigrig::split_type_e::allopatric,
                bigrig::split_type_e::singleton,
+               bigrig::split_type_e::jump,
                bigrig::split_type_e::invalid};
 
   bigrig::dist_t                init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
@@ -270,7 +270,7 @@ TEST_CASE("split regression") {
                  bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
                  bigrig::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
-                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
+                 bigrig::cladogenesis_params_t{1.0, 2.0, 1.0, 1.0});
 
   bigrig::biogeo_model_t model;
   model.set_params(1.0, 1.0).set_two_region_duplicity(false);

@@ -24,9 +24,9 @@ struct rate_params_t {
 struct cladogenesis_params_t {
   using data_type = double;
 
-  data_type copy;
-  data_type sympatry;
   data_type allopatry;
+  data_type sympatry;
+  data_type copy;
   data_type jump;
 
   /**
@@ -96,13 +96,13 @@ private:
 };
 
 /* Assert that the fields are in the right order */
-static_assert(offsetof(cladogenesis_params_t, copy)
+static_assert(offsetof(cladogenesis_params_t, allopatry)
                   / sizeof(cladogenesis_params_t::data_type)
               == 0);
 static_assert(offsetof(cladogenesis_params_t, sympatry)
                   / sizeof(cladogenesis_params_t::data_type)
               == 1);
-static_assert(offsetof(cladogenesis_params_t, allopatry)
+static_assert(offsetof(cladogenesis_params_t, copy)
                   / sizeof(cladogenesis_params_t::data_type)
               == 2);
 static_assert(offsetof(cladogenesis_params_t, jump)
@@ -131,7 +131,7 @@ public:
   biogeo_model_t(double d, double e, bool duplicity)
       : _rate_params{.dis = d, .ext = e},
         _clad_params{
-            .copy = 1.0, .sympatry = 1.0, .allopatry = 1.0, .jump = 0.0},
+            .allopatry = 1.0, .sympatry = 1.0, .copy=1.0, .jump = 0.0},
         _duplicity{duplicity} {}
 
   biogeo_model_t(const rate_params_t         &rp,
@@ -151,7 +151,7 @@ public:
   biogeo_model_t &set_region_count(size_t regions);
 
   biogeo_model_t &
-  set_cladogenesis_params(double y, double s, double v, double j);
+  set_cladogenesis_params(double v, double s, double y, double j);
 
   biogeo_model_t &set_cladogenesis_params(const cladogenesis_params_t &p);
 

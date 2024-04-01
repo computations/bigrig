@@ -135,14 +135,11 @@ biogeo_model_t &biogeo_model_t::set_params(double d, double e) {
   return set_params({.dis = d, .ext = e});
 }
 
-biogeo_model_t &biogeo_model_t::set_cladogenesis_params(double y,
+biogeo_model_t &biogeo_model_t::set_cladogenesis_params(double v,
                                                         double s,
-                                                        double v,
+                                                        double y,
                                                         double j) {
-  _clad_params.copy      = y;
-  _clad_params.sympatry  = s;
-  _clad_params.allopatry = v;
-  _clad_params.jump      = j;
+  _clad_params = {.allopatry = v, .sympatry = s, .copy = y, .jump = j};
 
   return *this;
 }

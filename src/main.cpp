@@ -139,9 +139,9 @@ int main() {
 
   bigrig::biogeo_model_t model({.dis = cli_options.dispersion_rate.value(),
                                 .ext = cli_options.extinction_rate.value()},
-                               {.copy      = cli_options.copy_rate.value(),
+                               {.allopatry = cli_options.allopatry_rate.value(),
                                 .sympatry  = cli_options.sympatry_rate.value(),
-                                .allopatry = cli_options.allopatry_rate.value(),
+                                .copy      = cli_options.copy_rate.value(),
                                 .jump      = cli_options.jump_rate.value()},
                                cli_options.two_region_duplicity.value_or(true));
 

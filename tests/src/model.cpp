@@ -63,7 +63,7 @@ TEST_CASE("model init") {
     CHECK(model.check_cladogenesis_params_ok(REGIONS));
     CHECK(model.check_ok(REGIONS));
 
-    model.set_cladogenesis_params(1.0, 0.0, 0.0, 1.0);
+    model.set_cladogenesis_params(0.0, 0.0, 1.0, 1.0);
     CHECK(!model.check_cladogenesis_params_ok(REGIONS));
     CHECK(!model.check_ok(REGIONS));
   }
