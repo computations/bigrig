@@ -293,8 +293,8 @@ void write_yaml_file(std::ostream &os, const bigrig::tree_t &tree) {
   yaml << YAML::BeginMap;
 
   for (const auto &n : tree) {
-    if (!n->is_leaf()) { continue; }
-    yaml << YAML::Key << n->label() << YAML::Value << n->final_state().to_str();
+    yaml << YAML::Key << n->string_id() << YAML::Value
+         << n->final_state().to_str();
   }
   yaml << YAML::EndMap;
 
@@ -349,9 +349,9 @@ void write_json_file(std::ostream &os, const bigrig::tree_t &tree) {
   j["tree"] = tree.to_newick();
 
   for (const auto &n : tree) {
-    if (!n->is_leaf()) { continue; }
+    //// if (!n->is_leaf()) { continue; }
 
-    j["align"][n->label()] = n->final_state().to_str();
+    j["align"][n->string_id()] = n->final_state().to_str();
   }
 
   for (const auto &n : tree) {
