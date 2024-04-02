@@ -61,7 +61,7 @@ int main() {
   app.add_option("--seed", cli_options.rng_seed, "[Optional] Seed for the RNG");
 
   app.add_flag(
-         "--redo", cli_options.redo, "[Optional] Ignore existing result files");
+      "--redo", cli_options.redo, "[Optional] Ignore existing result files");
   app.add_flag("--debug-log",
                cli_options.debug_log,
                "[Optional] Create a file in the prefix that contains the debug "
@@ -83,7 +83,8 @@ int main() {
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
-               "splits. See the README.md for more information.") ->group("");
+               "splits. See the README.md for more information.")
+      ->group("");
   app.add_flag(
       "--sim",
       [&cli_options](std::int64_t count) {
@@ -119,12 +120,7 @@ int main() {
   tree.set_mode(cli_options.mode.value_or(bigrig::operation_mode_e::FAST));
 
   if (!tree.is_valid()) {
-    MESSAGE_ERROR("The tree provided is not valid, exiting");
-    return 1;
-  }
-
-  if (!tree.is_binary()) {
-    MESSAGE_ERROR("The tree provided is not a binary tree, refusing to run");
+    MESSAGE_ERROR("Could not use the tree provided, exiting");
     return 1;
   }
 
