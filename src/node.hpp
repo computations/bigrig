@@ -40,7 +40,7 @@ public:
               initial_distribution.to_str().c_str());
     for (const auto &period : _periods) {
       auto tmp_trans = simulate_transitions(
-          initial_distribution, period.length, period.get_model(), gen, mode);
+          initial_distribution, period.length(), period.model(), gen, mode);
       std::copy(
           tmp_trans.begin(), tmp_trans.end(), std::back_inserter(_transitions));
     }
@@ -50,7 +50,7 @@ public:
     } else {
       _final_state = _transitions.back().final_state;
     }
-    _split = split_dist(_final_state, _periods.back().get_model(), gen, mode);
+    _split = split_dist(_final_state, _periods.back().model(), gen, mode);
 
     if (!is_leaf()) {
       _children[0]->simulate(_split.left, model, gen, mode);
