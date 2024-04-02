@@ -2,10 +2,12 @@
 
 #include "dist.hpp"
 #include "model.hpp"
+#include "period.hpp"
 #include "split.hpp"
 
 #include <corax/tree/utree.h>
 #include <functional>
+#include <iterator>
 #include <logger.hpp>
 #include <string>
 #include <vector>
@@ -36,15 +38,19 @@ public:
                 operation_mode_e mode = operation_mode_e::FAST) {
     LOG_DEBUG("Node sampling with initial_distribution = %s",
               initial_distribution.to_str().c_str());
-    _transitions
-        = simulate_transitions(initial_distribution, _brlen, model, gen, mode);
+    for (const auto &period : _periods) {
+      auto tmp_trans = simulate_transitions(
+          initial_distribution, period.length, period.get_model(), gen, mode);
+      std::copy(
+          tmp_trans.begin(), tmp_trans.end(), std::back_inserter(_transitions));
+    }
     LOG_DEBUG("Finished sampling with %lu transitions", _transitions.size());
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;
     } else {
       _final_state = _transitions.back().final_state;
     }
-    _split = split_dist(_final_state, model, gen, mode);
+    _split = split_dist(_final_state, _periods.back().get_model(), gen, mode);
 
     if (!is_leaf()) {
       _children[0]->simulate(_split.left, model, gen, mode);
@@ -67,7 +73,10 @@ public:
   size_t node_count() const;
 
   bool is_binary() const;
+  bool is_valid() const;
+  bool validate_periods() const;
 
+  void assign_periods(const std::vector<period_t> &periods);
   void assign_id_root();
 
   size_t assign_id(size_t next);
@@ -79,6 +88,7 @@ public:
   std::string label() const;
   double      brlen() const;
   double      abs_time() const;
+  double      abs_time_at_start() const;
   size_t      node_id() const;
   dist_t      final_state() const;
   std::string string_id() const;
@@ -106,6 +116,7 @@ private:
   std::string                          _label;
   std::vector<std::shared_ptr<node_t>> _children;
   std::vector<transition_t>            _transitions;
+  std::vector<period_t>                _periods;
   size_t                               _node_id;
 };
 } // namespace bigrig

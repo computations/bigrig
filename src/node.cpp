@@ -1,5 +1,7 @@
 #include "node.hpp"
 
+#include <cstdlib>
+
 namespace bigrig {
 
 /**
@@ -149,6 +151,7 @@ size_t node_t::get_string_id_len_max(size_t max, bool all) {
 std::string node_t::label() const { return _label; }
 double      node_t::brlen() const { return _brlen; }
 double      node_t::abs_time() const { return _abs_time; }
+double      node_t::abs_time_at_start() const { return _abs_time - brlen(); }
 size_t      node_t::node_id() const { return _node_id; }
 dist_t      node_t::final_state() const { return _final_state; }
 std::string node_t::string_id() const {
@@ -185,4 +188,77 @@ bool node_t::is_binary() const {
   }
   return true;
 }
+
+bool node_t::is_valid() const {
+  if (!validate_periods()) {
+    LOG_ERROR("Failed to validate periods for node '%s'", string_id().c_str());
+    return false;
+  }
+
+  for (const auto &c : _children) {
+    if (!c->is_valid()) { return false; }
+  }
+
+  return true;
+}
+
+bool node_t::validate_periods() const {
+  if (_periods.empty()) {
+    LOG_ERROR("Period vector for node '%s' is empty", string_id().c_str());
+    return false;
+  }
+
+  constexpr double abstol       = 1e-9;
+  double           total_length = 0.0;
+  for (auto p : _periods) { total_length += p.length(); }
+  if (std::abs(total_length - _brlen) > abstol) {
+    LOG_ERROR("Total period length for node '%s' is incorrect",
+              string_id().c_str());
+    return false;
+  }
+
+  return true;
+}
+
+void node_t::assign_periods(const std::vector<period_t> &periods) {
+  _periods.clear();
+
+  /* find the starting period */
+  auto start_period_itr = periods.begin();
+  while (start_period_itr != periods.end()
+         && start_period_itr->end() < abs_time_at_start()) {
+    start_period_itr++;
+  }
+
+  /* truncte the beginning of the period */
+  auto  &start_period      = *start_period_itr;
+  double start_time_offset = abs_time_at_start() - start_period.start();
+
+  double new_length
+      = std::min(start_period.length() - start_time_offset, brlen());
+
+  _periods.emplace_back(
+      abs_time_at_start(), new_length, start_period.model_ptr());
+
+  /* find the last period */
+  auto end_period_itr = start_period_itr;
+  while (end_period_itr != periods.end()
+         && end_period_itr->end() < abs_time()) {
+    end_period_itr++;
+  }
+
+  /* insert up to the last period */
+  for (start_period_itr++; start_period_itr != end_period_itr;
+       start_period_itr++) {
+    _periods.emplace_back(*start_period_itr);
+  }
+
+  /* truncate and insert the last period, if there is another period */
+  auto  &final_period = *end_period_itr;
+  double final_length
+      = final_period.length() - (abs_time() - final_period.end());
+  _periods.emplace_back(
+      final_period.start(), final_length, final_period.model_ptr());
+}
+
 } // namespace bigrig

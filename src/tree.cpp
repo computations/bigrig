@@ -68,7 +68,15 @@ size_t tree_t::leaf_count() const { return _tree->leaf_count(); }
 
 bool tree_t::is_binary() const { return _tree->is_binary(); }
 bool tree_t::is_valid() const {
-  if (!_tree) { return false; }
+  if (!_tree) {
+    MESSAGE_ERROR("The tree provided is not valid");
+    return false;
+  }
+  if (!is_binary()) {
+    MESSAGE_ERROR("The tree provided is not a binary tree");
+    return false;
+  }
+  if (!_tree->is_valid()) { return false; }
   return true;
 }
 
