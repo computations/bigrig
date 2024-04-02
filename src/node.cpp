@@ -221,6 +221,11 @@ bool node_t::validate_periods() const {
 }
 
 void node_t::assign_periods(const std::vector<period_t> &periods) {
+  parse_periods(periods);
+  for (const auto &c : _children) { c->assign_periods(periods); }
+}
+
+void node_t::parse_periods(const std::vector<period_t> &periods) {
   _periods.clear();
 
   /* find the starting period */

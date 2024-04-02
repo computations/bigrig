@@ -7,6 +7,7 @@
 
 #include <corax/corax.hpp>
 #include <logger.hpp>
+#include <memory>
 
 int main() {
   logger::get_log_states().add_stream(
@@ -18,7 +19,8 @@ int main() {
   CLI::App app{"A tool to simulate (ancestal) range distributions under the "
                "DEC[+J] model."};
 
-  cli_options_t cli_options;
+  cli_options_t         cli_options;
+  std::optional<double> dispersion, extinction, allopatry, sympatry, copy, jump;
 
   app.add_option("--config",
                  cli_options.config_filename,
@@ -36,27 +38,27 @@ int main() {
       "[Required] Range for the species at the root for the start of the "
       "simulation. Should be given as a binary string (e.g. 01010).");
   app.add_option("-d,--dispersion",
-                 cli_options.dispersion_rate,
+                 dispersion,
                  "[Required] The dispersion rate for the simulation.");
   app.add_option("-e,--extinction",
-                 cli_options.extinction_rate,
+                 extinction,
                  "[Required] The extinction rate for the simulation.");
 
   app.add_option("-v,--allopatry",
-                 cli_options.allopatry_rate,
+                 allopatry,
                  "[Required] The allopatry/vicariance rate for cladogenesis "
                  "for the simulation.");
   app.add_option(
       "-s,--sympatry",
-      cli_options.sympatry_rate,
+      sympatry,
       "[Required] The sympatry rate for cladogenesis for the simulation.");
   app.add_option(
       "-y,--copy",
-      cli_options.copy_rate,
+      copy,
       "[Required] The copy rate for cladogenesis for the simulation.");
   app.add_option(
       "-j,--jump",
-      cli_options.jump_rate,
+      jump,
       "[Required] The jump rate for cladogenesis for the simulation.");
   app.add_option("--seed", cli_options.rng_seed, "[Optional] Seed for the RNG");
 
@@ -102,6 +104,18 @@ int main() {
 
   CLI11_PARSE(app);
 
+  if (dispersion.has_value() || extinction.has_value() || allopatry.has_value()
+      || sympatry.has_value() || copy.has_value() || jump.has_value()) {
+    period_params_t period;
+    period.start = 0.0;
+    period.rates = {.dis = dispersion.value(), .ext = extinction.value()};
+    period.clado = {.allopatry = allopatry.value(),
+                    .sympatry  = extinction.value(),
+                    .copy      = copy.value(),
+                    .jump      = jump.value()};
+    cli_options.periods.push_back(period);
+  }
+
   if (!validate_options(cli_options)) { return 1; }
 
   if (cli_options.debug_log) {
@@ -133,24 +147,32 @@ int main() {
     gen.seed(pcg_extras::seed_seq_from<std::random_device>{});
   }
 
-  bigrig::biogeo_model_t model({.dis = cli_options.dispersion_rate.value(),
-                                .ext = cli_options.extinction_rate.value()},
-                               {.allopatry = cli_options.allopatry_rate.value(),
-                                .sympatry  = cli_options.sympatry_rate.value(),
-                                .copy      = cli_options.copy_rate.value(),
-                                .jump      = cli_options.jump_rate.value()},
-                               cli_options.two_region_duplicity.value_or(true));
-
-  if (!model.check_ok(cli_options.root_distribution.value().regions())) {
-    MESSAGE_ERROR("There is an issue with the model, we can't continue");
-    return 1;
+  std::vector<bigrig::period_t> periods;
+  for (const auto &cli_period : cli_options.periods) {
+    bigrig::period_t period{
+        cli_period.start,
+        0.0,
+        {.dis = cli_period.rates.dis, .ext = cli_period.rates.ext},
+        {.allopatry = cli_period.clado.allopatry,
+         .sympatry  = cli_period.clado.sympatry,
+         .copy      = cli_period.clado.copy,
+         .jump      = cli_period.clado.jump},
+        cli_options.two_region_duplicity.value_or(true),
+        cli_period.index};
+    if (!period.model().check_ok(
+            cli_options.root_distribution.value().regions())) {
+      LOG_ERROR("There is an issue with the model for period '%lu', we can't "
+                "continue",
+                cli_period.index);
+      return 1;
+    }
   }
 
   MESSAGE_INFO("Simulating ranges on the tree")
-  tree.simulate(cli_options.root_distribution.value(), model, gen);
+  tree.simulate(cli_options.root_distribution.value(), gen);
 
   MESSAGE_INFO("Writing results to files")
-  write_output_files(cli_options, tree, model);
+  write_output_files(cli_options, tree, periods);
 
   MESSAGE_INFO("Done!")
   return 0;

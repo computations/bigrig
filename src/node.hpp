@@ -33,7 +33,6 @@ public:
    * this node are computed, the results for the children are computed.
    */
   void simulate(dist_t                                  initial_distribution,
-                const biogeo_model_t                   &model,
                 std::uniform_random_bit_generator auto &gen,
                 operation_mode_e mode = operation_mode_e::FAST) {
     LOG_DEBUG("Node sampling with initial_distribution = %s",
@@ -53,8 +52,8 @@ public:
     _split = split_dist(_final_state, _periods.back().model(), gen, mode);
 
     if (!is_leaf()) {
-      _children[0]->simulate(_split.left, model, gen, mode);
-      _children[1]->simulate(_split.right, model, gen, mode);
+      _children[0]->simulate(_split.left, gen, mode);
+      _children[1]->simulate(_split.right, gen, mode);
     }
   }
 
@@ -109,6 +108,8 @@ public:
   void set_label(const std::string &str);
 
 private:
+  void parse_periods(const std::vector<period_t> &periods);
+
   double                               _brlen;
   double                               _abs_time;
   dist_t                               _final_state;

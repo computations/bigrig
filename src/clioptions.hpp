@@ -1,5 +1,6 @@
 #pragma once
 #include "dist.hpp"
+#include "model.hpp"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -27,6 +28,13 @@ class cli_option_invalid_parameter : std::invalid_argument {
 public:
   cli_option_invalid_parameter(const std::string &msg)
       : std::invalid_argument{msg} {}
+};
+
+struct period_params_t {
+  bigrig::rate_params_t         rates;
+  bigrig::cladogenesis_params_t clado;
+  double                        start;
+  size_t                        index;
 };
 
 /**
@@ -78,34 +86,9 @@ struct cli_options_t {
   std::optional<bigrig::dist_t> root_distribution;
 
   /**
-   * Dispersion rate which was provided by the user.
+   * Rates which have been provided by the user.
    */
-  std::optional<double> dispersion_rate;
-
-  /**
-   * Extinction rate which was provided by the user.
-   */
-  std::optional<double> extinction_rate;
-
-  /**
-   * Allopatry rate for cladogenesis which was provide by the user.
-   */
-  std::optional<double> allopatry_rate;
-
-  /**
-   * Sympatry rate for cladogenesis which was provide by the user.
-   */
-  std::optional<double> sympatry_rate;
-
-  /**
-   * Copy rate for cladogenesis which was provide by the user.
-   */
-  std::optional<double> copy_rate;
-
-  /**
-   * Jump rate for cladogenesis which was provide by the user.
-   */
-  std::optional<double> jump_rate;
+  std::vector<period_params_t> periods;
 
   /**
    * Enable overwriting the exsisting result files.
@@ -151,14 +134,11 @@ struct cli_options_t {
         debug_log{get_debug_log(yaml)},
         output_format_type{get_output_format(yaml)},
         root_distribution{get_root_range(yaml)},
+        periods{get_periods(yaml)},
         redo{get_redo(yaml)},
         two_region_duplicity{get_two_region_duplicity(yaml)},
         mode{get_mode(yaml)},
-        rng_seed{get_seed(yaml)} {
-    std::tie(dispersion_rate, extinction_rate) = get_rates(yaml);
-    std::tie(allopatry_rate, sympatry_rate, copy_rate, jump_rate)
-        = get_cladogenesis(yaml);
-  }
+        rng_seed{get_seed(yaml)} {}
 
 private:
   static std::filesystem::path get_tree_filename(const YAML::Node &);
@@ -168,14 +148,14 @@ private:
                              get_output_format(const YAML::Node &);
   static std::optional<bool> get_two_region_duplicity(const YAML::Node &);
   static std::optional<bigrig::dist_t> get_root_range(const YAML::Node &);
-  static std::tuple<std::optional<double>, std::optional<double>>
-  get_rates(const YAML::Node &yaml);
 
-  static std::tuple<std::optional<double>,
-                    std::optional<double>,
-                    std::optional<double>,
-                    std::optional<double>>
+  static std::optional<bigrig::rate_params_t> get_rates(const YAML::Node &yaml);
+
+  static std::optional<bigrig::cladogenesis_params_t>
   get_cladogenesis(const YAML::Node &yaml);
+
+  static std::optional<period_params_t> get_period(const YAML::Node &yaml);
+  static std::vector<period_params_t>   get_periods(const YAML::Node &yaml);
 
   static std::optional<bool>                     get_redo(const YAML::Node &);
   static std::optional<bigrig::operation_mode_e> get_mode(const YAML::Node &);

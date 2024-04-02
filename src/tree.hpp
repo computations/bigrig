@@ -32,11 +32,10 @@ public:
    * Simulate the whole tree from an initial dist.
    */
   void simulate(dist_t                                  initial_distribution,
-                const biogeo_model_t                   &model,
                 std::uniform_random_bit_generator auto &gen) {
     LOG_DEBUG("Starting sample with init dist = %lb",
               static_cast<uint64_t>(initial_distribution));
-    _tree->simulate(initial_distribution, model, gen, _mode);
+    _tree->simulate(initial_distribution, gen, _mode);
   }
 
   std::optional<dist_t> get_dist_by_string_id(const std::string &key) const;
@@ -64,6 +63,9 @@ public:
   preorder_iterator end() const;
 
   void set_mode(operation_mode_e mode);
+
+  void set_periods(const std::vector<period_t> &periods);
+  void set_periods(const period_t &periods);
 
 private:
   void convert_tree(corax_utree_t *corax_tree);

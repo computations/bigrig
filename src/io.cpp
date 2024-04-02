@@ -6,6 +6,23 @@
 #include <filesystem>
 #include <optional>
 
+void print_periods(const std::vector<period_params_t> &periods) {
+  LOG_INFO("   Using %lu periods:", periods.size());
+  for (const auto &p : periods) {
+    MESSAGE_INFO("      - Rate parameters");
+    LOG_INFO("        Dispersion(d): %.2f, Extinction: %.2f",
+             p.rates.dis,
+             p.rates.ext);
+    MESSAGE_INFO("        Cladogenesis parameters:");
+    LOG_INFO("        Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
+             "Jump(j): %.2f",
+             p.clado.allopatry,
+             p.clado.sympatry,
+             p.clado.copy,
+             p.clado.jump);
+  }
+}
+
 /**
  * Print the message at the start of the run.
  */
@@ -16,17 +33,7 @@ void write_header(const cli_options_t &cli_options) {
   LOG_INFO("   Root range: %s",
            cli_options.root_distribution.value().to_str().c_str());
   LOG_INFO("   Region count: %u", cli_options.root_distribution->regions());
-  MESSAGE_INFO("   Rate parameters:");
-  LOG_INFO("       Dispersion(d): %.2f, Extinction(e): %.2f",
-           cli_options.dispersion_rate.value(),
-           cli_options.extinction_rate.value());
-  MESSAGE_INFO("   Cladogenesis parameters:");
-  LOG_INFO("       Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
-           "Jump(j): %.2f",
-           cli_options.allopatry_rate.value(),
-           cli_options.sympatry_rate.value(),
-           cli_options.copy_rate.value(),
-           cli_options.jump_rate.value());
+  print_periods(cli_options.periods);
   if (cli_options.rng_seed.has_value()) {
     LOG_INFO("   Seed: %lu", cli_options.rng_seed.value());
   }
@@ -117,8 +124,8 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
 /**
  * Checks that the prefix is alright, and then make the directories.
  *
- * When the user passes a prefix, we need to check that its all kosher, and then
- * _actually_ make the directories. We make them here.
+ * When the user passes a prefix, we need to check that its all kosher, and
+ * then _actually_ make the directories. We make them here.
  */
 [[nodiscard]] bool validate_and_make_prefix(
     const std::optional<std::filesystem::path> &prefix_option) {
@@ -168,8 +175,8 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
  *
  * Check that the program options work. Note, it tries to be thorough when
  * checking, as the loop of "change a thing, find something else wrong" is
- * annoying. So, this function tries to check as much as it can, and not to bail
- * out at the first error.
+ * annoying. So, this function tries to check as much as it can, and not to
+ * bail out at the first error.
  */
 [[nodiscard]] bool validate_cli_options(const cli_options_t &cli_options) {
   bool ok = true;
@@ -188,13 +195,15 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
     ok = false;
   }
 
-  ok &= validate_model_parameter(cli_options.dispersion_rate, "dispersion");
-  ok &= validate_model_parameter(cli_options.extinction_rate, "extinction");
+  for (const auto &p : cli_options.periods) {
+    ok &= validate_model_parameter(p.rates.dis, "dispersion");
+    ok &= validate_model_parameter(p.rates.ext, "extinction");
 
-  ok &= validate_model_parameter(cli_options.allopatry_rate, "allopatry");
-  ok &= validate_model_parameter(cli_options.sympatry_rate, "sympatry");
-  ok &= validate_model_parameter(cli_options.copy_rate, "copy");
-  ok &= validate_model_parameter(cli_options.jump_rate, "jump");
+    ok &= validate_model_parameter(p.clado.allopatry, "allopatry");
+    ok &= validate_model_parameter(p.clado.sympatry, "sympatry");
+    ok &= validate_model_parameter(p.clado.copy, "copy");
+    ok &= validate_model_parameter(p.clado.jump, "jump");
+  }
 
   return ok;
 }
@@ -246,8 +255,8 @@ bool normalize_paths(cli_options_t &cli_options) {
 /**
  * Check if results files exist already.
  *
- * Again, we use the philosophy that we should check as much as possible. So, we
- * check all the possible outputs, as long as they are set.
+ * Again, we use the philosophy that we should check as much as possible. So,
+ * we check all the possible outputs, as long as they are set.
  */
 [[nodiscard]] bool check_existing_results(const cli_options_t &cli_options) {
   bool ok = true;
@@ -282,16 +291,11 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
   return cli_options;
 }
 
-/**
- * Write the output as a YAML file.
- */
-void write_yaml_file(std::ostream                 &os,
-                     const bigrig::tree_t         &tree,
-                     const bigrig::biogeo_model_t &model) {
-  YAML::Emitter yaml;
-  yaml << YAML::BeginMap;
+void write_yaml_tree(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
   yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
+}
 
+void write_yaml_alignment(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
   yaml << YAML::Key << "align";
   yaml << YAML::BeginMap;
 
@@ -300,7 +304,9 @@ void write_yaml_file(std::ostream                 &os,
          << n->final_state().to_str();
   }
   yaml << YAML::EndMap;
+}
 
+void write_yaml_splits(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
   yaml << YAML::Key << "splits";
   yaml << YAML::BeginMap;
   for (const auto &n : tree) {
@@ -315,7 +321,9 @@ void write_yaml_file(std::ostream                 &os,
     yaml << YAML::EndMap;
   }
   yaml << YAML::EndMap;
+}
 
+void write_yaml_events(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
   yaml << YAML::Key << "events";
   yaml << YAML::BeginMap;
   for (auto const &n : tree) {
@@ -342,16 +350,14 @@ void write_yaml_file(std::ostream                 &os,
     }
   }
   yaml << YAML::EndMap;
+}
 
-  /* periods */
-  yaml << YAML::Key << "periods";
-  yaml << YAML::Value;
-  yaml << YAML::BeginSeq;
-
+void write_yaml_period(YAML::Emitter &yaml, const bigrig::period_t &period) {
+  auto &model = period.model();
   yaml << YAML::BeginMap;
 
   yaml << YAML::Key << "start";
-  yaml << YAML::Value << 0.0;
+  yaml << YAML::Value << period.start();
 
   auto [dis, ext] = model.rates();
 
@@ -388,16 +394,41 @@ void write_yaml_file(std::ostream                 &os,
   yaml << YAML::EndMap;
 
   yaml << YAML::EndSeq;
+}
+
+void write_yaml_period_list(YAML::Emitter                       &yaml,
+                            const std::vector<bigrig::period_t> &periods) {
+  yaml << YAML::Key << "periods";
+  yaml << YAML::Value;
+  yaml << YAML::BeginSeq;
+
+  for (const auto &p : periods) { write_yaml_period(yaml, p); }
+
   yaml << YAML::EndMap;
-  /* end periods */
+}
+
+/**
+ * Write the output as a YAML file.
+ */
+void write_yaml_file(std::ostream                        &os,
+                     const bigrig::tree_t                &tree,
+                     const std::vector<bigrig::period_t> &periods) {
+  YAML::Emitter yaml;
+  yaml << YAML::BeginMap;
+
+  write_yaml_tree(yaml, tree);
+  write_yaml_alignment(yaml, tree);
+  write_yaml_splits(yaml, tree);
+  write_yaml_events(yaml, tree);
+  write_yaml_period_list(yaml, periods);
 
   yaml << YAML::EndMap;
   os << yaml.c_str() << std::endl;
 }
 
-void write_json_file(std::ostream                 &os,
-                     const bigrig::tree_t         &tree,
-                     const bigrig::biogeo_model_t &model) {
+void write_json_file(std::ostream                        &os,
+                     const bigrig::tree_t                &tree,
+                     const std::vector<bigrig::period_t> &periods) {
   nlohmann::json j;
 
   j["tree"] = tree.to_newick();
@@ -433,22 +464,25 @@ void write_json_file(std::ostream                 &os,
     }
   }
 
-  auto [dis, ext]               = model.rates();
-  auto [allo, symp, copy, jump] = model.cladogenesis_params();
+  for (const auto &p : periods) {
+    auto &model                   = p.model();
+    auto [dis, ext]               = model.rates();
+    auto [allo, symp, copy, jump] = model.cladogenesis_params();
 
-  j["periods"].push_back({{"start", 0.0},
-                          {"rates",
-                           {
-                               {"dispersion", dis},
-                               {"extinction", ext},
-                           }},
-                          {"cladogenesis",
-                           {
-                               {"allopatry", allo},
-                               {"sympatry", symp},
-                               {"copy", copy},
-                               {"jump", jump},
-                           }}});
+    j["periods"].push_back({{"start", p.start()},
+                            {"rates",
+                             {
+                                 {"dispersion", dis},
+                                 {"extinction", ext},
+                             }},
+                            {"cladogenesis",
+                             {
+                                 {"allopatry", allo},
+                                 {"sympatry", symp},
+                                 {"copy", copy},
+                                 {"jump", jump},
+                             }}});
+  }
 
   os << j.dump() << std::endl;
 }
@@ -459,9 +493,9 @@ void write_json_file(std::ostream                 &os,
  * Automatically selects which outputs need to be created based on
  * `cli_options_t`.
  */
-void write_output_files(const cli_options_t          &cli_options,
-                        const bigrig::tree_t         &tree,
-                        const bigrig::biogeo_model_t &model) {
+void write_output_files(const cli_options_t                 &cli_options,
+                        const bigrig::tree_t                &tree,
+                        const std::vector<bigrig::period_t> &periods) {
   auto phylip_filename  = cli_options.prefix.value();
   phylip_filename      += ".phy";
   std::ofstream phylip_file(phylip_filename);
@@ -492,12 +526,12 @@ void write_output_files(const cli_options_t          &cli_options,
   if (cli_options.yaml_file_set()) {
     auto          output_yaml_filename = cli_options.yaml_filename();
     std::ofstream output_yaml_file(output_yaml_filename);
-    write_yaml_file(output_yaml_file, tree, model);
+    write_yaml_file(output_yaml_file, tree, periods);
   }
   if (cli_options.json_file_set()) {
     auto          output_json_filename = cli_options.json_filename();
     std::ofstream output_json_file(output_json_filename);
-    write_json_file(output_json_file, tree, model);
+    write_json_file(output_json_file, tree, periods);
   }
 }
 

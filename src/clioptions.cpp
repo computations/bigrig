@@ -88,13 +88,16 @@ void cli_options_t::merge(const cli_options_t &other) {
   merge_variable(debug_log, other.debug_log, "debug-log");
   merge_variable(output_format_type, other.output_format_type, "output-format");
   merge_variable(root_distribution, other.root_distribution, "root-range");
-  merge_variable(dispersion_rate, other.dispersion_rate, "rates:dispersion");
-  merge_variable(extinction_rate, other.extinction_rate, "rates:extinction");
-  merge_variable(
-      allopatry_rate, other.allopatry_rate, "cladogenesis:allopatry");
-  merge_variable(sympatry_rate, other.sympatry_rate, "cladogenesis:sympatry");
-  merge_variable(copy_rate, other.copy_rate, "cladogenesis:copy");
-  merge_variable(jump_rate, other.jump_rate, "cladogenesis:jump");
+
+  /* periods are a bit different, so we handle them differently */
+  if (!other.periods.empty()) {
+    if (!periods.empty()) {
+      print_config_cli_warning("periods");
+    } else {
+      periods = other.periods;
+    }
+  }
+
   merge_variable(redo, other.redo, "redo");
   merge_variable(
       two_region_duplicity, other.two_region_duplicity, "two-region-duplicity");
@@ -148,49 +151,127 @@ cli_options_t::get_root_range(const YAML::Node &yaml) {
   return {};
 }
 
-std::tuple<std::optional<double>, std::optional<double>>
+std::optional<bigrig::rate_params_t>
 cli_options_t::get_rates(const YAML::Node &yaml) {
-  std::optional<double> dis, ext;
-  constexpr auto        RATE_DICT_KEY = "rates";
+  double         dis = 0.0, ext = 0.0;
+  constexpr auto RATE_DICT_KEY = "rates";
   if (yaml[RATE_DICT_KEY]) {
     auto rates = yaml[RATE_DICT_KEY];
 
     constexpr auto DISPERSION_KEY = "dispersion";
-    if (rates[DISPERSION_KEY]) { dis = rates[DISPERSION_KEY].as<double>(); }
+    if (rates[DISPERSION_KEY]) {
+      dis = rates[DISPERSION_KEY].as<double>();
+    } else {
+      MESSAGE_ERROR("No dispersion parameter provided for a period");
+    }
 
     constexpr auto EXTINCTION_KEY = "extinction";
-    if (rates[EXTINCTION_KEY]) { ext = rates[EXTINCTION_KEY].as<double>(); }
+    if (rates[EXTINCTION_KEY]) {
+      ext = rates[EXTINCTION_KEY].as<double>();
+    } else {
+      MESSAGE_ERROR("No extinction parameter provided for a period");
+    }
+    return {{dis, ext}};
   }
-  return {dis, ext};
+  return {};
 }
 
-std::tuple<std::optional<double>,
-           std::optional<double>,
-           std::optional<double>,
-           std::optional<double>>
+std::optional<bigrig::cladogenesis_params_t>
 cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
-  std::optional<double> allopatry_rate, sympatry_rate, copy_rate, jump_rate;
-  constexpr auto        CLADO_DICT_KEY = "cladogenesis";
+  double allopatry_rate = 0.0, sympatry_rate = 0.0, copy_rate = 0.0,
+         jump_rate              = 0.0;
+  bool           ok             = true;
+  constexpr auto CLADO_DICT_KEY = "cladogenesis";
   if (yaml[CLADO_DICT_KEY]) {
     auto clado = yaml[CLADO_DICT_KEY];
 
     constexpr auto ALLOPATRY_KEY = "allopatry";
     if (clado[ALLOPATRY_KEY]) {
       allopatry_rate = clado[ALLOPATRY_KEY].as<double>();
+    } else {
+      MESSAGE_ERROR("No allopatry parameter provided for a period");
+      ok = false;
     }
 
     constexpr auto SYMPATRY_KEY = "sympatry";
     if (clado[SYMPATRY_KEY]) {
       sympatry_rate = clado[SYMPATRY_KEY].as<double>();
+    } else {
+      MESSAGE_ERROR("No sympatry parameter provided for a period");
+      ok = false;
     }
 
     constexpr auto COPY_KEY = "copy";
-    if (clado[COPY_KEY]) { copy_rate = clado[COPY_KEY].as<double>(); }
+    if (clado[COPY_KEY]) {
+      copy_rate = clado[COPY_KEY].as<double>();
+    } else {
+      MESSAGE_ERROR("No copy parameter provided for a period");
+      ok = false;
+    }
 
     constexpr auto JUMP_KEY = "jump";
-    if (clado[JUMP_KEY]) { jump_rate = clado[JUMP_KEY].as<double>(); }
+    if (clado[JUMP_KEY]) {
+      jump_rate = clado[JUMP_KEY].as<double>();
+    } else {
+      MESSAGE_ERROR("No jump parameter provided for a period");
+      ok = false;
+    }
+
+    if (ok) { return {{allopatry_rate, sympatry_rate, copy_rate, jump_rate}}; }
   }
-  return {allopatry_rate, sympatry_rate, copy_rate, jump_rate};
+  return {};
+}
+
+std::optional<period_params_t>
+cli_options_t::get_period(const YAML::Node &yaml) {
+  period_params_t period_params;
+  bool            ok        = true;
+  constexpr auto  START_KEY = "start";
+  if (yaml[START_KEY]) {
+    period_params.start = yaml[START_KEY].as<size_t>();
+  } else {
+    MESSAGE_ERROR("No start time provided for a period");
+    ok = false;
+  }
+
+  auto rates = get_rates(yaml);
+  if (rates.has_value()) {
+    period_params.rates = rates.value();
+  } else {
+    MESSAGE_ERROR("Rates for a period are malformed");
+    ok = false;
+  }
+
+  auto clado_params = get_cladogenesis(yaml);
+  if (clado_params.has_value()) {
+    period_params.clado = clado_params.value();
+  } else {
+    MESSAGE_ERROR("Cladogenesis parameters for a period are malformed");
+    ok = false;
+  }
+
+  if (ok) { return period_params; }
+  return {};
+}
+
+std::vector<period_params_t>
+cli_options_t::get_periods(const YAML::Node &yaml) {
+  std::vector<period_params_t> ret;
+  constexpr auto               PERIOD_KEY = "periods";
+  if (yaml[PERIOD_KEY]) {
+    auto   list  = yaml[PERIOD_KEY];
+    size_t index = 0;
+    for (auto y : list) {
+      auto period = get_period(y);
+      if (!period.has_value()) {
+        LOG_ERROR("Period %lu is malformed", index);
+        return {};
+      }
+      period.value().index = index;
+      ret.push_back(period.value());
+    }
+  }
+  return ret;
 }
 
 std::optional<bool> cli_options_t::get_redo(const YAML::Node &yaml) {

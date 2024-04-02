@@ -6,6 +6,7 @@
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <limits>
 
 std::vector<std::string> tree_strings = {};
 
@@ -102,19 +103,25 @@ TEST_CASE("tree sample", "[tree]") {
       "aa:0.5272,(az:0.6393,(do:0.0054,bh:0.6231):0.1945):0.9229):0.9103,ck:0."
       "2594):0.1416):0.2421):0.7125):0.9754):0.4298);");
 
+  bigrig::period_t period{
+      0.0,
+      std::numeric_limits<double>::infinity(),
+      {.dis = dis, .ext = ext},
+      {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0},
+      true,
+      0};
   bigrig::biogeo_model_t model(dis, ext, true);
   bigrig::dist_t         init_dist = {0b0101, regions};
-  model.set_cladogenesis_params(
-      {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0});
 
   bigrig::tree_t tree(tree_str);
+  tree.set_periods(period);
 
   pcg64_fast gen(Catch::getSeed());
 
-  tree.simulate(init_dist, model, gen);
+  tree.simulate(init_dist, gen);
   for (const auto &n : tree) { CHECK((bool)n->final_state()); }
 
   BENCHMARK("sample: " + std::to_string(tree.leaf_count())) {
-    tree.simulate(init_dist, model, gen);
+    tree.simulate(init_dist, gen);
   };
 }
