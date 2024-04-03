@@ -67,19 +67,23 @@ Additionally, there are a number of optional parameters:
 
 # Config file
 
-The config file is an alternative way of specifying the program options. Options written into a YAML file, which is then
-passed to bigrig using the `--config` switch. The name of options differ slightly between the command line and the
+The config file is an alternative way of specifying the program options. Options
+written into a YAML file, which is then passed to bigrig using the `--config`
+switch. The name of options differ slightly between the command line and the
 config file. Here is the schema:
 
 ```.yaml
-rates:
-  dispersion: <FLOAT>
-  extinction: <FLOAT>
-cladogenesis:
-  allopatry: <FLOAT>
-  sympatry: <FLOAT>
-  copy: <FLOAT>
-  jump: <FLOAT>
+periods:
+  - start: <FLOAT>
+    rates:
+      dispersion: <FLOAT>
+      extinction: <FLOAT>
+    cladogenesis:
+      allopatry: <FLOAT>
+      sympatry: <FLOAT>
+      copy: <FLOAT>
+      jump: <FLOAT>
+  <...>
 root-range: <ROOT-RANGE>
 tree: <FILE>
 redo: <BOOL>
@@ -90,18 +94,20 @@ mode: [FAST|SIM]
 seed: <INT>
 ```
 
-If both the a command line option and a config option are set, for example in the command
+If both the a command line option and a config option are set, for example in
+the command
 
 ```
-bigrig --config config.yaml --d 1.23
+bigrig --config config.yaml --redo
 ```
 
-Then the value from the command line is used instead. The idea here is to have a "base" config with all the normal
-values, and the other values can be played with rapidly by changing them on the command line. When this is done, there
-is a warning that is emitted, like this:
+Then the value from the command line is used instead. The idea here is to have a
+"base" config with all the normal values, and the other values can be played
+with rapidly by changing them on the command line. When this is done, there is a
+warning that is emitted, like this:
 
 ```
-[WARN] The 'rates:dispersion' option is specified in both the config file and the command line. Using the value from the command line
+[WARN] The 'redo' option is specified in both the config file and the command line. Using the value from the command line
 ```
 
 # Result files
@@ -121,7 +127,11 @@ A given simulation will always produce the following result files:
       split.
     - `left-range`: The "left" result of the split. 
     - `right-range`: The "right" result of the split.
-    - `split-type`: One of `allopatric`, `sympatric`, 
+    - `split-type`: One of `allopatric`, `sympatric`, `singleton` or `jump`.
+
+Additionally, if specified as a runtime parameter `bigrig` will produce a
+`{prefix}.json` or `{prefix}.yaml`, which is will contain all the information in
+the other files and information about dispersion and extinction events.
 
 ## An example run
 

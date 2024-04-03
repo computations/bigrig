@@ -85,6 +85,7 @@ void merge_variable(std::optional<T>       &ours,
 
 void cli_options_t::merge(const cli_options_t &other) {
   merge_variable(tree_filename, other.tree_filename, "tree");
+  merge_variable(prefix, other.prefix, "prefix");
   merge_variable(debug_log, other.debug_log, "debug-log");
   merge_variable(output_format_type, other.output_format_type, "output-format");
   merge_variable(root_distribution, other.root_distribution, "root-range");
