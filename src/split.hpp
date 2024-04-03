@@ -1,4 +1,5 @@
 #include "dist.hpp"
+#include "period.hpp"
 
 #include <stdexcept>
 
@@ -32,18 +33,20 @@ struct split_t {
  */
 std::vector<transition_t>
 simulate_transitions(dist_t                                  init_dist,
-                     double                                  brlen,
-                     const biogeo_model_t                   &model,
+                     const std::vector<period_t>            &periods,
                      std::uniform_random_bit_generator auto &gen,
                      operation_mode_e                        mode) {
   std::vector<transition_t> results;
   results.reserve(VECTOR_INITIAL_RESERVE);
-  while (true) {
-    auto r  = spread(init_dist, model, gen, mode);
-    brlen  -= r.waiting_time;
-    if (brlen < 0.0) { return results; }
-    init_dist = r.final_state;
-    results.push_back(r);
+  for (const auto &current_period : periods) {
+    double brlen = current_period.length();
+    while (true) {
+      auto r  = spread(init_dist, current_period.model(), gen, mode);
+      brlen  -= r.waiting_time;
+      if (brlen < 0.0) { break; }
+      init_dist = r.final_state;
+      results.push_back(r);
+    }
   }
   return results;
 }
@@ -56,10 +59,10 @@ simulate_transitions(dist_t                                  init_dist,
  * probability for each type depends on the dist to be split. See the model
  * documentation for more information.
  *
- * If the weights for the model are something like s = 0.0, v = 0.0, j = 1.0,
- * and init_dist.full() == true, then this function does some _wacky_ stuff.
- * I've decided to not fix it, as it is a pretty _weird_ parameter set, that
- * makes no sense. I basically need to check that the weight for
+ * If the weights for the model are something like s = 0.0, v = 0.0, j
+ * = 1.0, and init_dist.full() == true, then this function does some _wacky_
+ * stuff. I've decided to not fix it, as it is a pretty _weird_ parameter
+ * set, that makes no sense. I basically need to check that the weight for
  */
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
@@ -81,9 +84,9 @@ split_type_e roll_split_type(dist_t                                  init_dist,
   double total_weight = model.total_nonsingleton_weight(init_dist);
 
   /*
-   * There is a function in the standard lib that will do this, but I measured
-   * it to be slower than this... So we are just going to stick with this
-   * method.
+   * There is a function in the standard lib that will do this, but I
+   * measured it to be slower than this... So we are just going to stick
+   * with this method.
    */
   double roll = std::uniform_real_distribution<double>(0, total_weight)(gen);
 
@@ -122,16 +125,16 @@ split_t split_dist(dist_t                                  init_dist,
  *  - Singleton
  *  - Allopatric
  *  - Sympatric
- * Allopatric and Sympatric are not the names used in the original Ree paper,
- * and they shouldn't be used in user facing descriptions, as they are very
- * misleading. In the Ree paper, they use the terms "case 1" and "case 2".
- * However, these cases are very directly inspired by the processes of
- * allopatric and sympatric speciation. Additionally, Matzke uses _essentially_
- * these names for the parameters to his cladogenesis model, so what are you
- * going to do.
+ * Allopatric and Sympatric are not the names used in the original Ree
+ * paper, and they shouldn't be used in user facing descriptions, as they
+ * are very misleading. In the Ree paper, they use the terms "case 1" and
+ * "case 2". However, these cases are very directly inspired by the
+ * processes of allopatric and sympatric speciation. Additionally, Matzke
+ * uses _essentially_ these names for the parameters to his cladogenesis
+ * model, so what are you going to do.
  *
- * In addition, Matzke introduced a jump parameter, making it +J. We optionally
- * support this option.
+ * In addition, Matzke introduced a jump parameter, making it +J. We
+ * optionally support this option.
  */
 split_t split_dist_fast(dist_t                                  init_dist,
                         const biogeo_model_t                   &model,
@@ -179,13 +182,14 @@ determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist);
 /**
  * Split a dist via a rejection method.
  *
- * In this type, we generate 2 _completely_ random dists, and then check to see
- * which kind of split this is. If it is a valid type, we return the generated
- * split with probability equal to the corresponding normalized parameter.
+ * In this type, we generate 2 _completely_ random dists, and then check to
+ * see which kind of split this is. If it is a valid type, we return the
+ * generated split with probability equal to the corresponding normalized
+ * parameter.
  *
- * This function does _not_ support duplicity with allopatric and copy splits.
- * This is a good argument against duplicity. However, I could probably change
- * this function so that it _does_ count duplicity.
+ * This function does _not_ support duplicity with allopatric and copy
+ * splits. This is a good argument against duplicity. However, I could
+ * probably change this function so that it _does_ count duplicity.
  */
 split_t
 split_dist_rejection_method(dist_t                                  init_dist,

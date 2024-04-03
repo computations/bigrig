@@ -6,8 +6,8 @@
 #include "pcg_random.hpp"
 
 #include <corax/corax.hpp>
+#include <limits>
 #include <logger.hpp>
-#include <memory>
 
 int main() {
   logger::get_log_states().add_stream(
@@ -104,16 +104,11 @@ int main() {
 
   CLI11_PARSE(app);
 
-  if (dispersion.has_value() || extinction.has_value() || allopatry.has_value()
-      || sympatry.has_value() || copy.has_value() || jump.has_value()) {
-    period_params_t period;
-    period.start = 0.0;
-    period.rates = {.dis = dispersion.value(), .ext = extinction.value()};
-    period.clado = {.allopatry = allopatry.value(),
-                    .sympatry  = extinction.value(),
-                    .copy      = copy.value(),
-                    .jump      = jump.value()};
-    cli_options.periods.push_back(period);
+  if (!cli_options.convert_cli_parameters(
+          dispersion, extinction, allopatry, sympatry, copy, jump)) {
+    MESSAGE_ERROR("If model parameters are passed on the command line, all of "
+                  "the parameters must be provided");
+    return 1;
   }
 
   if (!validate_options(cli_options)) { return 1; }
@@ -133,7 +128,11 @@ int main() {
   auto tree = bigrig::tree_t(cli_options.tree_filename.value());
   tree.set_mode(cli_options.mode.value_or(bigrig::operation_mode_e::FAST));
 
-  if (!tree.is_valid()) {
+  auto periods = cli_options.make_periods();
+  if (periods.empty()) { return 1; }
+  tree.set_periods(periods);
+
+  if (!tree.is_ready()) {
     MESSAGE_ERROR("Could not use the tree provided, exiting");
     return 1;
   }
@@ -145,27 +144,6 @@ int main() {
     gen.seed(cli_options.rng_seed.value());
   } else {
     gen.seed(pcg_extras::seed_seq_from<std::random_device>{});
-  }
-
-  std::vector<bigrig::period_t> periods;
-  for (const auto &cli_period : cli_options.periods) {
-    bigrig::period_t period{
-        cli_period.start,
-        0.0,
-        {.dis = cli_period.rates.dis, .ext = cli_period.rates.ext},
-        {.allopatry = cli_period.clado.allopatry,
-         .sympatry  = cli_period.clado.sympatry,
-         .copy      = cli_period.clado.copy,
-         .jump      = cli_period.clado.jump},
-        cli_options.two_region_duplicity.value_or(true),
-        cli_period.index};
-    if (!period.model().check_ok(
-            cli_options.root_distribution.value().regions())) {
-      LOG_ERROR("There is an issue with the model for period '%lu', we can't "
-                "continue",
-                cli_period.index);
-      return 1;
-    }
   }
 
   MESSAGE_INFO("Simulating ranges on the tree")

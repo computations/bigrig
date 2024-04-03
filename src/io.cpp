@@ -7,20 +7,36 @@
 #include <optional>
 
 void print_periods(const std::vector<period_params_t> &periods) {
-  LOG_INFO("   Using %lu periods:", periods.size());
+  LOG_INFO("   Running with %lu periods:", periods.size());
   for (const auto &p : periods) {
-    MESSAGE_INFO("      - Rate parameters");
-    LOG_INFO("        Dispersion(d): %.2f, Extinction: %.2f",
+    LOG_INFO("      - Start time: %.2f", p.start);
+    MESSAGE_INFO("        Rate parameters:");
+    LOG_INFO("          Dispersion(d): %.2f, Extinction: %.2f",
              p.rates.dis,
              p.rates.ext);
     MESSAGE_INFO("        Cladogenesis parameters:");
-    LOG_INFO("        Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
+    LOG_INFO("          Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
              "Jump(j): %.2f",
              p.clado.allopatry,
              p.clado.sympatry,
              p.clado.copy,
              p.clado.jump);
   }
+}
+
+void print_model_parameters(const period_params_t &period) {
+  MESSAGE_INFO("   Model Parameters:");
+  MESSAGE_INFO("     Rate parameters:");
+  LOG_INFO("       Dispersion(d): %.2f, Extinction: %.2f",
+           period.rates.dis,
+           period.rates.ext);
+  MESSAGE_INFO("     Cladogenesis parameters:");
+  LOG_INFO("       Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
+           "Jump(j): %.2f",
+           period.clado.allopatry,
+           period.clado.sympatry,
+           period.clado.copy,
+           period.clado.jump);
 }
 
 /**
@@ -33,7 +49,11 @@ void write_header(const cli_options_t &cli_options) {
   LOG_INFO("   Root range: %s",
            cli_options.root_distribution.value().to_str().c_str());
   LOG_INFO("   Region count: %u", cli_options.root_distribution->regions());
-  print_periods(cli_options.periods);
+  if (cli_options.periods.size() == 1) {
+    print_model_parameters(cli_options.periods.front());
+  } else {
+    print_periods(cli_options.periods);
+  }
   if (cli_options.rng_seed.has_value()) {
     LOG_INFO("   Seed: %lu", cli_options.rng_seed.value());
   }

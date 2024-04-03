@@ -1,6 +1,7 @@
 #pragma once
 #include "dist.hpp"
 #include "model.hpp"
+#include "period.hpp"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -121,6 +122,15 @@ struct cli_options_t {
   bool json_file_set() const;
 
   void merge(const cli_options_t &other);
+
+  [[nodiscard]] bool convert_cli_parameters(std::optional<double> dis,
+                                            std::optional<double> ext,
+                                            std::optional<double> allo,
+                                            std::optional<double> symp,
+                                            std::optional<double> copy,
+                                            std::optional<double> jump);
+
+  std::vector<bigrig::period_t> make_periods() const;
 
   cli_options_t() = default;
 

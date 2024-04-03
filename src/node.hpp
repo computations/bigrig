@@ -37,12 +37,8 @@ public:
                 operation_mode_e mode = operation_mode_e::FAST) {
     LOG_DEBUG("Node sampling with initial_distribution = %s",
               initial_distribution.to_str().c_str());
-    for (const auto &period : _periods) {
-      auto tmp_trans = simulate_transitions(
-          initial_distribution, period.length(), period.model(), gen, mode);
-      std::copy(
-          tmp_trans.begin(), tmp_trans.end(), std::back_inserter(_transitions));
-    }
+    _transitions
+        = simulate_transitions(initial_distribution, _periods, gen, mode);
     LOG_DEBUG("Finished sampling with %lu transitions", _transitions.size());
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;
@@ -108,7 +104,8 @@ public:
   void set_label(const std::string &str);
 
 private:
-  void parse_periods(const std::vector<period_t> &periods);
+  void     parse_periods(const std::vector<period_t> &periods);
+  period_t clamp_period(const period_t &p) const;
 
   double                               _brlen;
   double                               _abs_time;

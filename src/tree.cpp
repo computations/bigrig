@@ -76,6 +76,11 @@ bool tree_t::is_valid() const {
     MESSAGE_ERROR("The tree provided is not a binary tree");
     return false;
   }
+  return true;
+}
+
+bool tree_t::is_ready() const {
+  if (!is_valid()) { return false; }
   if (!_tree->is_valid()) { return false; }
   return true;
 }

@@ -225,25 +225,29 @@ void node_t::assign_periods(const std::vector<period_t> &periods) {
   for (const auto &c : _children) { c->assign_periods(periods); }
 }
 
+period_t node_t::clamp_period(const period_t &p) const {
+  auto ret = p;
+
+  if (p.start() < abs_time_at_start()) {
+    ret.adjust_start(abs_time_at_start());
+  }
+  if (ret.end() > abs_time()) { ret.adjust_end(abs_time()); }
+
+  return ret;
+}
+
 void node_t::parse_periods(const std::vector<period_t> &periods) {
   _periods.clear();
 
   /* find the starting period */
   auto start_period_itr = periods.begin();
-  while (start_period_itr != periods.end()
-         && start_period_itr->end() < abs_time_at_start()) {
+  while (start_period_itr != periods.end()) {
+    if (start_period_itr->start() <= abs_time_at_start()
+        && start_period_itr->end() >= abs_time_at_start()) {
+      break;
+    }
     start_period_itr++;
   }
-
-  /* truncte the beginning of the period */
-  auto  &start_period      = *start_period_itr;
-  double start_time_offset = abs_time_at_start() - start_period.start();
-
-  double new_length
-      = std::min(start_period.length() - start_time_offset, brlen());
-
-  _periods.emplace_back(
-      abs_time_at_start(), new_length, start_period.model_ptr());
 
   /* find the last period */
   auto end_period_itr = start_period_itr;
@@ -253,17 +257,14 @@ void node_t::parse_periods(const std::vector<period_t> &periods) {
   }
 
   /* insert up to the last period */
-  for (start_period_itr++; start_period_itr != end_period_itr;
+  for (; start_period_itr != periods.end()
+         && start_period_itr != end_period_itr + 1;
        start_period_itr++) {
     _periods.emplace_back(*start_period_itr);
   }
-
-  /* truncate and insert the last period, if there is another period */
-  auto  &final_period = *end_period_itr;
-  double final_length
-      = final_period.length() - (abs_time() - final_period.end());
-  _periods.emplace_back(
-      final_period.start(), final_length, final_period.model_ptr());
+  for(auto& p: _periods){
+    p = clamp_period(p);
+  }
 }
 
 } // namespace bigrig

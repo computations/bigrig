@@ -2,10 +2,10 @@
 
 #include "dist.hpp"
 #include "logger.hpp"
+#include "period.hpp"
 #include "util.hpp"
 
 #include <algorithm>
-#include <tuple>
 
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();
@@ -228,7 +228,7 @@ cli_options_t::get_period(const YAML::Node &yaml) {
   bool            ok        = true;
   constexpr auto  START_KEY = "start";
   if (yaml[START_KEY]) {
-    period_params.start = yaml[START_KEY].as<size_t>();
+    period_params.start = yaml[START_KEY].as<double>();
   } else {
     MESSAGE_ERROR("No start time provided for a period");
     ok = false;
@@ -305,4 +305,81 @@ std::optional<uint64_t> cli_options_t::get_seed(const YAML::Node &yaml) {
   constexpr auto SEED_KEY = "seed";
   if (yaml[SEED_KEY]) { return yaml[SEED_KEY].as<uint64_t>(); }
   return {};
+}
+
+template <typename T>
+[[nodiscard]] bool check_passed_cli_parameter(const std::optional<T> &o,
+                                              const char             *name) {
+  if (!o.has_value()) {
+    LOG_ERROR("No value provided for parameter '%s' when other values were "
+              "provided on the command line",
+              name);
+    return false;
+  }
+  return true;
+}
+
+[[nodiscard]] bool
+cli_options_t::convert_cli_parameters(std::optional<double> dis,
+                                      std::optional<double> ext,
+                                      std::optional<double> allo,
+                                      std::optional<double> symp,
+                                      std::optional<double> copy,
+                                      std::optional<double> jump) {
+  if (!(dis.has_value() || ext.has_value() || allo.has_value()
+        || symp.has_value() || copy.has_value() || jump.has_value())) {
+    return true;
+  }
+  bool ok  = true;
+  ok      &= check_passed_cli_parameter(dis, "dispersion");
+  ok      &= check_passed_cli_parameter(ext, "extinction");
+  ok      &= check_passed_cli_parameter(allo, "allopatry");
+  ok      &= check_passed_cli_parameter(symp, "sympatry");
+  ok      &= check_passed_cli_parameter(copy, "copy");
+  ok      &= check_passed_cli_parameter(jump, "jump");
+
+  if (ok) {
+    period_params_t period;
+    period.start = 0.0;
+    period.rates = {.dis = dis.value(), .ext = ext.value()};
+    period.clado = {.allopatry = allo.value(),
+                    .sympatry  = ext.value(),
+                    .copy      = copy.value(),
+                    .jump      = jump.value()};
+    periods.push_back(period);
+    return true;
+  }
+  return false;
+}
+
+std::vector<bigrig::period_t> cli_options_t::make_periods() const {
+  std::vector<bigrig::period_t> ret;
+  for (const auto &cli_period : periods) {
+    bigrig::period_t period{
+        cli_period.start,
+        0.0,
+        {.dis = cli_period.rates.dis, .ext = cli_period.rates.ext},
+        {.allopatry = cli_period.clado.allopatry,
+         .sympatry  = cli_period.clado.sympatry,
+         .copy      = cli_period.clado.copy,
+         .jump      = cli_period.clado.jump},
+        two_region_duplicity.value_or(true),
+        cli_period.index};
+    if (!period.model().check_ok(
+            root_distribution.value().regions())) {
+      LOG_ERROR("There is an issue with the model for period '%lu', we can't "
+                "continue",
+                cli_period.index);
+      return {};
+    }
+    ret.push_back(period);
+  }
+
+  for (size_t i = 0; i < ret.size() - 1; ++i) {
+    auto &p1 = ret[i];
+    auto &p2 = ret[i + 1];
+    p1.set_length(p2.start() - p1.start());
+  }
+  ret.back().set_length(std::numeric_limits<double>::infinity());
+  return ret;
 }
