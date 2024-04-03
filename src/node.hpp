@@ -7,7 +7,6 @@
 
 #include <corax/tree/utree.h>
 #include <functional>
-#include <iterator>
 #include <logger.hpp>
 #include <string>
 #include <vector>
@@ -46,6 +45,7 @@ public:
       _final_state = _transitions.back().final_state;
     }
     _split = split_dist(_final_state, _periods.back().model(), gen, mode);
+    _split.period_index = _periods.back().index();
 
     if (!is_leaf()) {
       _children[0]->simulate(_split.left, gen, mode);

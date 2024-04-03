@@ -268,7 +268,7 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
         LOG_ERROR("Period %lu is malformed", index);
         return {};
       }
-      period.value().index = index;
+      period.value().index = index++;
       ret.push_back(period.value());
     }
   }
@@ -366,8 +366,7 @@ std::vector<bigrig::period_t> cli_options_t::make_periods() const {
          .jump      = cli_period.clado.jump},
         two_region_duplicity.value_or(true),
         cli_period.index};
-    if (!period.model().check_ok(
-            root_distribution.value().regions())) {
+    if (!period.model().check_ok(root_distribution.value().regions())) {
       LOG_ERROR("There is an issue with the model for period '%lu', we can't "
                 "continue",
                 cli_period.index);

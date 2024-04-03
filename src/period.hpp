@@ -37,7 +37,8 @@ public:
     _start            = s;
     _length           = new_length;
   }
-  void adjust_end(double e) { _length = e - _start; }
+  void   adjust_end(double e) { _length = e - _start; }
+  size_t index() const { return _index; }
 
   const biogeo_model_t &model() const { return *_model; }
 

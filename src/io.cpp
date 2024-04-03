@@ -338,6 +338,8 @@ void write_yaml_splits(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
          << n->node_split().right.to_str();
     yaml << YAML::Key << "type" << YAML::Value
          << n->node_split().to_type_string();
+    yaml << YAML::Key << "period" << YAML::Value
+         << n->node_split().period_index;
     yaml << YAML::EndMap;
   }
   yaml << YAML::EndMap;
@@ -364,6 +366,8 @@ void write_yaml_events(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
              << t.initial_state.to_str();
         yaml << YAML::Key << "final-state" << YAML::Value
              << t.final_state.to_str();
+        yaml << YAML::Key << "period" << YAML::Value
+             << t.period_index;
         yaml << YAML::EndMap;
       }
       yaml << YAML::EndSeq;
@@ -464,6 +468,7 @@ void write_json_file(std::ostream                        &os,
         {"left", split.left.to_str()},
         {"right", split.right.to_str()},
         {"type", split.to_type_string()},
+        {"period", split.period_index},
     };
   }
 
@@ -479,6 +484,7 @@ void write_json_file(std::ostream                        &os,
             {"waiting_time", t.waiting_time},
             {"initial-state", t.initial_state.to_str()},
             {"final-state", t.final_state.to_str()},
+            {"period", t.period_index},
         });
       }
     }

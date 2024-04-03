@@ -329,6 +329,7 @@ public:
   double waiting_time = std::numeric_limits<double>::infinity();
   dist_t initial_state;
   dist_t final_state;
+  size_t period_index;
 };
 
 /**
