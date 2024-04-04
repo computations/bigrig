@@ -271,6 +271,26 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
       period.value().index = index++;
       ret.push_back(period.value());
     }
+  } else {
+    auto rates        = get_rates(yaml);
+    auto clado_params = get_cladogenesis(yaml);
+    bool ok           = true;
+
+    if (!rates.has_value()) {
+      ok = false;
+      MESSAGE_ERROR("Failed to find rates in the config file");
+    }
+    if(!clado_params.has_value()){
+      ok = false;
+      MESSAGE_ERROR("Failed to find cladogensis parameters in the config file");
+    }
+
+    if (ok) {
+      return {period_params_t{.rates = rates.value(),
+                              .clado = clado_params.value(),
+                              .start = 0.0,
+                              .index = 0}};
+    }
   }
   return ret;
 }
