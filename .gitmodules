@@ -1,6 +1,6 @@
 [submodule "lib/logger"]
 	path = lib/logger
-	url = git@github.com:computations/logger.git
+	url = https://github.com/computations/logger
 [submodule "lib/coraxlib"]
 	path = lib/coraxlib
 	url = https://codeberg.org/Exelixis-Lab/coraxlib.git
