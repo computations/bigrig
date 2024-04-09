@@ -18,7 +18,7 @@ struct split_t {
   dist_t       right;
   dist_t       top;
   split_type_e type;
-  size_t period_index;
+  size_t       period_index;
 
   std::string to_nhx_string() const;
   std::string to_type_string() const;

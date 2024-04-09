@@ -280,7 +280,7 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
       ok = false;
       MESSAGE_ERROR("Failed to find rates in the config file");
     }
-    if(!clado_params.has_value()){
+    if (!clado_params.has_value()) {
       ok = false;
       MESSAGE_ERROR("Failed to find cladogensis parameters in the config file");
     }

@@ -130,7 +130,7 @@ public:
   biogeo_model_t(double d, double e, bool duplicity)
       : _rate_params{.dis = d, .ext = e},
         _clad_params{
-            .allopatry = 1.0, .sympatry = 1.0, .copy=1.0, .jump = 0.0},
+            .allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 0.0},
         _duplicity{duplicity} {}
 
   biogeo_model_t(const rate_params_t         &rp,
@@ -161,6 +161,9 @@ public:
   }
 
   cladogenesis_params_t normalized_cladogenesis_params() const;
+
+  cladogenesis_params_t
+  normalized_cladogenesis_params(const dist_t &dist) const;
 
   size_t dispersion_count(const dist_t &dist) const;
   size_t extinction_count(const dist_t &dist) const;

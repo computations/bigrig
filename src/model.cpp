@@ -8,6 +8,15 @@ cladogenesis_params_t biogeo_model_t::normalized_cladogenesis_params() const {
   return _clad_params.normalize();
 }
 
+cladogenesis_params_t
+biogeo_model_t::normalized_cladogenesis_params(const dist_t &dist) const {
+  return cladogenesis_params_t{.allopatry = allopatry_weight(dist),
+                               .sympatry  = sympatry_weight(dist),
+                               .copy      = copy_weight(dist),
+                               .jump      = jump_weight(dist)}
+      .normalize();
+}
+
 size_t biogeo_model_t::dispersion_count(const dist_t &dist) const {
   return dist.empty_region_count();
 }
@@ -65,6 +74,7 @@ size_t biogeo_model_t::jump_count(const dist_t &dist) const {
  * support the other method.
  */
 size_t biogeo_model_t::allopatry_count(const dist_t &dist) const {
+  if (dist.singleton()) { return 0; }
   return dist.full_region_count() * 2
        - ((!_duplicity && dist.full_region_count() == 2) ? 2 : 0);
 }
@@ -82,6 +92,7 @@ size_t biogeo_model_t::allopatry_count(const dist_t &dist) const {
  * that we pick a full region to split, and then pick the left or right branch.
  */
 size_t biogeo_model_t::sympatry_count(const dist_t &dist) const {
+  if (dist.singleton()) { return 0; }
   return dist.full_region_count() * 2;
 }
 
@@ -101,7 +112,7 @@ size_t biogeo_model_t::sympatry_count(const dist_t &dist) const {
  * for this one.
  */
 size_t biogeo_model_t::copy_count(const dist_t &dist) const {
-  return (dist.full_region_count() == 1) * (_duplicity ? 1 : 2);
+  return (dist.singleton()) * (_duplicity ? 1 : 2);
 }
 
 double biogeo_model_t::jump_weight(const dist_t &dist) const {

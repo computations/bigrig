@@ -138,139 +138,48 @@ TEST_CASE("splitting", "[sample]") {
   }
 }
 
-TEST_CASE("split stats") {
+/* This test uses a G-test to test against the expected weights of the model.
+ */
+TEST_CASE("split g-test") {
   pcg64_fast gen(Catch::getSeed());
 
 #if D_RIGOROUS
-  /* 99.999% confidence that error is less than 0.0001 */
-  constexpr size_t iters   = 1'886'084'219;
-  constexpr double abs_tol = 1.0e-4;
+  /* These values are computed to ensure a probability of
+   *  - Type I error = 0.00001
+   *  - Type II error = 0.00001
+   *  - And deviation is less than = 0.0001
+   */
+  constexpr size_t iters = 2'019'696'124;
+  constexpr double q     = 18.420680743952584;
 #else
-  /* 99.999% confidence that error is less than 0.01 */
-  constexpr size_t iters   = 188'609;
-  constexpr double abs_tol = 1.0e-2;
+  /* These values are computed to ensure a probability of
+   *  - Type I error = 0.00001
+   *  - Type II error = 0.00001
+   *  - And deviation is less than = 0.01
+   */
+  constexpr size_t iters = 201'970;
+  constexpr double q     = 18.420680743952584;
 #endif
+
+  auto keys = {bigrig::split_type_e::jump,
+               bigrig::split_type_e::sympatric,
+               bigrig::split_type_e::allopatric,
+               bigrig::split_type_e::singleton,
+               bigrig::split_type_e::invalid};
 
   bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
                                       bigrig::dist_t{0b1110, 4},
                                       bigrig::dist_t{0b1100, 4},
                                       bigrig::dist_t{0b1011, 4},
                                       bigrig::dist_t{0b1111, 4},
-                                      bigrig::dist_t{0b1111, 4},
-                                      bigrig::dist_t{0b1000'0000, 8},
-                                      bigrig::dist_t{0b1100'0111, 8},
-                                      bigrig::dist_t{0b1010'1010, 8},
-                                      bigrig::dist_t{0b1111'1111, 8});
-
-  bigrig::cladogenesis_params_t params
-      = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
-                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 0.0},
-                 bigrig::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
-                 bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
-                 bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 1.0},
-                 bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 2.0},
-                 bigrig::cladogenesis_params_t{1.1, 1.2, 1.0, 1.0},
-                 bigrig::cladogenesis_params_t{1.0, 2.0, 1.0, 1.0});
-
-  std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
-
-  bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_cladogenesis_params(params);
-
-  for (size_t i = 0; i < iters; ++i) {
-    auto res                     = bigrig::split_dist(init_dist, model, gen);
-    split_type_counts[res.type] += 1;
-  }
-
-  if (!model.jumps_ok()) {
-    CHECK(split_type_counts[bigrig::split_type_e::jump] == 0);
-  }
-
-  if (init_dist.singleton()) {
-    auto denom = model.total_singleton_weight(init_dist);
-
-    CHECK_THAT(
-        static_cast<double>(split_type_counts[bigrig::split_type_e::jump])
-            / iters,
-        Catch::Matchers::WithinAbs(model.jump_weight(init_dist) / denom,
-                                   abs_tol));
-
-    CHECK_THAT(
-        static_cast<double>(split_type_counts[bigrig::split_type_e::singleton])
-            / iters,
-        Catch::Matchers::WithinAbs(model.copy_weight(init_dist) / denom,
-                                   abs_tol));
-
-    CHECK(split_type_counts[bigrig::split_type_e::sympatric] == 0);
-    CHECK(split_type_counts[bigrig::split_type_e::allopatric] == 0);
-  } else {
-    auto denom = model.total_nonsingleton_weight(init_dist);
-
-    CHECK_THAT(
-        static_cast<double>(split_type_counts[bigrig::split_type_e::jump])
-            / iters,
-        Catch::Matchers::WithinAbs(model.jump_weight(init_dist) / denom,
-                                   abs_tol));
-
-    CHECK_THAT(
-        static_cast<double>(split_type_counts[bigrig::split_type_e::allopatric])
-            / iters,
-        Catch::Matchers::WithinAbs(model.allopatry_weight(init_dist) / denom,
-                                   abs_tol));
-
-    CHECK_THAT(
-        static_cast<double>(split_type_counts[bigrig::split_type_e::sympatric])
-            / iters,
-        Catch::Matchers::WithinAbs(model.sympatry_weight(init_dist) / denom,
-                                   abs_tol));
-
-    CHECK(split_type_counts[bigrig::split_type_e::singleton] == 0);
-  }
-
-  /* Compute some stats */
-}
-
-/*
- * Test the fast, optimized version against a "dumb" but accurate version. The
- * parameter for abs_tol is a compromise between getting results and accuracy.
- * The `GENERATE` expressions will try the following code with each of the
- * listed parameters. So, this code | init_dist X params | = 25 times.
- * In addition, there are 4 checks each.
- */
-TEST_CASE("split regression") {
-  // constexpr size_t REGIONS = 4;
-  pcg64_fast gen(Catch::getSeed());
-
-#if D_RIGOROUS
-  /* These values for iters and abs_tol ensure with 99.999% confidence that
-   * error is less than 0.0001 */
-  constexpr size_t iters   = 487'791'396;
-  constexpr double abs_tol = 1.0e-4;
-#else
-  /* These values for iters and abs_tol ensure with 99.999% confidence that
-   * error is less than 0.01 */
-  constexpr size_t iters   = 48'780;
-  constexpr double abs_tol = 1.0e-2;
-#endif
-
-  auto keys = {bigrig::split_type_e::allopatric,
-               bigrig::split_type_e::sympatric,
-               bigrig::split_type_e::singleton,
-               bigrig::split_type_e::jump,
-               bigrig::split_type_e::invalid};
-
-  bigrig::dist_t                init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
-                                      bigrig::dist_t{0b1110, 4},
-                                      bigrig::dist_t{0b1100, 4},
-                                      bigrig::dist_t{0b1011, 4},
-                                      bigrig::dist_t{0b1111, 4},
                                       bigrig::dist_t{0b11'0011, 6});
+
   bigrig::cladogenesis_params_t params
       = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
                  bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
                  bigrig::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
                  bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
-                 bigrig::cladogenesis_params_t{1.0, 2.0, 1.0, 1.0});
+                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
   bigrig::biogeo_model_t model;
   model.set_params(1.0, 1.0).set_two_region_duplicity(false);
@@ -278,32 +187,67 @@ TEST_CASE("split regression") {
   INFO("model params: " << params.to_debug_string());
 
   model.set_cladogenesis_params(params);
-  std::unordered_map<bigrig::split_type_e, size_t> regression_split_type_counts;
   std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
+  std::unordered_map<bigrig::split_type_e, size_t> expected_split_type_counts;
+
+  auto expected_weights = model.normalized_cladogenesis_params(init_dist);
+
+  expected_split_type_counts[bigrig::split_type_e::jump]
+      = expected_weights.jump * iters;
+  expected_split_type_counts[bigrig::split_type_e::sympatric]
+      = expected_weights.sympatry * iters;
+  expected_split_type_counts[bigrig::split_type_e::allopatric]
+      = expected_weights.allopatry * iters;
+  expected_split_type_counts[bigrig::split_type_e::singleton]
+      = expected_weights.copy * iters;
+  expected_split_type_counts[bigrig::split_type_e::invalid] = 0;
 
   for (size_t i = 0; i < iters; ++i) {
-    auto rej_res = bigrig::split_dist_rejection_method(init_dist, model, gen);
-    regression_split_type_counts[rej_res.type] += 1;
-
     auto new_res = bigrig::split_dist(init_dist, model, gen);
     split_type_counts[new_res.type] += 1;
   }
 
+  double g = 0.0;
   for (const auto &key : keys) {
-    double rejection_value
-        = static_cast<double>(regression_split_type_counts[key]) / iters;
-    double new_val = static_cast<double>(split_type_counts[key]) / iters;
-    INFO("clado type: " << bigrig::type_string(key));
-    CHECK_THAT(rejection_value, Catch::Matchers::WithinAbs(new_val, abs_tol));
+    if (expected_split_type_counts[key] == 0) { continue; }
+    double g_i = static_cast<double>(split_type_counts[key])
+               / static_cast<double>(expected_split_type_counts[key]);
+    g_i  = std::log(g_i);
+    g   += g_i * split_type_counts[key];
   }
+  INFO("split_type_counts[jump]: "
+       << split_type_counts[bigrig::split_type_e::jump]);
+  INFO("regression_split_type_counts[jump]: "
+       << expected_split_type_counts[bigrig::split_type_e::jump]);
+
+  INFO("split_type_counts[sympatry]: "
+       << split_type_counts[bigrig::split_type_e::sympatric]);
+  INFO("regression_split_type_counts[sympatry]: "
+       << expected_split_type_counts[bigrig::split_type_e::sympatric]);
+
+  INFO("split_type_counts[allopatric]: "
+       << split_type_counts[bigrig::split_type_e::allopatric]);
+  INFO("regression_split_type_counts[allopatric]: "
+       << expected_split_type_counts[bigrig::split_type_e::allopatric]);
+
+  INFO("split_type_counts[singleton]: "
+       << split_type_counts[bigrig::split_type_e::singleton]);
+  INFO("regression_split_type_counts[singleton]: "
+       << expected_split_type_counts[bigrig::split_type_e::singleton]);
+
+  CHECK(g < q);
 }
 
-/*
 TEST_CASE("split regression g-test") {
   pcg64_fast gen(Catch::getSeed());
 
-  constexpr size_t iters   = 2'019'696'124;
-  constexpr double abs_tol = 1.0e-4;
+  /* These values are computed to ensure a probability of
+   *  - Type I error = 0.00001
+   *  - Type II error = 0.00001
+   *  - And deviation is less than = 0.01
+   */
+  constexpr size_t iters = 201'970;
+  constexpr double q     = 18.420680743952584;
 
   auto keys = {bigrig::split_type_e::jump,
                bigrig::split_type_e::sympatric,
@@ -350,6 +294,25 @@ TEST_CASE("split regression g-test") {
     g_i  = std::log(g_i);
     g   += g_i * split_type_counts[key];
   }
-  CHECK(g < 0.0002);
+  INFO("split_type_counts[jump]: "
+       << split_type_counts[bigrig::split_type_e::jump]);
+  INFO("regression_split_type_counts[jump]: "
+       << regression_split_type_counts[bigrig::split_type_e::jump]);
+
+  INFO("split_type_counts[sympatry]: "
+       << split_type_counts[bigrig::split_type_e::sympatric]);
+  INFO("regression_split_type_counts[sympatry]: "
+       << regression_split_type_counts[bigrig::split_type_e::sympatric]);
+
+  INFO("split_type_counts[allopatric]: "
+       << split_type_counts[bigrig::split_type_e::allopatric]);
+  INFO("regression_split_type_counts[allopatric]: "
+       << regression_split_type_counts[bigrig::split_type_e::allopatric]);
+
+  INFO("split_type_counts[singleton]: "
+       << split_type_counts[bigrig::split_type_e::singleton]);
+  INFO("regression_split_type_counts[singleton]: "
+       << regression_split_type_counts[bigrig::split_type_e::singleton]);
+
+  CHECK(g < q);
 }
-*/
