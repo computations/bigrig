@@ -456,6 +456,7 @@ void write_json_file(std::ostream                        &os,
   nlohmann::json j;
 
   j["tree"] = tree.to_newick();
+  j["regions"] = tree.region_count();
 
   for (const auto &n : tree) {
     j["align"][n->string_id()] = n->final_state().to_str();
