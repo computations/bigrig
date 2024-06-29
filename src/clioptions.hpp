@@ -1,7 +1,9 @@
 #pragma once
+
 #include "dist.hpp"
 #include "model.hpp"
 #include "period.hpp"
+#include "rng.hpp"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -84,7 +86,14 @@ struct cli_options_t {
   /**
    * Starting distribution for the simulation.
    */
-  std::optional<bigrig::dist_t> root_distribution;
+  std::optional<bigrig::dist_t> root_range;
+
+  /**
+   * Number of regions to simulate.
+   *
+   * Optional, should be specified if no root_distribution is present.
+   */
+  std::optional<size_t> region_count;
 
   /**
    * Rates which have been provided by the user.
@@ -115,6 +124,9 @@ struct cli_options_t {
 
   std::filesystem::path json_filename() const;
 
+  pcg64_fast &get_rng();
+  bigrig::rng_wrapper_t &get_rng_wrapper();
+
   bool cli_arg_specified() const;
 
   bool yaml_file_set() const;
@@ -143,7 +155,8 @@ struct cli_options_t {
         prefix{get_prefix(yaml)},
         debug_log{get_debug_log(yaml)},
         output_format_type{get_output_format(yaml)},
-        root_distribution{get_root_range(yaml)},
+        root_range{get_root_range(yaml)},
+        region_count{get_region_count(yaml)},
         periods{get_periods(yaml)},
         redo{get_redo(yaml)},
         two_region_duplicity{get_two_region_duplicity(yaml)},
@@ -158,6 +171,7 @@ private:
                              get_output_format(const YAML::Node &);
   static std::optional<bool> get_two_region_duplicity(const YAML::Node &);
   static std::optional<bigrig::dist_t> get_root_range(const YAML::Node &);
+  static std::optional<size_t>         get_region_count(const YAML::Node &yaml);
 
   static std::optional<bigrig::rate_params_t> get_rates(const YAML::Node &yaml);
 

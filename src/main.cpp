@@ -4,6 +4,7 @@
 #include "model.hpp"
 #include "pcg_extras.hpp"
 #include "pcg_random.hpp"
+#include "rng.hpp"
 
 #include <corax/corax.hpp>
 #include <logger.hpp>
@@ -32,10 +33,16 @@ int main() {
                  cli_options.prefix,
                  "[Optional] Prefix for the output files.");
   app.add_option(
-      "--root-dist",
-      cli_options.root_distribution,
-      "[Required] Range for the species at the root for the start of the "
-      "simulation. Should be given as a binary string (e.g. 01010).");
+      "--root-range",
+      cli_options.root_range,
+      "[Optional] Range for the species at the root for the start of the "
+      "simulation. Should be given as a binary string (e.g. 01010). Required "
+      "if region-count is not specified.");
+  app.add_option("--region-count",
+                 cli_options.region_count,
+                 "[Optional] Specify the number of regions to simulate. If "
+                 "given, and root-dist is not given, then a random root "
+                 "distribution is generated and used");
   app.add_option("-d,--dispersion",
                  dispersion,
                  "[Required] The dispersion rate for the simulation.");
@@ -110,7 +117,7 @@ int main() {
     return 1;
   }
 
-  if (!validate_options(cli_options)) { return 1; }
+  if (!validate_and_finalize_options(cli_options)) { return 1; }
 
   if (cli_options.debug_log) {
     std::filesystem::path debug_filename  = cli_options.prefix.value();
@@ -138,15 +145,10 @@ int main() {
 
   LOG_INFO("Tree has %lu taxa", tree.leaf_count());
 
-  pcg64_fast gen;
-  if (cli_options.rng_seed.has_value()) {
-    gen.seed(cli_options.rng_seed.value());
-  } else {
-    gen.seed(pcg_extras::seed_seq_from<std::random_device>{});
-  }
+  auto gen = cli_options.get_rng();
 
   MESSAGE_INFO("Simulating ranges on the tree")
-  tree.simulate(cli_options.root_distribution.value(), gen);
+  tree.simulate(cli_options.root_range.value(), gen);
 
   MESSAGE_INFO("Writing results to files")
   write_output_files(cli_options, tree, periods);

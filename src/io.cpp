@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <optional>
 
+constexpr size_t MAX_REGIONS = 64;
+
 void print_periods(const std::vector<period_params_t> &periods) {
   LOG_INFO("   Running with %lu periods:", periods.size());
   for (const auto &p : periods) {
@@ -47,8 +49,8 @@ void write_header(const cli_options_t &cli_options) {
   LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
   LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
   LOG_INFO("   Root range: %s",
-           cli_options.root_distribution.value().to_str().c_str());
-  LOG_INFO("   Region count: %u", cli_options.root_distribution->regions());
+           cli_options.root_range.value().to_str().c_str());
+  LOG_INFO("   Region count: %u", cli_options.root_range->regions());
   if (cli_options.periods.size() == 1) {
     print_model_parameters(cli_options.periods.front());
   } else {
@@ -190,6 +192,46 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
   return ok;
 }
 
+[[nodiscard]] bool
+validate_root_region(const std::optional<bigrig::dist_t> &root_range,
+                     const std::optional<size_t>         &region_count) {
+  bool ok = true;
+  if (!root_range.has_value() && !region_count.has_value()) {
+    MESSAGE_ERROR("The root range was not provided. Please provide a value for "
+                  "the root range");
+    return false;
+  }
+  if (root_range.has_value() && region_count.has_value()
+      && root_range.value().regions() != region_count.value()) {
+    MESSAGE_ERROR("Both a root range and region count was provided, but they "
+                  "differ in size");
+    ok = false;
+  }
+  if (root_range.has_value()) {
+    if (root_range.value().regions() >= MAX_REGIONS) {
+      LOG_ERROR("Simulating with %u regions is unsupported. Please choose a "
+                "number less than %lu regions",
+                root_range.value().regions(),
+                MAX_REGIONS);
+      ok = false;
+    }
+    if (root_range.value().empty()) {
+      MESSAGE_ERROR("Cannot simulate with an empty root range. Please provide "
+                    "a range with at least one region set");
+      ok = false;
+    }
+  }
+  if (region_count.has_value() && region_count.value() >= MAX_REGIONS) {
+    LOG_ERROR("region-count is set to %lu, but that number of regions is "
+              "unsupported. Please a choose a number less than %lu "
+              "regions",
+              region_count.value(),
+              MAX_REGIONS);
+    ok = false;
+  }
+  return ok;
+}
+
 /**
  * Check that the program options are valid
  *
@@ -203,17 +245,7 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
 
   ok &= validate_tree_filename(cli_options.tree_filename);
   ok &= validate_and_make_prefix(cli_options.prefix);
-
-  if (!cli_options.root_distribution.has_value()) {
-    MESSAGE_ERROR("The root range was not provided. Please provide a value for "
-                  "the root distribution");
-    ok = false;
-  } else if (cli_options.root_distribution.value().regions() > 64) {
-    LOG_ERROR("Simulating with %u regions is unsupported. Please choose a "
-              "number less than or equal to 64",
-              cli_options.root_distribution.value().regions());
-    ok = false;
-  }
+  ok &= validate_root_region(cli_options.root_range, cli_options.region_count);
 
   for (const auto &p : cli_options.periods) {
     ok &= validate_model_parameter(p.rates.dis, "dispersion");
@@ -366,8 +398,7 @@ void write_yaml_events(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
              << t.initial_state.to_str();
         yaml << YAML::Key << "final-state" << YAML::Value
              << t.final_state.to_str();
-        yaml << YAML::Key << "period" << YAML::Value
-             << t.period_index;
+        yaml << YAML::Key << "period" << YAML::Value << t.period_index;
         yaml << YAML::EndMap;
       }
       yaml << YAML::EndSeq;
@@ -455,7 +486,7 @@ void write_json_file(std::ostream                        &os,
                      const std::vector<bigrig::period_t> &periods) {
   nlohmann::json j;
 
-  j["tree"] = tree.to_newick();
+  j["tree"]    = tree.to_newick();
   j["regions"] = tree.region_count();
 
   for (const auto &n : tree) {
@@ -562,6 +593,18 @@ void write_output_files(const cli_options_t                 &cli_options,
   }
 }
 
+void finalize_options(cli_options_t &cli_options) {
+  if (cli_options.rng_seed.has_value()) {
+    cli_options.get_rng_wrapper().seed(cli_options.rng_seed.value());
+  } else {
+    cli_options.get_rng_wrapper().seed();
+  }
+  if (!cli_options.root_range.has_value()) {
+    cli_options.root_range = bigrig::make_random_dist(
+        cli_options.region_count.value(), cli_options.get_rng());
+  }
+}
+
 /**
  * Validate the CLI options, and merge the config file if passed
  *
@@ -571,7 +614,7 @@ void write_output_files(const cli_options_t                 &cli_options,
  * - Normalizing paths
  * - Checking existing results
  */
-bool validate_options(cli_options_t &cli_options) {
+bool validate_and_finalize_options(cli_options_t &cli_options) {
   if (cli_options.config_filename.has_value()
       && config_compatible(cli_options)) {
     try {
@@ -595,6 +638,8 @@ bool validate_options(cli_options_t &cli_options) {
         "We can't continue with the current options, exiting instead");
     return false;
   }
+
+  finalize_options(cli_options);
 
   write_header(cli_options);
 

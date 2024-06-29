@@ -3,9 +3,15 @@
 #include "dist.hpp"
 #include "logger.hpp"
 #include "period.hpp"
+#include "rng.hpp"
 #include "util.hpp"
 
 #include <algorithm>
+
+pcg64_fast &cli_options_t::get_rng() { return bigrig::rng_wrapper_t::rng(); }
+bigrig::rng_wrapper_t &cli_options_t::get_rng_wrapper() {
+  return bigrig::rng_wrapper_t::get_instance();
+}
 
 std::filesystem::path cli_options_t::phylip_filename() const {
   auto tmp  = prefix.value();
@@ -88,7 +94,8 @@ void cli_options_t::merge(const cli_options_t &other) {
   merge_variable(prefix, other.prefix, "prefix");
   merge_variable(debug_log, other.debug_log, "debug-log");
   merge_variable(output_format_type, other.output_format_type, "output-format");
-  merge_variable(root_distribution, other.root_distribution, "root-range");
+  merge_variable(root_range, other.root_range, "root-range");
+  merge_variable(region_count, other.region_count, "region-count");
 
   /* periods are a bit different, so we handle them differently */
   if (!other.periods.empty()) {
@@ -149,6 +156,12 @@ std::optional<bigrig::dist_t>
 cli_options_t::get_root_range(const YAML::Node &yaml) {
   constexpr auto ROOT_DIST_KEY = "root-range";
   if (yaml[ROOT_DIST_KEY]) { return yaml[ROOT_DIST_KEY].as<std::string>(); }
+  return {};
+}
+
+std::optional<size_t> cli_options_t::get_region_count(const YAML::Node &yaml) {
+  constexpr auto REGION_COUNT_KEY = "region-count";
+  if (yaml[REGION_COUNT_KEY]) { return yaml[REGION_COUNT_KEY].as<size_t>(); }
   return {};
 }
 
@@ -386,7 +399,7 @@ std::vector<bigrig::period_t> cli_options_t::make_periods() const {
          .jump      = cli_period.clado.jump},
         two_region_duplicity.value_or(true),
         cli_period.index};
-    if (!period.model().check_ok(root_distribution.value().regions())) {
+    if (!period.model().check_ok(root_range.value().regions())) {
       LOG_ERROR("There is an issue with the model for period '%lu', we can't "
                 "continue",
                 cli_period.index);

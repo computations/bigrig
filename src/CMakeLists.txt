@@ -10,7 +10,7 @@ add_library(bigrig_obj OBJECT
 add_library(bigrig_interface_obj OBJECT
   clioptions.cpp
   io.cpp
-  )
+)
 
 option(ENABLE_BMI "Enable Bit Manipulation Instructions (BMI) instructions" ON)
 if(ENABLE_BMI)
@@ -54,5 +54,6 @@ set_target_properties(bigrig
 
 target_compile_options(bigrig PRIVATE -Wall -Wextra)
 
+target_include_directories(bigrig_interface_obj PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/include")
 target_include_directories(bigrig_obj PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/include")
 target_include_directories(bigrig PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/include")

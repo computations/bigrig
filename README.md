@@ -51,7 +51,9 @@ The required parameters are:
 
 - `--tree`: Path to the tree file used for the simulation
 - `--root-range`: Range for the species at the root of the tree. Alternatively,
-  the starting range.
+  the starting range. Only required if `range-count` is not specified.
+- `--range-count`: Number of regions to simulate with. If `root-range` is not
+  specified, then a random root range is generated.
 - `-d/--dispersion`: Dispersion rate for the simulation.
 - `-e/--extinction`: Extinction rate for the simulation.
 - `-v/--allopatry`: Allopatry/vicariance rate for the simulation.
