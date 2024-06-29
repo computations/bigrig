@@ -316,3 +316,113 @@ TEST_CASE("split regression g-test") {
 
   CHECK(g < q);
 }
+
+TEST_CASE("split index distribution", "[sample]") {
+  pcg64_fast gen(Catch::getSeed());
+
+  /* chi square lut. df -> 99-%ile */
+  constexpr double chi2_lut[]{
+      6.6348966010212145, 9.21034037197618,   11.344866730144373,
+      13.276704135987622, 15.08627246938899,  16.811893829770927,
+      18.475306906582357, 20.090235029663233, 21.665994333461924,
+      23.209251158954356, 24.724970311318277, 26.216967305535853,
+      27.68824961045705,  29.141237740672796, 30.57791416689249,
+      31.999926908815176, 33.40866360500461,  34.805305734705065,
+      36.19086912927004,  37.56623478662507,  38.93217268351607,
+      40.289360437593864, 41.638398118858476, 42.97982013935165,
+      44.31410489621915,  45.64168266628317,  46.962942124751436,
+      48.27823577031548,  49.58788447289881,  50.89218131151707,
+      52.19139483319193,  53.48577183623535,  54.77553976011035,
+      56.06090874778906,  57.3420734338592,   58.61921450168706,
+      59.89250004508689,  61.1620867636897,   62.4281210161849,
+      63.690739751564465, 64.9500713352112,   66.20623628399322,
+      67.45934792232582,  68.7095129693454,   69.95683206583814,
+      71.20140024831149,  72.44330737654823,  73.68263852010573,
+      74.91947430847816,  76.1538912490127,   77.38596201613736,
+      78.6157557150025,   79.84333812225145,  81.0687719062971,
+      82.29211682919967,  83.51342993198946,  84.73276570506393,
+      85.95017624510335,  87.16571139978757,  88.37941890144937,
+      89.59134449068712,  90.80153203083871,  92.01002361413214};
+
+  constexpr size_t trials = 1e4;
+
+  bigrig::dist_t init_dist = GENERATE(
+      bigrig::dist_t{0b01'1100'1100, 10},
+      bigrig::dist_t{0b11'0100'0001, 10},
+      bigrig::dist_t{0b00'1111'1011, 10},
+      bigrig::dist_t{0b11'0101'0100, 10},
+      bigrig::dist_t{
+          0b001'1110'1000'0111'1000'1111'1100'1111'1101'1101'1110'1101'1111'0110'1001'0101,
+          63},
+      bigrig::dist_t{
+          0b111'1111'1000'0011'0110'1011'1111'0010'1001'0000'0101'0011'1100'1110'0000'0100,
+          63});
+
+  bigrig::biogeo_model_t model;
+  model.set_params(1.0, 1.0).set_two_region_duplicity(false);
+
+  std::vector<size_t> index_counts;
+  index_counts.resize(init_dist.regions());
+
+  SECTION("sympatry") {
+    model.set_cladogenesis_params(0.0, 1.0, 0.0, 0.0);
+    for (size_t i = 0; i < trials; ++i) {
+      auto   split               = bigrig::split_dist(init_dist, model, gen);
+      auto   tmp_dist            = (split.left & split.right);
+      size_t split_index         = tmp_dist.last_full_region();
+      index_counts[split_index] += 1;
+    }
+
+    double chi2 = 0;
+    double expected_count
+        = trials / static_cast<double>(init_dist.full_region_count());
+    size_t df = init_dist.full_region_count() - 1;
+    for (auto c : index_counts) {
+      if (c == 0) { continue; }
+      double num  = c * c / expected_count - trials;
+      chi2       += num / expected_count;
+    }
+  }
+
+  SECTION("allopatry") {
+    model.set_cladogenesis_params(1.0, 0.0, 0.0, 0.0);
+    for (size_t i = 0; i < trials; ++i) {
+      auto split = bigrig::split_dist(init_dist, model, gen);
+
+      auto   tmp_dist    = split.left.singleton() ? split.left : split.right;
+      size_t split_index = tmp_dist.last_full_region();
+      index_counts[split_index] += 1;
+    }
+    double chi2 = 0;
+    double expected_count
+        = trials / static_cast<double>(init_dist.full_region_count());
+    size_t df = init_dist.full_region_count() - 1;
+    for (auto c : index_counts) {
+      if (c == 0) { continue; }
+      double num  = c * c / expected_count - trials;
+      chi2       += num / expected_count;
+    }
+    CHECK(chi2 < chi2_lut[df]);
+  }
+
+  SECTION("jump") {
+    model.set_cladogenesis_params(0.0, 0.0, 0.0, 1.0);
+    for (size_t i = 0; i < trials; ++i) {
+      auto split = bigrig::split_dist(init_dist, model, gen);
+
+      auto   tmp_dist    = split.left.singleton() ? split.left : split.right;
+      size_t split_index = tmp_dist.last_full_region();
+      index_counts[split_index] += 1;
+    }
+    double chi2 = 0;
+    double expected_count
+        = trials / static_cast<double>(init_dist.empty_region_count());
+    size_t df = init_dist.empty_region_count() - 1;
+    for (auto c : index_counts) {
+      if (c == 0) { continue; }
+      double num  = c * c / expected_count - trials;
+      chi2       += num / expected_count;
+    }
+    CHECK(chi2 < chi2_lut[df]);
+  }
+}
