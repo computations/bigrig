@@ -486,8 +486,9 @@ void write_json_file(std::ostream                        &os,
                      const std::vector<bigrig::period_t> &periods) {
   nlohmann::json j;
 
-  j["tree"]    = tree.to_newick();
-  j["regions"] = tree.region_count();
+  j["tree"]       = tree.to_newick();
+  j["regions"]    = tree.region_count();
+  j["root-range"] = tree.get_root_range().to_str();
 
   for (const auto &n : tree) {
     j["align"][n->string_id()] = n->final_state().to_str();

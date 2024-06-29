@@ -68,6 +68,8 @@ public:
   void set_periods(const std::vector<period_t> &periods);
   void set_periods(const period_t &periods);
 
+  dist_t get_root_range() const;
+  
 private:
   void convert_tree(corax_utree_t *corax_tree);
 

@@ -102,6 +102,7 @@ public:
   void assign_abs_time_root();
 
   void set_label(const std::string &str);
+  dist_t start_range() const;
 
 private:
   void     parse_periods(const std::vector<period_t> &periods);

@@ -262,9 +262,12 @@ void node_t::parse_periods(const std::vector<period_t> &periods) {
        start_period_itr++) {
     _periods.emplace_back(*start_period_itr);
   }
-  for(auto& p: _periods){
-    p = clamp_period(p);
-  }
+  for (auto &p : _periods) { p = clamp_period(p); }
+}
+
+dist_t node_t::start_range() const {
+  if (_transitions.empty()) { return _final_state; }
+  return _transitions.front().initial_state;
 }
 
 } // namespace bigrig
