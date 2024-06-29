@@ -347,6 +347,15 @@ void write_yaml_tree(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
   yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
 }
 
+void write_yaml_regions(YAML::Emitter &yaml, const size_t &regions) {
+  yaml << YAML::Key << "region-count" << YAML::Value << regions;
+}
+
+void write_yaml_root_range(YAML::Emitter        &yaml,
+                           const bigrig::dist_t &root_dist) {
+  yaml << YAML::Key << "root-range" << YAML::Value << root_dist.to_str();
+}
+
 void write_yaml_alignment(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
   yaml << YAML::Key << "align";
   yaml << YAML::BeginMap;
@@ -472,6 +481,8 @@ void write_yaml_file(std::ostream                        &os,
   yaml << YAML::BeginMap;
 
   write_yaml_tree(yaml, tree);
+  write_yaml_regions(yaml, tree.region_count());
+  write_yaml_root_range(yaml, tree.get_root_range());
   write_yaml_alignment(yaml, tree);
   write_yaml_splits(yaml, tree);
   write_yaml_events(yaml, tree);
