@@ -317,7 +317,7 @@ TEST_CASE("split regression g-test") {
   CHECK(g < q);
 }
 
-TEST_CASE("split index distribution", "[sample]") {
+TEST_CASE("split index chi2 test", "[sample]") {
   pcg64_fast gen(Catch::getSeed());
 
   /* chi square lut. df -> 99-%ile */
@@ -367,9 +367,9 @@ TEST_CASE("split index distribution", "[sample]") {
   SECTION("sympatry") {
     model.set_cladogenesis_params(0.0, 1.0, 0.0, 0.0);
     for (size_t i = 0; i < trials; ++i) {
-      auto   split               = bigrig::split_dist(init_dist, model, gen);
-      auto   tmp_dist            = (split.left & split.right);
-      size_t split_index         = tmp_dist.last_full_region();
+      auto   split       = bigrig::split_dist(init_dist, model, gen);
+      auto   tmp_dist    = (split.left & split.right);
+      size_t split_index = tmp_dist.last_full_region() - 1;
       index_counts[split_index] += 1;
     }
 
@@ -379,7 +379,8 @@ TEST_CASE("split index distribution", "[sample]") {
     size_t df = init_dist.full_region_count() - 1;
     for (auto c : index_counts) {
       if (c == 0) { continue; }
-      double num  = c * c / expected_count - trials;
+      double num  = c - expected_count;
+      num *= num;
       chi2       += num / expected_count;
     }
   }
@@ -390,7 +391,7 @@ TEST_CASE("split index distribution", "[sample]") {
       auto split = bigrig::split_dist(init_dist, model, gen);
 
       auto   tmp_dist    = split.left.singleton() ? split.left : split.right;
-      size_t split_index = tmp_dist.last_full_region();
+      size_t split_index = tmp_dist.last_full_region() - 1;
       index_counts[split_index] += 1;
     }
     double chi2 = 0;
@@ -399,7 +400,8 @@ TEST_CASE("split index distribution", "[sample]") {
     size_t df = init_dist.full_region_count() - 1;
     for (auto c : index_counts) {
       if (c == 0) { continue; }
-      double num  = c * c / expected_count - trials;
+      double num  = c - expected_count;
+      num *= num;
       chi2       += num / expected_count;
     }
     CHECK(chi2 < chi2_lut[df]);
@@ -411,7 +413,7 @@ TEST_CASE("split index distribution", "[sample]") {
       auto split = bigrig::split_dist(init_dist, model, gen);
 
       auto   tmp_dist    = split.left.singleton() ? split.left : split.right;
-      size_t split_index = tmp_dist.last_full_region();
+      size_t split_index = tmp_dist.last_full_region() - 1;
       index_counts[split_index] += 1;
     }
     double chi2 = 0;
@@ -420,7 +422,8 @@ TEST_CASE("split index distribution", "[sample]") {
     size_t df = init_dist.empty_region_count() - 1;
     for (auto c : index_counts) {
       if (c == 0) { continue; }
-      double num  = c * c / expected_count - trials;
+      double num  = c - expected_count;
+      num *= num;
       chi2       += num / expected_count;
     }
     CHECK(chi2 < chi2_lut[df]);
