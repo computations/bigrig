@@ -19,7 +19,7 @@
 /**
  * Type-safe enum for the output file format.
  */
-enum class output_format_type_e { JSON, YAML };
+enum class output_format_type_e { JSON, YAML, CSV };
 
 class cli_option_missing_required_yaml_option : std::invalid_argument {
 public:
@@ -124,7 +124,11 @@ struct cli_options_t {
 
   std::filesystem::path json_filename() const;
 
-  pcg64_fast &get_rng();
+  std::filesystem::path csv_splits_filename() const;
+  std::filesystem::path csv_events_filename() const;
+  std::filesystem::path csv_periods_filename() const;
+
+  pcg64_fast            &get_rng();
   bigrig::rng_wrapper_t &get_rng_wrapper();
 
   bool cli_arg_specified() const;
@@ -132,6 +136,8 @@ struct cli_options_t {
   bool yaml_file_set() const;
 
   bool json_file_set() const;
+
+  bool csv_file_set() const;
 
   void merge(const cli_options_t &other);
 

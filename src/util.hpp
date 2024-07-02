@@ -38,5 +38,6 @@ constexpr auto PHYILP_EXT = ".phy";
 constexpr auto NEWICK_EXT = ".nwk";
 constexpr auto YAML_EXT   = ".yaml";
 constexpr auto JSON_EXT   = ".json";
+constexpr auto CSV_EXT   = ".csv";
 
 } // namespace bigrig::util

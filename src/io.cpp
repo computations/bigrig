@@ -5,6 +5,9 @@
 
 #include <filesystem>
 #include <optional>
+#include <string_view>
+
+using namespace std::string_view_literals; // for the 'sv' suffix
 
 constexpr size_t MAX_REGIONS = 64;
 
@@ -330,6 +333,23 @@ bool normalize_paths(cli_options_t &cli_options) {
                 cli_options.json_filename().c_str());
     ok = false;
   }
+  if (cli_options.csv_file_set()) {
+    if (std::filesystem::exists(cli_options.csv_splits_filename())) {
+      LOG_WARNING("Results file %s exists already",
+                  cli_options.csv_splits_filename().c_str());
+      ok = false;
+    }
+    if (std::filesystem::exists(cli_options.csv_events_filename())) {
+      LOG_WARNING("Results file %s exists already",
+                  cli_options.csv_events_filename().c_str());
+      ok = false;
+    }
+    if (std::filesystem::exists(cli_options.csv_periods_filename())) {
+      LOG_WARNING("Results file %s exists already",
+                  cli_options.csv_periods_filename().c_str());
+      ok = false;
+    }
+  }
   return ok;
 }
 
@@ -507,8 +527,8 @@ void write_json_file(std::ostream                        &os,
 
   for (const auto &n : tree) {
     if (n->is_leaf()) { continue; }
-    auto split                                = n->node_split();
-    j["splits"][std::to_string(n->node_id())] = {
+    auto split                  = n->node_split();
+    j["splits"][n->string_id()] = {
         {"left", split.left.to_str()},
         {"right", split.right.to_str()},
         {"type", split.to_type_string()},
@@ -557,6 +577,130 @@ void write_json_file(std::ostream                        &os,
   os << j.dump() << std::endl;
 }
 
+template <typename T, size_t N>
+inline std::string make_csv_row(const std::array<T, N> &entries) {
+  return std::accumulate(std::next(entries.begin()),
+                         entries.end(),
+                         std::string(*entries.begin()),
+                         [](const T &acc, const T &entry) -> std::string {
+                           return acc + ", " + entry;
+                         })
+       + "\n";
+}
+
+template <size_t N>
+inline std::string make_csv_row(const std::array<std::string_view, N> &fields) {
+  return std::accumulate(
+             std::next(fields.begin()),
+             fields.end(),
+             std::string(*fields.begin()),
+             [](std::string acc, const std::string_view &entry) -> std::string {
+               acc += ", ";
+               acc += entry;
+               return acc;
+             })
+       + "\n";
+}
+
+template <size_t N>
+inline std::string make_csv_row(const std::array<double, N> &fields) {
+  return std::accumulate(
+             std::next(fields.begin()),
+             fields.end(),
+             std::to_string(*fields.begin()),
+             [](std::string acc, const double &entry) -> std::string {
+               acc += ", ";
+               acc += std::to_string(entry);
+               return acc;
+             })
+       + "\n";
+}
+
+template <size_t N>
+inline std::ofstream init_csv(const std::filesystem::path           &filename,
+                              const std::array<std::string_view, N> &fields) {
+  std::ofstream csv_file(filename);
+  csv_file << make_csv_row(fields);
+  return csv_file;
+}
+
+void write_split_csv_file(const cli_options_t  &cli_options,
+                          const bigrig::tree_t &tree) {
+  auto                 output_filename = cli_options.csv_splits_filename();
+  constexpr std::array fields{
+      "node"sv, "left"sv, "right"sv, "type"sv, "period"sv};
+  auto output_file = init_csv(output_filename, fields);
+
+  for (const auto &n : tree) {
+    if (n->is_leaf()) { continue; }
+    auto split = n->node_split();
+
+    output_file << make_csv_row(std::array{n->string_id(),
+                                           split.left.to_str(),
+                                           split.right.to_str(),
+                                           split.to_type_string(),
+                                           std::to_string(split.period_index)});
+  };
+}
+
+void write_events_csv_file(const cli_options_t  &cli_options,
+                           const bigrig::tree_t &tree) {
+  auto                 output_filename = cli_options.csv_events_filename();
+  constexpr std::array fields{"node"sv,
+                              "waiting-time"sv,
+                              "initial-state"sv,
+                              "final-state"sv,
+                              "period"sv};
+  auto                 output_file = init_csv(output_filename, fields);
+
+  for (const auto &n : tree) {
+    for (const auto &t : n->transitions()) {
+      output_file << make_csv_row(std::array{n->string_id(),
+                                             std::to_string(t.waiting_time),
+                                             t.initial_state.to_str(),
+                                             t.final_state.to_str(),
+                                             std::to_string(t.period_index)});
+    }
+  }
+}
+
+void write_periods_csv_file(const cli_options_t                 &cli_options,
+                            const std::vector<bigrig::period_t> &periods) {
+  auto                 output_filename = cli_options.csv_periods_filename();
+  constexpr std::array fields{"index"sv,
+                              "start"sv,
+                              "dispersion"sv,
+                              "extinction"sv,
+                              "allopatry"sv,
+                              "sympatry"sv,
+                              "copy"sv,
+                              "jump"sv};
+  auto                 output_file = init_csv(output_filename, fields);
+
+  for (const auto &p : periods) {
+    auto &model                   = p.model();
+    auto [dis, ext]               = model.rates();
+    auto [allo, symp, copy, jump] = model.cladogenesis_params();
+
+    output_file << make_csv_row(std::array{static_cast<double>(p.index()),
+                                           p.start(),
+                                           dis,
+                                           ext,
+                                           allo,
+                                           symp,
+                                           copy,
+                                           jump});
+  }
+}
+
+void write_csv_files(const cli_options_t                 &cli_options,
+                     const bigrig::tree_t                &tree,
+                     const std::vector<bigrig::period_t> &periods) {
+  write_split_csv_file(cli_options, tree);
+  write_events_csv_file(cli_options, tree);
+  write_periods_csv_file(cli_options, periods);
+}
+
 /**
  * Write the output files given a sampled tree and model.
  *
@@ -566,8 +710,7 @@ void write_json_file(std::ostream                        &os,
 void write_output_files(const cli_options_t                 &cli_options,
                         const bigrig::tree_t                &tree,
                         const std::vector<bigrig::period_t> &periods) {
-  auto phylip_filename  = cli_options.prefix.value();
-  phylip_filename      += ".phy";
+  auto          phylip_filename = cli_options.phylip_filename();
   std::ofstream phylip_file(phylip_filename);
   phylip_file << to_phylip(tree);
 
@@ -602,6 +745,9 @@ void write_output_files(const cli_options_t                 &cli_options,
     auto          output_json_filename = cli_options.json_filename();
     std::ofstream output_json_file(output_json_filename);
     write_json_file(output_json_file, tree, periods);
+  }
+  if (cli_options.csv_file_set()) {
+    write_csv_files(cli_options, tree, periods);
   }
 }
 

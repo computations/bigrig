@@ -31,6 +31,30 @@ std::filesystem::path cli_options_t::json_filename() const {
   return tmp;
 }
 
+std::filesystem::path cli_options_t::csv_splits_filename() const {
+  constexpr auto splits_subprefix  = ".splits";
+  auto           tmp               = prefix.value();
+  tmp                             += splits_subprefix;
+  tmp                             += bigrig::util::CSV_EXT;
+  return tmp;
+}
+
+std::filesystem::path cli_options_t::csv_events_filename() const {
+  constexpr auto events_subprefix  = ".events";
+  auto           tmp               = prefix.value();
+  tmp                             += events_subprefix;
+  tmp                             += bigrig::util::CSV_EXT;
+  return tmp;
+}
+
+std::filesystem::path cli_options_t::csv_periods_filename() const {
+  constexpr auto state_subprefix  = ".periods";
+  auto           tmp              = prefix.value();
+  tmp                            += state_subprefix;
+  tmp                            += bigrig::util::CSV_EXT;
+  return tmp;
+}
+
 /**
  * Checks if all the required args for the CLI have been specified.
  */
@@ -53,6 +77,11 @@ bool cli_options_t::yaml_file_set() const {
 bool cli_options_t::json_file_set() const {
   return output_format_type.has_value()
       && output_format_type.value() == output_format_type_e::JSON;
+}
+
+bool cli_options_t::csv_file_set() const {
+  return output_format_type.has_value()
+      && output_format_type.value() == output_format_type_e::CSV;
 }
 
 /**
@@ -135,12 +164,15 @@ std::optional<output_format_type_e>
 cli_options_t::get_output_format(const YAML::Node &yaml) {
   constexpr auto OUPUT_FORMAT_KEY = "output-format";
   if (yaml[OUPUT_FORMAT_KEY]) {
-    if (yaml[OUPUT_FORMAT_KEY].as<std::string>() == "json") {
-      return output_format_type_e::JSON;
-    }
-    if (yaml[OUPUT_FORMAT_KEY].as<std::string>() == "yaml") {
-      return output_format_type_e::YAML;
-    }
+    auto value = yaml[OUPUT_FORMAT_KEY].as<std::string>();
+    std::transform(value.begin(),
+                   value.end(),
+                   value.begin(),
+                   [](char c) -> char { return std::tolower(c); });
+
+    if (value == "json") { return output_format_type_e::JSON; }
+    if (value == "yaml") { return output_format_type_e::YAML; }
+    if (value == "csv") { return output_format_type_e::CSV; }
   }
   return {};
 }
