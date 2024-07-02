@@ -38,6 +38,8 @@ constexpr auto PHYILP_EXT = ".phy";
 constexpr auto NEWICK_EXT = ".nwk";
 constexpr auto YAML_EXT   = ".yaml";
 constexpr auto JSON_EXT   = ".json";
-constexpr auto CSV_EXT   = ".csv";
+constexpr auto CSV_EXT    = ".csv";
+
+constexpr size_t VECTOR_INITIAL_RESERVE = 8;
 
 } // namespace bigrig::util

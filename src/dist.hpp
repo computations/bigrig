@@ -2,6 +2,7 @@
 
 #include "model.hpp"
 #include "util.hpp"
+#include "period.hpp"
 
 #include <cstdint>
 #include <logger.hpp>
@@ -422,6 +423,35 @@ transition_t spread_analytic(dist_t                                  init_dist,
     }
   }
   throw std::runtime_error{"Failed to spread correctly"};
+}
+
+/**
+ * Generate transitions for a branch.
+ *
+ * Simulates transitions by simulating a single transition and subtracting the
+ * waiting time from the branch length. If the branch length is still positive
+ * or zero, then we record the sample and continue. The process repeats until
+ * the branch length is negative.
+ */
+std::vector<transition_t>
+simulate_transitions(dist_t                                  init_dist,
+                     const std::vector<period_t>            &periods,
+                     std::uniform_random_bit_generator auto &gen,
+                     operation_mode_e                        mode) {
+  std::vector<transition_t> results;
+  results.reserve(util::VECTOR_INITIAL_RESERVE);
+  for (const auto &current_period : periods) {
+    double brlen = current_period.length();
+    while (true) {
+      auto r          = spread(init_dist, current_period.model(), gen, mode);
+      r.period_index  = current_period.index();
+      brlen          -= r.waiting_time;
+      if (brlen < 0.0) { break; }
+      init_dist = r.final_state;
+      results.push_back(r);
+    }
+  }
+  return results;
 }
 
 } // namespace bigrig

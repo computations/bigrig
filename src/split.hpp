@@ -3,8 +3,6 @@
 
 #include <stdexcept>
 
-constexpr size_t VECTOR_INITIAL_RESERVE = 8;
-
 namespace bigrig {
 enum class split_type_e { singleton, allopatric, sympatric, jump, invalid };
 
@@ -24,34 +22,6 @@ struct split_t {
   std::string to_type_string() const;
 };
 
-/**
- * Generate transitions for a branch.
- *
- * Simulates transitions by simulating a single transition and subtracting the
- * waiting time from the branch length. If the branch length is still positive
- * or zero, then we record the sample and continue. The process repeats until
- * the branch length is negative.
- */
-std::vector<transition_t>
-simulate_transitions(dist_t                                  init_dist,
-                     const std::vector<period_t>            &periods,
-                     std::uniform_random_bit_generator auto &gen,
-                     operation_mode_e                        mode) {
-  std::vector<transition_t> results;
-  results.reserve(VECTOR_INITIAL_RESERVE);
-  for (const auto &current_period : periods) {
-    double brlen = current_period.length();
-    while (true) {
-      auto r          = spread(init_dist, current_period.model(), gen, mode);
-      r.period_index  = current_period.index();
-      brlen          -= r.waiting_time;
-      if (brlen < 0.0) { break; }
-      init_dist = r.final_state;
-      results.push_back(r);
-    }
-  }
-  return results;
-}
 
 /**
  * Simulates a split type based on some model parameters.
@@ -170,7 +140,7 @@ split_t split_dist_fast(dist_t                                  init_dist,
   if (type == split_type_e::allopatric) {
     left_dist = init_dist.flip_region(flipped_index);
   }
-  right_dist = {1ul << flipped_index, init_dist.regions()};
+  right_dist = {1ull << flipped_index, init_dist.regions()};
 
   std::bernoulli_distribution coin(0.5);
   if (coin(gen)) { std::swap(left_dist, right_dist); }
