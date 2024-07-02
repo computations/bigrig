@@ -55,13 +55,16 @@ TEST_CASE("dist operations", "[dist]") {
   }
 
   SECTION("negate bit") {
-    for (size_t i = 0; i < regions; ++i) {
-      auto tmp = d.flip_region(i);
-      CHECK(tmp != d);
-      CHECK((tmp ^ d).full_region_count() == 1);
-      CHECK(tmp.region_symmetric_difference(d).full_region_count() == 1);
-      CHECK(tmp.region_symmetric_difference_size(d) == 1);
-      CHECK(tmp.one_region_off(d));
+    bigrig::dist_t big = {
+        0b100'0111'0110'0101'0110'1010'0110'0101'1100'1010'0111'1111'0101'0010'1111'0100,
+        63};
+    for (size_t i = 0; i < 63; ++i) {
+      auto tmp = big.flip_region(i);
+      CHECK(tmp != big);
+      CHECK((tmp ^ big).full_region_count() == 1);
+      CHECK(tmp.region_symmetric_difference(big).full_region_count() == 1);
+      CHECK(tmp.region_symmetric_difference_size(big) == 1);
+      CHECK(tmp.one_region_off(big));
     }
   }
 
@@ -273,9 +276,9 @@ TEST_CASE("spread index chi2 test", "[sample]") {
 
   double chi2 = 0.0;
   for (auto c : index_counts) {
-    if(c == 0){ continue;}
+    if (c == 0) { continue; }
     double num  = c - expected_count;
-    num *= num;
+    num        *= num;
     chi2       += num / expected_count;
   }
   REQUIRE(chi2 >= 0);
