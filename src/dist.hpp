@@ -306,7 +306,7 @@ private:
   }
 
   constexpr uint64_t valid_region_mask() const {
-    uint64_t mask = (1 << regions()) - 1;
+    uint64_t mask = (1ull << regions()) - 1;
     return static_cast<uint64_t>(mask);
   }
 
