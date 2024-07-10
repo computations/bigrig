@@ -12,19 +12,25 @@ add_library(bigrig_interface_obj OBJECT
   io.cpp
 )
 
-option(ENABLE_BMI "Enable Bit Manipulation Instructions (BMI) instructions" ON)
+option(ENABLE_BMI "Enable Bit Manipulation Instructions (BMI) instructions" OFF)
 if(ENABLE_BMI)
   target_compile_options(bigrig_obj PUBLIC -mbmi)
 endif()
 
-option(ENABLE_BMI2 "Enable Bit Manipulation Instructions 2 (BMI2) instructions" ON)
+option(ENABLE_BMI2 "Enable Bit Manipulation Instructions 2 (BMI2) instructions"
+  OFF)
 if(ENABLE_BMI2)
   target_compile_options(bigrig_obj PUBLIC -mbmi2)
 endif()
 
-option(ENABLE_ABM "Enable Advanced Bit Manipulation (ABM) instructions" ON)
+option(ENABLE_ABM "Enable Advanced Bit Manipulation (ABM) instructions" OFF)
 if(ENABLE_ABM)
   target_compile_options(bigrig_obj PUBLIC -mabm)
+endif()
+
+option(ENABLE_NATIVE_FLAGS "Enable Bit Manipulation Instructions (BMI) instructions" ON)
+if(ENABLE_NATIVE_FLAGS)
+  target_compile_options(bigrig_obj PUBLIC -march=native)
 endif()
 
 target_link_libraries(bigrig_obj PUBLIC corax logger)
@@ -35,6 +41,10 @@ target_link_libraries(bigrig_interface_obj PUBLIC logger CLI11 yaml-cpp corax
 target_include_directories(bigrig_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_compile_options(bigrig_obj PRIVATE -Wall -Wextra)
+
+target_compile_options(bigrig_obj PUBLIC $<$<CONFIG:Debug>:-fsanitize=undefined>)
+target_link_options(bigrig_obj PUBLIC $<$<CONFIG:Debug>:-fsanitize=undefined>)
+
 target_compile_options(bigrig_interface_obj PRIVATE -Wall -Wextra)
 
 add_executable(bigrig
