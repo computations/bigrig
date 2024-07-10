@@ -1,5 +1,4 @@
 #include "dist.hpp"
-#include "period.hpp"
 
 #include <stdexcept>
 

@@ -1,7 +1,6 @@
 add_library(bigrig_obj OBJECT
     dist.cpp
     model.cpp
-    util.cpp
     node.cpp
     tree.cpp
     split.cpp
