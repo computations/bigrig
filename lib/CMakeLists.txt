@@ -6,8 +6,7 @@ FetchContent_Declare(json
 
 FetchContent_GetProperties(json)
 if(NOT json_POPULATED)
-  FetchContent_Populate(json)
-  add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(json)
 endif()
 
 add_subdirectory(coraxlib EXCLUDE_FROM_ALL)
