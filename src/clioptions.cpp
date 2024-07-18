@@ -55,6 +55,14 @@ std::filesystem::path cli_options_t::csv_periods_filename() const {
   return tmp;
 }
 
+std::filesystem::path cli_options_t::csv_program_stats_filename() const {
+  constexpr auto state_subprefix  = ".program-stats";
+  auto           tmp              = prefix.value();
+  tmp                            += state_subprefix;
+  tmp                            += bigrig::util::CSV_EXT;
+  return tmp;
+}
+
 /**
  * Checks if all the required args for the CLI have been specified.
  */

@@ -4,6 +4,7 @@
 #include "model.hpp"
 #include "pcg_random.hpp"
 
+#include <chrono>
 #include <corax/corax.hpp>
 #include <logger.hpp>
 
@@ -145,12 +146,16 @@ int main() {
 
   auto gen = cli_options.get_rng();
 
-  MESSAGE_INFO("Simulating ranges on the tree")
+  MESSAGE_INFO("Simulating ranges on the tree");
+
+  const auto start_time{std::chrono::high_resolution_clock::now()};
   tree.simulate(cli_options.root_range.value(), gen);
+  const auto end_time{std::chrono::high_resolution_clock::now()};
+  program_stats_t program_stats{end_time - start_time};
 
-  MESSAGE_INFO("Writing results to files")
-  write_output_files(cli_options, tree, periods);
+  MESSAGE_INFO("Writing results to files");
+  write_output_files(cli_options, tree, periods, program_stats);
 
-  MESSAGE_INFO("Done!")
+  MESSAGE_INFO("Done!");
   return 0;
 }

@@ -14,6 +14,7 @@ bool validate_and_finalize_options(cli_options_t &cli_options);
 
 void write_output_files(const cli_options_t                 &cli_options,
                         const bigrig::tree_t                &tree,
-                        const std::vector<bigrig::period_t> &period);
+                        const std::vector<bigrig::period_t> &period,
+                        const program_stats_t               &program_stats);
 
 void write_header(const cli_options_t &cli_options);

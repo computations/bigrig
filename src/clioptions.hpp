@@ -40,6 +40,11 @@ struct period_params_t {
   size_t                        index;
 };
 
+struct program_stats_t {
+  double execution_time_in_seconds() const { return execution_time.count(); }
+  std::chrono::duration<double> execution_time;
+};
+
 /**
  * Semi-smart struct containing the parsed program options. Normally these are
  * passed on the command line, but they can also be provided via a config file.
@@ -127,6 +132,7 @@ struct cli_options_t {
   std::filesystem::path csv_splits_filename() const;
   std::filesystem::path csv_events_filename() const;
   std::filesystem::path csv_periods_filename() const;
+  std::filesystem::path csv_program_stats_filename() const;
 
   pcg64_fast            &get_rng();
   bigrig::rng_wrapper_t &get_rng_wrapper();

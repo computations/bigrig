@@ -1,5 +1,6 @@
 #include "io.hpp"
 
+#include "clioptions.hpp"
 #include "logger.hpp"
 #include "model.hpp"
 
@@ -349,6 +350,11 @@ bool normalize_paths(cli_options_t &cli_options) {
                   cli_options.csv_periods_filename().c_str());
       ok = false;
     }
+    if (std::filesystem::exists(cli_options.csv_program_stats_filename())) {
+      LOG_WARNING("Results file %s exists already",
+                  cli_options.csv_program_stats_filename().c_str());
+      ok = false;
+    }
   }
   return ok;
 }
@@ -491,12 +497,23 @@ void write_yaml_period_list(YAML::Emitter                       &yaml,
   yaml << YAML::EndMap;
 }
 
+void write_yaml_program_stats(YAML::Emitter         &yaml,
+                              const program_stats_t &program_stats) {
+  yaml << YAML::Key << "stats";
+  yaml << YAML::BeginMap;
+  yaml << YAML::Key << "time";
+  yaml << YAML::Value;
+  yaml << program_stats.execution_time_in_seconds();
+  yaml << YAML::EndMap;
+}
+
 /**
  * Write the output as a YAML file.
  */
 void write_yaml_file(std::ostream                        &os,
                      const bigrig::tree_t                &tree,
-                     const std::vector<bigrig::period_t> &periods) {
+                     const std::vector<bigrig::period_t> &periods,
+                     const program_stats_t               &program_stats) {
   YAML::Emitter yaml;
   yaml << YAML::BeginMap;
 
@@ -507,6 +524,7 @@ void write_yaml_file(std::ostream                        &os,
   write_yaml_splits(yaml, tree);
   write_yaml_events(yaml, tree);
   write_yaml_period_list(yaml, periods);
+  write_yaml_program_stats(yaml, program_stats);
 
   yaml << YAML::EndMap;
   os << yaml.c_str() << std::endl;
@@ -514,12 +532,14 @@ void write_yaml_file(std::ostream                        &os,
 
 void write_json_file(std::ostream                        &os,
                      const bigrig::tree_t                &tree,
-                     const std::vector<bigrig::period_t> &periods) {
+                     const std::vector<bigrig::period_t> &periods,
+                     const program_stats_t               &program_stats) {
   nlohmann::json j;
 
-  j["tree"]       = tree.to_newick();
-  j["regions"]    = tree.region_count();
-  j["root-range"] = tree.get_root_range().to_str();
+  j["tree"]          = tree.to_newick();
+  j["regions"]       = tree.region_count();
+  j["root-range"]    = tree.get_root_range().to_str();
+  j["stats"]["time"] = program_stats.execution_time_in_seconds();
 
   for (const auto &n : tree) {
     j["align"][n->string_id()] = n->final_state().to_str();
@@ -693,12 +713,25 @@ void write_periods_csv_file(const cli_options_t                 &cli_options,
   }
 }
 
+void write_program_stats_csv_file(const cli_options_t   &cli_options,
+                                  const program_stats_t &program_stats) {
+  auto output_filename = cli_options.csv_program_stats_filename();
+  constexpr std::array fields{"stat"sv, "value"sv};
+
+  auto output_file = init_csv(output_filename, fields);
+  output_file << make_csv_row(std::array<std::string, 2>{
+      "execution-time",
+      std::to_string(program_stats.execution_time_in_seconds())});
+}
+
 void write_csv_files(const cli_options_t                 &cli_options,
                      const bigrig::tree_t                &tree,
-                     const std::vector<bigrig::period_t> &periods) {
+                     const std::vector<bigrig::period_t> &periods,
+                     const program_stats_t               &program_stats) {
   write_split_csv_file(cli_options, tree);
   write_events_csv_file(cli_options, tree);
   write_periods_csv_file(cli_options, periods);
+  write_program_stats_csv_file(cli_options, program_stats);
 }
 
 /**
@@ -709,7 +742,8 @@ void write_csv_files(const cli_options_t                 &cli_options,
  */
 void write_output_files(const cli_options_t                 &cli_options,
                         const bigrig::tree_t                &tree,
-                        const std::vector<bigrig::period_t> &periods) {
+                        const std::vector<bigrig::period_t> &periods,
+                        const program_stats_t               &program_stats) {
   auto          phylip_filename = cli_options.phylip_filename();
   std::ofstream phylip_file(phylip_filename);
   phylip_file << to_phylip(tree);
@@ -739,15 +773,15 @@ void write_output_files(const cli_options_t                 &cli_options,
   if (cli_options.yaml_file_set()) {
     auto          output_yaml_filename = cli_options.yaml_filename();
     std::ofstream output_yaml_file(output_yaml_filename);
-    write_yaml_file(output_yaml_file, tree, periods);
+    write_yaml_file(output_yaml_file, tree, periods, program_stats);
   }
   if (cli_options.json_file_set()) {
     auto          output_json_filename = cli_options.json_filename();
     std::ofstream output_json_file(output_json_filename);
-    write_json_file(output_json_file, tree, periods);
+    write_json_file(output_json_file, tree, periods, program_stats);
   }
   if (cli_options.csv_file_set()) {
-    write_csv_files(cli_options, tree, periods);
+    write_csv_files(cli_options, tree, periods, program_stats);
   }
 }
 
