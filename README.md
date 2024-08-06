@@ -6,8 +6,8 @@ DEC(+J) model.
 ## A note on terminology
 
 The terminology used around this topic can be confusing. Here I am going to
-define some terms that I use, and relate them to the original Ree _et. al_
-paper [1].
+define some terms that I use, and relate them to the original [Ree _et. al_
+paper][1].
 
 
 - **Region**: A segment of some area.
@@ -27,7 +27,7 @@ paper [1].
 - **Jump**: A type of cladogenesis where the daughter ranges share no regions,
   and _one_ of the daughter range shares no regions with the parent range. Ree
   _et. al_ do not include this type in the original paper, and was introduced by
-  Matzke [2].
+  [Matzke][2].
 
 For split types, it can be useful to write down their properties as a binary
 operations. 
