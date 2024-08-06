@@ -36,6 +36,7 @@ std::string split_t::to_type_string() const { return type_string(type); }
  *  - allopatric
  *  - jump
  *  - invalid
+ *
  * Generally speaking, this function is pretty slow, and so should be avoided.
  * If possible
  */
