@@ -369,17 +369,33 @@ cli_options_t parse_yaml_options(const std::filesystem::path &config_filename) {
   return cli_options;
 }
 
+template <typename T, typename U>
+void write_yaml_value(YAML::Emitter &yaml, const T &label, const U &value) {
+  yaml << YAML::Key << label << YAML::Value << value;
+}
+
+template <typename T>
+void write_yaml_value(YAML::Emitter        &yaml,
+                      const T              &label,
+                      const bigrig::dist_t &value) {
+  yaml << YAML::Key << label << YAML::Value << value.to_str();
+}
+
 void write_yaml_tree(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
-  yaml << YAML::Key << "tree" << YAML::Value << tree.to_newick();
+  write_yaml_value(yaml, "tree", tree.to_newick());
+}
+
+void write_yaml_taxa(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
+  write_yaml_value(yaml, "taxa", tree.leaf_count());
 }
 
 void write_yaml_regions(YAML::Emitter &yaml, const size_t &regions) {
-  yaml << YAML::Key << "region-count" << YAML::Value << regions;
+  write_yaml_value(yaml, "region-count", regions);
 }
 
 void write_yaml_root_range(YAML::Emitter        &yaml,
                            const bigrig::dist_t &root_dist) {
-  yaml << YAML::Key << "root-range" << YAML::Value << root_dist.to_str();
+  write_yaml_value(yaml, "root-range", root_dist);
 }
 
 void write_yaml_alignment(YAML::Emitter &yaml, const bigrig::tree_t &tree) {
@@ -537,6 +553,7 @@ void write_json_file(std::ostream                        &os,
   nlohmann::json j;
 
   j["tree"]          = tree.to_newick();
+  j["taxa"]          = tree.leaf_count();
   j["regions"]       = tree.region_count();
   j["root-range"]    = tree.get_root_range().to_str();
   j["stats"]["time"] = program_stats.execution_time_in_seconds();
