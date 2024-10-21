@@ -157,6 +157,5 @@ int main() {
   write_output_files(cli_options, tree, periods, program_stats);
 
   MESSAGE_INFO("Done!");
-  MESSAGE_INFO("YOu fucking idiot");
   return 0;
 }
