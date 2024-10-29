@@ -17,7 +17,7 @@ void print_periods(const std::vector<period_params_t> &periods) {
   for (const auto &p : periods) {
     LOG_INFO("      - Start time: %.2f", p.start);
     MESSAGE_INFO("        Rate parameters:");
-    LOG_INFO("          Dispersion(d): %.2f, Extinction: %.2f",
+    LOG_INFO("          Dispersion(d): %.2f, Extinction(e): %.2f",
              p.rates.dis,
              p.rates.ext);
     MESSAGE_INFO("        Cladogenesis parameters:");
