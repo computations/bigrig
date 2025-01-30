@@ -23,55 +23,48 @@ int main() {
 
   app.add_option("--config",
                  cli_options.config_filename,
-                 "[Optional] YAML file containing the program configuration.");
+                 "YAML file containing the program configuration. Information "
+                 "about the config file can be found in the readme.");
   app.add_option("--tree",
                  cli_options.tree_filename,
-                 "[Required] A file containing a newick encoded tree which "
+                 "A file containing a newick encoded tree which "
                  "will be used to perform the simulation.");
-  app.add_option("--prefix",
-                 cli_options.prefix,
-                 "[Optional] Prefix for the output files.");
+  app.add_option(
+      "--prefix", cli_options.prefix, "Prefix for the output files.");
   app.add_option(
       "--root-range",
       cli_options.root_range,
-      "[Optional] Range for the species at the root for the start of the "
+      "Range for the species at the root for the start of the "
       "simulation. Should be given as a binary string (e.g. 01010). Required "
       "if region-count is not specified.");
   app.add_option("--region-count",
                  cli_options.region_count,
-                 "[Optional] Specify the number of regions to simulate. If "
+                 "Specify the number of regions to simulate. If "
                  "given, and root-dist is not given, then a random root "
                  "distribution is generated and used");
-  app.add_option("-d,--dispersion",
-                 dispersion,
-                 "[Required] The dispersion rate for the simulation.");
-  app.add_option("-e,--extinction",
-                 extinction,
-                 "[Required] The extinction rate for the simulation.");
+  app.add_option(
+      "-d,--dispersion", dispersion, "The dispersion rate for the simulation.");
+  app.add_option(
+      "-e,--extinction", extinction, "The extinction rate for the simulation.");
 
   app.add_option("-v,--allopatry",
                  allopatry,
-                 "[Required] The allopatry/vicariance rate for cladogenesis "
+                 "The allopatry/vicariance rate for cladogenesis "
                  "for the simulation.");
+  app.add_option("-s,--sympatry",
+                 sympatry,
+                 "The sympatry rate for cladogenesis for the simulation.");
   app.add_option(
-      "-s,--sympatry",
-      sympatry,
-      "[Required] The sympatry rate for cladogenesis for the simulation.");
+      "-y,--copy", copy, "The copy rate for cladogenesis for the simulation.");
   app.add_option(
-      "-y,--copy",
-      copy,
-      "[Required] The copy rate for cladogenesis for the simulation.");
-  app.add_option(
-      "-j,--jump",
-      jump,
-      "[Required] The jump rate for cladogenesis for the simulation.");
-  app.add_option("--seed", cli_options.rng_seed, "[Optional] Seed for the RNG");
+      "-j,--jump", jump, "The jump rate for cladogenesis for the simulation.");
+  app.add_option("--seed", cli_options.rng_seed, "Seed for the RNG");
 
   app.add_flag(
-      "--redo", cli_options.redo, "[Optional] Ignore existing result files");
+      "--redo", cli_options.redo, "Ignore existing result files");
   app.add_flag("--debug-log",
                cli_options.debug_log,
-               "[Optional] Create a file in the prefix that contains the debug "
+               "Create a file in the prefix that contains the debug "
                "log. Don't enable this without a good reason.");
   app.add_flag(
       "--json",
@@ -79,14 +72,14 @@ int main() {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::JSON;
       },
-      "[Optional] Output results in a JSON file.");
+      "Output results in a JSON file.");
   app.add_flag(
       "--yaml",
       [&cli_options](std::int64_t count) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::YAML;
       },
-      "[Optional] Output results in a YAML file.");
+      "Output results in a YAML file.");
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
@@ -98,14 +91,14 @@ int main() {
         (void)(count);
         cli_options.mode = bigrig::operation_mode_e::SIM;
       },
-      "[Optional] Run in simulation mode (warning: slow).");
+      "Run in simulation mode (warning: slow).");
   app.add_flag(
       "--fast",
       [&cli_options](std::int64_t count) {
         (void)(count);
         cli_options.mode = bigrig::operation_mode_e::FAST;
       },
-      "[Optional] Run in fast mode.");
+      "Run in fast mode (default on).");
 
   CLI11_PARSE(app);
 
@@ -116,7 +109,10 @@ int main() {
     return 1;
   }
 
-  if (!validate_and_finalize_options(cli_options)) { return 1; }
+  if (!validate_and_finalize_options(cli_options)) {
+    MESSAGE_ERROR("Use --help to get a list of all options");
+    return 1;
+  }
 
   if (cli_options.debug_log) {
     std::filesystem::path debug_filename  = cli_options.prefix.value();
@@ -150,7 +146,7 @@ int main() {
 
   const auto start_time{std::chrono::high_resolution_clock::now()};
   tree.simulate(cli_options.root_range.value(), gen);
-  const auto end_time{std::chrono::high_resolution_clock::now()};
+  const auto      end_time{std::chrono::high_resolution_clock::now()};
   program_stats_t program_stats{end_time - start_time};
 
   MESSAGE_INFO("Writing results to files");
