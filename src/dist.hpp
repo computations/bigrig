@@ -1,8 +1,8 @@
 #pragma once
 
 #include "model.hpp"
-#include "util.hpp"
 #include "period.hpp"
+#include "util.hpp"
 
 #include <cstdint>
 #include <logger.hpp>
@@ -440,13 +440,22 @@ simulate_transitions(dist_t                                  init_dist,
                      operation_mode_e                        mode) {
   std::vector<transition_t> results;
   results.reserve(util::VECTOR_INITIAL_RESERVE);
+  double remainder = 0;
   for (const auto &current_period : periods) {
     double brlen = current_period.length();
     while (true) {
-      auto r          = spread(init_dist, current_period.model(), gen, mode);
-      r.period_index  = current_period.index();
-      brlen          -= r.waiting_time;
-      if (brlen < 0.0) { break; }
+      auto r         = spread(init_dist, current_period.model(), gen, mode);
+      r.period_index = current_period.index();
+      r.waiting_time += remainder;
+      remainder = 0;
+      auto tmp_brlen = brlen - r.waiting_time;
+
+      if (tmp_brlen < 0.0) {
+        remainder = brlen;
+        break;
+      }
+
+      brlen = tmp_brlen;
       init_dist = r.final_state;
       results.push_back(r);
     }
