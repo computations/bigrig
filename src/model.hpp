@@ -156,6 +156,8 @@ public:
 
   biogeo_model_t &set_two_region_duplicity(bool d);
 
+  biogeo_model_t &set_extinction(bool e);
+
   inline cladogenesis_params_t cladogenesis_params() const {
     return _clad_params;
   }
@@ -170,6 +172,8 @@ public:
 
   double dispersion_weight(const dist_t &dist) const;
   double extinction_weight(const dist_t &dist) const;
+
+  inline bool extinction_allowed() const { return _extinction; }
 
   double total_rate_weight(const dist_t &dist) const;
 
@@ -186,6 +190,10 @@ public:
   double total_singleton_weight(const dist_t &dist) const;
   double total_nonsingleton_weight(const dist_t &dist) const;
 
+  double total_event_weight(const dist_t &dist) const;
+
+  double total_speciation_weight(const dist_t &dist) const;
+
   /**
    * Returns if jumps are enabled in the current model. This is done by
    * comparing the rate to zero. If the jump rate is not optimized, then
@@ -200,6 +208,7 @@ private:
   rate_params_t         _rate_params;
   cladogenesis_params_t _clad_params;
 
-  bool _duplicity = false;
+  bool _duplicity  = false;
+  bool _extinction = false;
 };
 } // namespace bigrig

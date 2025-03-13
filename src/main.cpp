@@ -8,6 +8,13 @@
 #include <corax/corax.hpp>
 #include <logger.hpp>
 
+inline bigrig::tree_t get_tree(const cli_options_t &cli_options) {
+  if (!cli_options.simulate_tree.value_or(false)) {
+    return bigrig::tree_t(cli_options.tree_filename.value());
+  }
+  return bigrig::tree_t{};
+}
+
 int main() {
   logger::get_log_states().add_stream(
       stdout,
@@ -60,8 +67,7 @@ int main() {
       "-j,--jump", jump, "The jump rate for cladogenesis for the simulation.");
   app.add_option("--seed", cli_options.rng_seed, "Seed for the RNG");
 
-  app.add_flag(
-      "--redo", cli_options.redo, "Ignore existing result files");
+  app.add_flag("--redo", cli_options.redo, "Ignore existing result files");
   app.add_flag("--debug-log",
                cli_options.debug_log,
                "Create a file in the prefix that contains the debug "
@@ -126,7 +132,7 @@ int main() {
   }
 
   MESSAGE_INFO("Parsing tree");
-  auto tree = bigrig::tree_t(cli_options.tree_filename.value());
+  auto tree = get_tree(cli_options);
   tree.set_mode(cli_options.mode.value_or(bigrig::operation_mode_e::FAST));
 
   auto periods = cli_options.make_periods();
@@ -138,14 +144,22 @@ int main() {
     return 1;
   }
 
-  LOG_INFO("Tree has %lu taxa", tree.leaf_count());
-
   auto gen = cli_options.get_rng();
 
-  MESSAGE_INFO("Simulating ranges on the tree");
-
   const auto start_time{std::chrono::high_resolution_clock::now()};
-  tree.simulate(cli_options.root_range.value(), gen);
+  if (!cli_options.simulate_tree.value_or(false)) {
+    LOG_INFO("Tree has %lu taxa", tree.leaf_count());
+    MESSAGE_INFO("Simulating ranges on the tree");
+    tree.simulate(cli_options.root_range.value(), gen);
+  } else {
+    for (auto &p : periods) { p.model_ptr()->set_extinction(true); }
+    MESSAGE_INFO("Simulating ranges and tree");
+    tree.simulate_tree(cli_options.root_range.value(),
+                       periods,
+                       cli_options.tree_height.value_or(1.0),
+                       gen);
+    LOG_INFO("Simulated tree with %lu taxa", tree.leaf_count());
+  }
   const auto      end_time{std::chrono::high_resolution_clock::now()};
   program_stats_t program_stats{end_time - start_time};
 

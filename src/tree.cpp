@@ -113,7 +113,7 @@ void tree_t::convert_tree(corax_utree_t *corax_tree) {
 
 void tree_t::set_mode(operation_mode_e mode) { _mode = mode; }
 
-void tree_t::set_periods(const std::vector<period_t> &periods) {
+void tree_t::set_periods(const period_list_t &periods) {
   _tree->assign_periods(periods);
 }
 

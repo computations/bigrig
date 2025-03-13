@@ -8,6 +8,13 @@
 
 #include <algorithm>
 
+template <typename T>
+std::optional<T> get_yaml_val_or_nothing(const YAML::Node &yaml,
+                                         const char       *KEY) {
+  if (yaml[KEY]) { return yaml[KEY].as<T>(); }
+  return {};
+}
+
 pcg64_fast &cli_options_t::get_rng() { return bigrig::rng_wrapper_t::rng(); }
 bigrig::rng_wrapper_t &cli_options_t::get_rng_wrapper() {
   return bigrig::rng_wrapper_t::get_instance();
@@ -148,24 +155,25 @@ void cli_options_t::merge(const cli_options_t &other) {
       two_region_duplicity, other.two_region_duplicity, "two-region-duplicity");
   merge_variable(mode, other.mode, "mode");
   merge_variable(rng_seed, other.rng_seed, "seed");
+  merge_variable(simulate_tree, other.simulate_tree, "simulate-tree");
+  merge_variable(tree_height, other.tree_height, "tree-height");
 }
 
-std::filesystem::path cli_options_t::get_tree_filename(const YAML::Node &yaml) {
+std::optional<std::filesystem::path>
+cli_options_t::get_tree_filename(const YAML::Node &yaml) {
   constexpr auto TREE_KEY = "tree";
-  return yaml[TREE_KEY].as<std::string>();
+  return get_yaml_val_or_nothing<std::string>(yaml, TREE_KEY);
 }
 
 std::optional<std::filesystem::path>
 cli_options_t::get_prefix(const YAML::Node &yaml) {
   constexpr auto PREFIX_KEY = "prefix";
-  if (yaml[PREFIX_KEY]) { return yaml[PREFIX_KEY].as<std::string>(); }
-  return {};
+  return get_yaml_val_or_nothing<std::string>(yaml, PREFIX_KEY);
 }
 
 std::optional<bool> cli_options_t::get_debug_log(const YAML::Node &yaml) {
   constexpr auto DEBUG_LOG_KEY = "debug-log";
-  if (yaml[DEBUG_LOG_KEY]) { return yaml[DEBUG_LOG_KEY].as<bool>(); }
-  return {};
+  return get_yaml_val_or_nothing<bool>(yaml, DEBUG_LOG_KEY);
 }
 
 std::optional<output_format_type_e>
@@ -188,21 +196,18 @@ cli_options_t::get_output_format(const YAML::Node &yaml) {
 std::optional<bool>
 cli_options_t::get_two_region_duplicity(const YAML::Node &yaml) {
   constexpr auto DUPLICITY_KEY = "two-region-duplicity";
-  if (yaml[DUPLICITY_KEY]) { return yaml[DUPLICITY_KEY].as<bool>(); }
-  return {};
+  return get_yaml_val_or_nothing<bool>(yaml, DUPLICITY_KEY);
 }
 
 std::optional<bigrig::dist_t>
 cli_options_t::get_root_range(const YAML::Node &yaml) {
   constexpr auto ROOT_DIST_KEY = "root-range";
-  if (yaml[ROOT_DIST_KEY]) { return yaml[ROOT_DIST_KEY].as<std::string>(); }
-  return {};
+  return get_yaml_val_or_nothing<std::string>(yaml, ROOT_DIST_KEY);
 }
 
 std::optional<size_t> cli_options_t::get_region_count(const YAML::Node &yaml) {
   constexpr auto REGION_COUNT_KEY = "region-count";
-  if (yaml[REGION_COUNT_KEY]) { return yaml[REGION_COUNT_KEY].as<size_t>(); }
-  return {};
+  return get_yaml_val_or_nothing<size_t>(yaml, REGION_COUNT_KEY);
 }
 
 std::optional<bigrig::rate_params_t>
@@ -350,8 +355,7 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
 
 std::optional<bool> cli_options_t::get_redo(const YAML::Node &yaml) {
   constexpr auto REDO_KEY = "redo";
-  if (yaml[REDO_KEY]) { return yaml[REDO_KEY].as<bool>(); }
-  return {};
+  return get_yaml_val_or_nothing<bool>(yaml, REDO_KEY);
 }
 
 std::optional<bigrig::operation_mode_e>
@@ -377,8 +381,17 @@ cli_options_t::get_mode(const YAML::Node &yaml) {
 
 std::optional<uint64_t> cli_options_t::get_seed(const YAML::Node &yaml) {
   constexpr auto SEED_KEY = "seed";
-  if (yaml[SEED_KEY]) { return yaml[SEED_KEY].as<uint64_t>(); }
-  return {};
+  return get_yaml_val_or_nothing<uint64_t>(yaml, SEED_KEY);
+}
+
+std::optional<bool> cli_options_t::get_simulate_tree(const YAML::Node &yaml) {
+  constexpr auto SIMULATE_TREE_KEY = "simulate-tree";
+  return get_yaml_val_or_nothing<bool>(yaml, SIMULATE_TREE_KEY);
+}
+
+std::optional<double> cli_options_t::get_tree_height(const YAML::Node &yaml) {
+  constexpr auto TREE_HEIGHT_KEY = "tree-height";
+  return get_yaml_val_or_nothing<double>(yaml, TREE_HEIGHT_KEY);
 }
 
 template <typename T>
@@ -426,7 +439,7 @@ cli_options_t::convert_cli_parameters(std::optional<double> dis,
   return false;
 }
 
-std::vector<bigrig::period_t> cli_options_t::make_periods() const {
+bigrig::period_list_t cli_options_t::make_periods() const {
   std::vector<bigrig::period_t> ret;
   for (const auto &cli_period : periods) {
     bigrig::period_t period{

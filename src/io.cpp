@@ -33,7 +33,7 @@ void print_periods(const std::vector<period_params_t> &periods) {
 void print_model_parameters(const period_params_t &period) {
   MESSAGE_INFO("   Model Parameters:");
   MESSAGE_INFO("     Rate parameters:");
-  LOG_INFO("       Dispersion(d): %.2f, Extinction: %.2f",
+  LOG_INFO("       Dispersion(d): %.2f, Extinction(e): %.2f",
            period.rates.dis,
            period.rates.ext);
   MESSAGE_INFO("     Cladogenesis parameters:");
@@ -50,7 +50,11 @@ void print_model_parameters(const period_params_t &period) {
  */
 void write_header(const cli_options_t &cli_options) {
   MESSAGE_INFO("Running simulation with the following options:");
-  LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
+  if (cli_options.tree_filename.has_value()) {
+    LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
+  } else {
+    MESSAGE_INFO("   Tree: Simulate");
+  }
   LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
   LOG_INFO("   Root range: %s",
            cli_options.root_range.value().to_str().c_str());
@@ -113,8 +117,8 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
 [[nodiscard]] bool validate_tree_filename(
     const std::optional<std::filesystem::path> &tree_filename_option) {
   if (!tree_filename_option.has_value()) {
-    MESSAGE_ERROR("No tree file was provided");
-    return false;
+    MESSAGE_WARNING("No tree file was provided");
+    return true;
   }
   const auto &tree_filename = tree_filename_option.value();
   bool        ok            = true;
@@ -161,7 +165,9 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
   }
   auto prefix = prefix_option.value();
   bool ok     = true;
-  if (!std::filesystem::exists(prefix.parent_path())) {
+
+  if (prefix.has_parent_path()
+      && !std::filesystem::exists(prefix.parent_path())) {
     LOG_WARNING("The path '%s' does not exist", prefix.parent_path().c_str());
 
     try {
@@ -502,8 +508,8 @@ void write_yaml_period(YAML::Emitter &yaml, const bigrig::period_t &period) {
   yaml << YAML::EndSeq;
 }
 
-void write_yaml_period_list(YAML::Emitter                       &yaml,
-                            const std::vector<bigrig::period_t> &periods) {
+void write_yaml_period_list(YAML::Emitter               &yaml,
+                            const bigrig::period_list_t &periods) {
   yaml << YAML::Key << "periods";
   yaml << YAML::Value;
   yaml << YAML::BeginSeq;
@@ -526,10 +532,10 @@ void write_yaml_program_stats(YAML::Emitter         &yaml,
 /**
  * Write the output as a YAML file.
  */
-void write_yaml_file(std::ostream                        &os,
-                     const bigrig::tree_t                &tree,
-                     const std::vector<bigrig::period_t> &periods,
-                     const program_stats_t               &program_stats) {
+void write_yaml_file(std::ostream                &os,
+                     const bigrig::tree_t        &tree,
+                     const bigrig::period_list_t &periods,
+                     const program_stats_t       &program_stats) {
   YAML::Emitter yaml;
   yaml << YAML::BeginMap;
 
@@ -546,10 +552,10 @@ void write_yaml_file(std::ostream                        &os,
   os << yaml.c_str() << std::endl;
 }
 
-void write_json_file(std::ostream                        &os,
-                     const bigrig::tree_t                &tree,
-                     const std::vector<bigrig::period_t> &periods,
-                     const program_stats_t               &program_stats) {
+void write_json_file(std::ostream                &os,
+                     const bigrig::tree_t        &tree,
+                     const bigrig::period_list_t &periods,
+                     const program_stats_t       &program_stats) {
   nlohmann::json j;
 
   j["tree"]          = tree.to_newick();
@@ -701,8 +707,8 @@ void write_events_csv_file(const cli_options_t  &cli_options,
   }
 }
 
-void write_periods_csv_file(const cli_options_t                 &cli_options,
-                            const std::vector<bigrig::period_t> &periods) {
+void write_periods_csv_file(const cli_options_t         &cli_options,
+                            const bigrig::period_list_t &periods) {
   auto                 output_filename = cli_options.csv_periods_filename();
   constexpr std::array fields{"index"sv,
                               "start"sv,
@@ -741,37 +747,35 @@ void write_program_stats_csv_file(const cli_options_t   &cli_options,
       std::to_string(program_stats.execution_time_in_seconds())});
 }
 
-void write_csv_files(const cli_options_t                 &cli_options,
-                     const bigrig::tree_t                &tree,
-                     const std::vector<bigrig::period_t> &periods,
-                     const program_stats_t               &program_stats) {
+void write_csv_files(const cli_options_t         &cli_options,
+                     const bigrig::tree_t        &tree,
+                     const bigrig::period_list_t &periods,
+                     const program_stats_t       &program_stats) {
   write_split_csv_file(cli_options, tree);
   write_events_csv_file(cli_options, tree);
   write_periods_csv_file(cli_options, periods);
   write_program_stats_csv_file(cli_options, program_stats);
 }
 
-/**
- * Write the output files given a sampled tree and model.
- *
- * Automatically selects which outputs need to be created based on
- * `cli_options_t`.
- */
-void write_output_files(const cli_options_t                 &cli_options,
-                        const bigrig::tree_t                &tree,
-                        const std::vector<bigrig::period_t> &periods,
-                        const program_stats_t               &program_stats) {
-  auto          phylip_filename = cli_options.phylip_filename();
-  std::ofstream phylip_file(phylip_filename);
-  phylip_file << to_phylip(tree);
-
-  auto phylip_all_filename  = cli_options.prefix.value();
-  phylip_all_filename      += ".all.phy";
-  std::ofstream phylip_all_file(phylip_all_filename);
-  phylip_all_file << to_phylip_all_nodes(tree);
-
-  auto cb = [](std::ostream &os, bigrig::node_t n) {
+void write_clean_tree_file(const cli_options_t  &cli_options,
+                           const bigrig::tree_t &tree) {
+  auto clean_cb = [](std::ostream &os, bigrig::node_t n) {
     os << n.string_id();
+    os << ":" << n.brlen();
+  };
+
+  auto clean_tree_filename  = cli_options.prefix.value();
+  clean_tree_filename      += ".clean";
+  clean_tree_filename      += bigrig::util::NEWICK_EXT;
+  std::ofstream clean_tree_file(clean_tree_filename);
+  clean_tree_file << tree.to_newick(clean_cb) << std::endl;
+}
+
+void write_annotated_tree_file(const cli_options_t  &cli_options,
+                               const bigrig::tree_t &tree) {
+  auto annotated_cb = [](std::ostream &os, bigrig::node_t n) {
+    os << n.string_id();
+    os << ":" << n.brlen();
     os << "[&&NHX:";
     if (n.is_leaf()) {
       os << "dist=" << n.final_state().to_str();
@@ -785,7 +789,33 @@ void write_output_files(const cli_options_t                 &cli_options,
   annotated_tree_filename      += ".annotated";
   annotated_tree_filename      += bigrig::util::NEWICK_EXT;
   std::ofstream annotated_tree_file(annotated_tree_filename);
-  annotated_tree_file << tree.to_newick(cb) << std::endl;
+  annotated_tree_file << tree.to_newick(annotated_cb) << std::endl;
+}
+
+/**
+ * Write the output files given a sampled tree and model.
+ *
+ * Automatically selects which outputs need to be created based on
+ * `cli_options_t`.
+ */
+void write_output_files(const cli_options_t         &cli_options,
+                        const bigrig::tree_t        &tree,
+                        const bigrig::period_list_t &periods,
+                        const program_stats_t       &program_stats) {
+  auto          phylip_filename = cli_options.phylip_filename();
+  std::ofstream phylip_file(phylip_filename);
+  phylip_file << to_phylip(tree);
+
+  auto phylip_all_filename  = cli_options.prefix.value();
+  phylip_all_filename      += ".all.phy";
+  std::ofstream phylip_all_file(phylip_all_filename);
+  phylip_all_file << to_phylip_all_nodes(tree);
+
+  write_annotated_tree_file(cli_options, tree);
+
+  if (cli_options.simulate_tree.value_or(false)) {
+    write_clean_tree_file(cli_options, tree);
+  }
 
   if (cli_options.yaml_file_set()) {
     auto          output_yaml_filename = cli_options.yaml_filename();

@@ -3,6 +3,8 @@
 #include "model.hpp"
 
 #include <memory>
+#include <ranges>
+#include <vector>
 
 namespace bigrig {
 
@@ -40,6 +42,11 @@ public:
   void   adjust_end(double e) { _length = e - _start; }
   size_t index() const { return _index; }
 
+  void clamp(double s, double e) {
+    if (start() < s) { adjust_start(s); }
+    if (end() > e) { adjust_end(e); }
+  }
+
   const biogeo_model_t &model() const { return *_model; }
 
   std::shared_ptr<biogeo_model_t> model_ptr() const { return _model; }
@@ -50,4 +57,50 @@ private:
   std::shared_ptr<biogeo_model_t> _model;
   size_t                          _index;
 };
+
+class period_list_t {
+public:
+  period_list_t() = default;
+
+  period_list_t(const std::vector<period_t> &periods) : _periods{periods} {}
+
+  period_list_t(const period_list_t &other, double start, double end) {
+    auto period_filter = [&](const period_t &p) {
+      return !((p.end() < start) && (p.start() > end));
+    };
+
+    for (auto &p : other._periods | std::ranges::views::filter(period_filter)) {
+      _periods.push_back(p);
+    }
+    clamp_periods(start, end);
+  }
+
+  using period_iter       = std::vector<period_t>::iterator;
+  using const_period_iter = std::vector<period_t>::const_iterator;
+
+  period_iter       begin() { return _periods.begin(); }
+  const_period_iter begin() const { return _periods.begin(); }
+
+  period_iter       end() { return _periods.end(); }
+  const_period_iter end() const { return _periods.end(); }
+
+  period_t back() const { return _periods.back(); }
+
+  bool empty() const { return _periods.empty(); }
+
+  period_t get(double d) const {
+    for (auto &p : _periods) {
+      if (p.start() <= d && d <= p.end()) { return p; }
+    }
+    throw std::runtime_error{"Period not found"};
+  }
+
+private:
+  void clamp_periods(double start, double end) {
+    for (auto &p : _periods) { p.clamp(start, end); }
+  }
+  std::vector<period_t> _periods;
+};
+
+static_assert(std::ranges::range<period_list_t>);
 } // namespace bigrig

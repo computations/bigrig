@@ -8,6 +8,7 @@
 #include <corax/tree/utree.h>
 #include <functional>
 #include <logger.hpp>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -39,17 +40,84 @@ public:
     _transitions
         = simulate_transitions(initial_distribution, _periods, gen, mode);
     LOG_DEBUG("Finished sampling with %lu transitions", _transitions.size());
+
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;
     } else {
       _final_state = _transitions.back().final_state;
     }
+
     _split = split_dist(_final_state, _periods.back().model(), gen, mode);
     _split.period_index = _periods.back().index();
 
     if (!is_leaf()) {
       _children[0]->simulate(_split.left, gen, mode);
       _children[1]->simulate(_split.right, gen, mode);
+    }
+  }
+
+  void simulate_tree(dist_t               initial_distribution,
+                     double               time_left,
+                     const period_list_t &periods,
+                     std::uniform_random_bit_generator auto &gen,
+                     operation_mode_e mode = operation_mode_e::FAST) {
+    auto dist = initial_distribution;
+
+    while (true) {
+      /*
+       * two cases:
+       *   - Dispersion/extinction event
+       *   - Specitation event
+       *
+       * The best way to do this is to roll a time, and then which of the two
+       * events it is, and then handle that case individually.
+       */
+      auto  period = periods.get(_abs_time + _brlen);
+      auto &model  = period.model();
+
+      auto total_rate = model.total_event_weight(dist);
+
+      std::exponential_distribution<double> waiting_time_die(total_rate);
+
+      double waiting_time = waiting_time_die(gen);
+      if (waiting_time + _brlen > time_left) {
+        _brlen       = time_left;
+        _final_state = dist;
+        return;
+      }
+      _brlen += waiting_time;
+
+      double speciation_rate = model.total_speciation_weight(dist);
+
+      std::bernoulli_distribution type_coin(speciation_rate / total_rate);
+      if (type_coin(gen)) {
+        auto res   = split_dist(dist, model, gen);
+        _split     = res;
+        _abs_time += _brlen;
+
+        _children.emplace_back(new node_t);
+        _children.back()->_abs_time = _abs_time;
+        _children.back()->simulate_tree(
+            res.left, time_left - _brlen, periods, gen, mode);
+
+        _children.emplace_back(new node_t);
+        _children.back()->_abs_time = _abs_time;
+        _children.back()->simulate_tree(
+            res.right, time_left - _brlen, periods, gen, mode);
+
+        _final_state = dist;
+        return;
+      } else {
+        auto res         = spread_flip_region(dist, model, gen);
+        res.period_index = period.index();
+        res.waiting_time = waiting_time;
+        _transitions.push_back(res);
+
+        if (res.final_state.empty()) {
+          _final_state = _transitions.back().final_state;
+          return;
+        }
+      }
     }
   }
 
@@ -71,7 +139,7 @@ public:
   bool is_valid() const;
   bool validate_periods() const;
 
-  void assign_periods(const std::vector<period_t> &periods);
+  void assign_periods(const period_list_t &periods);
   void assign_id_root();
 
   size_t assign_id(size_t next);
@@ -81,6 +149,7 @@ public:
   size_t get_string_id_len_max(size_t max, bool all);
 
   std::string label() const;
+  void        assign_label(const std::string &);
   double      brlen() const;
   double      abs_time() const;
   double      abs_time_at_start() const;
@@ -101,21 +170,21 @@ public:
 
   void assign_abs_time_root();
 
-  void set_label(const std::string &str);
+  void   set_label(const std::string &str);
   dist_t start_range() const;
 
 private:
   void     parse_periods(const std::vector<period_t> &periods);
   period_t clamp_period(const period_t &p) const;
 
-  double                               _brlen;
-  double                               _abs_time;
+  double                               _brlen    = 0;
+  double                               _abs_time = 0;
   dist_t                               _final_state;
   split_t                              _split;
   std::string                          _label;
   std::vector<std::shared_ptr<node_t>> _children;
   std::vector<transition_t>            _transitions;
-  std::vector<period_t>                _periods;
+  period_list_t                        _periods;
   size_t                               _node_id;
 };
 } // namespace bigrig

@@ -129,6 +129,7 @@ size_t node_t::assign_id(size_t next) {
   for (const auto &c : _children) { next = c->assign_id(next); }
   return next;
 }
+void node_t::assign_label(const std::string &l) { _label = l; }
 
 size_t node_t::get_string_id_len_max(bool all) {
   return get_string_id_len_max(0, all);
@@ -220,49 +221,9 @@ bool node_t::validate_periods() const {
   return true;
 }
 
-void node_t::assign_periods(const std::vector<period_t> &periods) {
-  parse_periods(periods);
+void node_t::assign_periods(const period_list_t &periods) {
+  _periods = {periods, abs_time_at_start(), abs_time()};
   for (const auto &c : _children) { c->assign_periods(periods); }
-}
-
-period_t node_t::clamp_period(const period_t &p) const {
-  auto ret = p;
-
-  if (p.start() < abs_time_at_start()) {
-    ret.adjust_start(abs_time_at_start());
-  }
-  if (ret.end() > abs_time()) { ret.adjust_end(abs_time()); }
-
-  return ret;
-}
-
-void node_t::parse_periods(const std::vector<period_t> &periods) {
-  _periods.clear();
-
-  /* find the starting period */
-  auto start_period_itr = periods.begin();
-  while (start_period_itr != periods.end()) {
-    if (start_period_itr->start() <= abs_time_at_start()
-        && start_period_itr->end() >= abs_time_at_start()) {
-      break;
-    }
-    start_period_itr++;
-  }
-
-  /* find the last period */
-  auto end_period_itr = start_period_itr;
-  while (end_period_itr != periods.end()
-         && end_period_itr->end() < abs_time()) {
-    end_period_itr++;
-  }
-
-  /* insert up to the last period */
-  for (; start_period_itr != periods.end()
-         && start_period_itr != end_period_itr + 1;
-       start_period_itr++) {
-    _periods.emplace_back(*start_period_itr);
-  }
-  for (auto &p : _periods) { p = clamp_period(p); }
 }
 
 dist_t node_t::start_range() const {

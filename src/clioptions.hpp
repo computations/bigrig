@@ -123,6 +123,16 @@ struct cli_options_t {
 
   std::optional<uint64_t> rng_seed;
 
+  /**
+   * Option to simulate the tree _alongside_ the ranges.
+   */
+  std::optional<bool> simulate_tree;
+
+  /**
+   * Height of the simmulated tree.
+   */
+  std::optional<double> tree_height;
+
   std::filesystem::path phylip_filename() const;
 
   std::filesystem::path yaml_filename() const;
@@ -154,7 +164,7 @@ struct cli_options_t {
                                             std::optional<double> copy,
                                             std::optional<double> jump);
 
-  std::vector<bigrig::period_t> make_periods() const;
+  bigrig::period_list_t make_periods() const;
 
   cli_options_t() = default;
 
@@ -173,10 +183,14 @@ struct cli_options_t {
         redo{get_redo(yaml)},
         two_region_duplicity{get_two_region_duplicity(yaml)},
         mode{get_mode(yaml)},
-        rng_seed{get_seed(yaml)} {}
+        rng_seed{get_seed(yaml)},
+        simulate_tree{get_simulate_tree(yaml)},
+        tree_height{get_tree_height(yaml)} {}
 
 private:
-  static std::filesystem::path get_tree_filename(const YAML::Node &);
+  static std::optional<std::filesystem::path>
+  get_tree_filename(const YAML::Node &);
+
   static std::optional<std::filesystem::path> get_prefix(const YAML::Node &);
   static std::optional<bool>                  get_debug_log(const YAML::Node &);
   static std::optional<output_format_type_e>
@@ -196,4 +210,7 @@ private:
   static std::optional<bool>                     get_redo(const YAML::Node &);
   static std::optional<bigrig::operation_mode_e> get_mode(const YAML::Node &);
   static std::optional<uint64_t>                 get_seed(const YAML::Node &);
+
+  static std::optional<bool>   get_simulate_tree(const YAML::Node &);
+  static std::optional<double> get_tree_height(const YAML::Node &);
 };

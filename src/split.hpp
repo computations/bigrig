@@ -21,7 +21,6 @@ struct split_t {
   std::string to_type_string() const;
 };
 
-
 /**
  * Simulates a split type based on some model parameters.
  *
@@ -33,7 +32,7 @@ struct split_t {
  * If the weights for the model are something like s = 0.0, v = 0.0, j
  * = 1.0, and init_dist.full() == true, then this function does some _wacky_
  * stuff. I've decided to not fix it, as it is a pretty _weird_ parameter
- * set, that makes no sense. I basically need to check that the weight for
+ * set, that makes no sense.
  */
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,

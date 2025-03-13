@@ -391,6 +391,32 @@ transition_t spread_rejection(dist_t                                  init_dist,
   return min_ele;
 }
 
+inline transition_t
+spread_flip_region(dist_t                                  init_dist,
+                   const biogeo_model_t                   &model,
+                   std::uniform_random_bit_generator auto &gen) {
+  auto [d, e]         = model.rates();
+  double total_weight = model.total_rate_weight(init_dist);
+
+  std::uniform_real_distribution<double> region_dist(0, total_weight);
+  double                                 region_roll = region_dist(gen);
+
+  for (size_t i = 0; i < init_dist.regions(); ++i) {
+    if (init_dist[i]) {
+      if (!init_dist.singleton() || model.extinction_allowed()) {
+        region_roll -= e;
+      }
+    } else {
+      region_roll -= d;
+    }
+    if (region_roll <= 0) {
+      auto new_dist = init_dist.flip_region(i);
+      return {std::numeric_limits<double>::infinity(), init_dist, new_dist};
+    }
+  }
+  throw std::runtime_error{"Failed to spread correctly"};
+}
+
 /**
  * Samples a `transition_t` by combining the independent processes, and only
  * rolling once for the waiting time. There are 2 additional rolls, one for the
@@ -401,28 +427,14 @@ transition_t spread_rejection(dist_t                                  init_dist,
 transition_t spread_analytic(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
-  auto [d, e]         = model.rates();
   double total_weight = model.total_rate_weight(init_dist);
-
   std::exponential_distribution<double> wait_time_distribution(total_weight);
 
   double waiting_time = wait_time_distribution(gen);
 
-  std::uniform_real_distribution<double> region_dist(0, total_weight);
-  double                                 region_roll = region_dist(gen);
-
-  for (size_t i = 0; i < init_dist.regions(); ++i) {
-    if (init_dist[i]) {
-      if (!init_dist.singleton()) { region_roll -= e; }
-    } else {
-      region_roll -= d;
-    }
-    if (region_roll <= 0) {
-      auto new_dist = init_dist.flip_region(i);
-      return {waiting_time, init_dist, new_dist};
-    }
-  }
-  throw std::runtime_error{"Failed to spread correctly"};
+  auto transition         = spread_flip_region(init_dist, model, gen);
+  transition.waiting_time = waiting_time;
+  return transition;
 }
 
 /**
@@ -435,7 +447,7 @@ transition_t spread_analytic(dist_t                                  init_dist,
  */
 std::vector<transition_t>
 simulate_transitions(dist_t                                  init_dist,
-                     const std::vector<period_t>            &periods,
+                     const period_list_t                    &periods,
                      std::uniform_random_bit_generator auto &gen,
                      operation_mode_e                        mode) {
   std::vector<transition_t> results;
@@ -444,18 +456,18 @@ simulate_transitions(dist_t                                  init_dist,
   for (const auto &current_period : periods) {
     double brlen = current_period.length();
     while (true) {
-      auto r         = spread(init_dist, current_period.model(), gen, mode);
-      r.period_index = current_period.index();
+      auto r          = spread(init_dist, current_period.model(), gen, mode);
+      r.period_index  = current_period.index();
       r.waiting_time += remainder;
-      remainder = 0;
-      auto tmp_brlen = brlen - r.waiting_time;
+      remainder       = 0;
+      auto tmp_brlen  = brlen - r.waiting_time;
 
       if (tmp_brlen < 0.0) {
         remainder = brlen;
         break;
       }
 
-      brlen = tmp_brlen;
+      brlen     = tmp_brlen;
       init_dist = r.final_state;
       results.push_back(r);
     }

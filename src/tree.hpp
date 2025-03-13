@@ -3,6 +3,7 @@
 #include "iterator.hpp"
 #include "model.hpp"
 #include "node.hpp"
+#include "util.hpp"
 
 #include <corax/corax.hpp>
 #include <functional>
@@ -18,6 +19,8 @@ namespace bigrig {
  */
 class tree_t {
 public:
+  explicit tree_t() : _tree{new node_t} {};
+
   explicit tree_t(const std::filesystem::path &tree_filename);
 
   explicit tree_t(const std::string &tree_str);
@@ -36,6 +39,17 @@ public:
     LOG_DEBUG("Starting sample with init dist = %lb",
               static_cast<uint64_t>(initial_distribution));
     _tree->simulate(initial_distribution, gen, _mode);
+  }
+
+  void simulate_tree(dist_t               initial_distribution,
+                     const period_list_t &periods,
+                     double               tree_height,
+                     std::uniform_random_bit_generator auto &gen) {
+    _tree->simulate_tree(
+        initial_distribution, tree_height, periods, gen, _mode);
+
+    _tree->assign_id_root();
+    set_tree_labels();
   }
 
   std::optional<dist_t> get_dist_by_string_id(const std::string &key) const;
@@ -65,11 +79,21 @@ public:
 
   void set_mode(operation_mode_e mode);
 
-  void set_periods(const std::vector<period_t> &periods);
+  void set_periods(const period_list_t &periods);
   void set_periods(const period_t &periods);
 
   dist_t get_root_range() const;
-  
+
+  void set_tree_labels() {
+    size_t leaf_itr = 0;
+    for (auto n : *this) {
+      if (n->is_leaf()) {
+        n->assign_label(util::compute_base26(leaf_itr));
+        leaf_itr++;
+      }
+    }
+  }
+
 private:
   void convert_tree(corax_utree_t *corax_tree);
 

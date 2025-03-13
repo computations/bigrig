@@ -1,7 +1,9 @@
 #pragma once
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 namespace bigrig::util {
 
@@ -32,6 +34,22 @@ constexpr inline auto factorial(uint64_t i) -> size_t {
 
 constexpr inline auto combinations(uint64_t n, uint64_t i) -> size_t {
   return factorial(n) / (factorial(i) * factorial(n - i));
+}
+
+inline auto compute_base26(size_t i) -> std::string {
+  size_t length
+      = std::max(static_cast<size_t>(std::ceil(
+                     std::log(static_cast<double>(i + 1)) / std::log(26.0))),
+                 1UL);
+  std::string ret;
+  ret.reserve(length);
+
+  for (size_t j = 0; j < length; j++) {
+    ret += 'a' + (i % 26);
+    i   /= 26;
+  }
+
+  return ret;
 }
 
 constexpr auto PHYILP_EXT = ".phy";
