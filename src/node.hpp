@@ -5,6 +5,7 @@
 #include "period.hpp"
 #include "split.hpp"
 
+#include <cmath>
 #include <corax/tree/utree.h>
 #include <functional>
 #include <logger.hpp>
@@ -63,6 +64,7 @@ public:
                      operation_mode_e mode = operation_mode_e::FAST) {
     auto dist = initial_distribution;
 
+    double leftover = 0.0;
     while (true) {
       /*
        * two cases:
@@ -77,20 +79,42 @@ public:
 
       auto total_rate = model.total_event_weight(dist);
 
+      if(total_rate <= 0.0){
+        MESSAGE_ERROR("Rate while simulating the tree is invalid");
+        throw std::runtime_error{"total_rate is not positive"};
+      }
+
+      if(!std::isfinite(_brlen)){
+        MESSAGE_ERROR("Simulation ran to infinity");
+        throw std::runtime_error{"brlen is infinite"};
+      }
+
       std::exponential_distribution<double> waiting_time_die(total_rate);
 
-      double waiting_time = waiting_time_die(gen);
+      double waiting_time = waiting_time_die(gen) + leftover;
+      leftover            = 0.0;
+
       if (waiting_time + _brlen > time_left) {
         _brlen       = time_left;
         _final_state = dist;
         return;
       }
+
+      /* check if the period is over */
+      double period_time_left = period.length() - (_abs_time + _brlen);
+      if (period_time_left < waiting_time) {
+        leftover  = period_time_left;
+        _brlen   += period_time_left;
+        continue;
+      }
+
       _brlen += waiting_time;
 
       double speciation_rate = model.total_speciation_weight(dist);
 
       std::bernoulli_distribution type_coin(speciation_rate / total_rate);
       if (type_coin(gen)) {
+        LOG_DEBUG("Rolled a cladogenesis event. Time left %f", time_left);
         auto res   = split_dist(dist, model, gen);
         _split     = res;
         _abs_time += _brlen;
@@ -108,6 +132,7 @@ public:
         _final_state = dist;
         return;
       } else {
+        LOG_DEBUG("Rolled a transition event. Time left %f", time_left);
         auto res         = spread_flip_region(dist, model, gen);
         res.period_index = period.index();
         res.waiting_time = waiting_time;

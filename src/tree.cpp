@@ -79,9 +79,9 @@ bool tree_t::is_valid() const {
   return true;
 }
 
-bool tree_t::is_ready() const {
+bool tree_t::is_ready(bool simulate_tree) const {
   if (!is_valid()) { return false; }
-  if (!_tree->is_valid()) { return false; }
+  if (!simulate_tree && !_tree->is_valid()) { return false; }
   return true;
 }
 

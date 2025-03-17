@@ -70,7 +70,7 @@ public:
 
   bool is_binary() const;
   bool is_valid() const;
-  bool is_ready() const;
+  bool is_ready(bool) const;
 
   size_t region_count() const;
 

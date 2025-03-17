@@ -139,7 +139,7 @@ int main() {
   if (periods.empty()) { return 1; }
   tree.set_periods(periods);
 
-  if (!tree.is_ready()) {
+  if (!tree.is_ready(cli_options.simulate_tree.value_or(false))) {
     MESSAGE_ERROR("Could not use the tree provided, exiting");
     return 1;
   }

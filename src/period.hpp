@@ -90,7 +90,7 @@ public:
 
   period_t get(double d) const {
     for (auto &p : _periods) {
-      if (p.start() <= d && d <= p.end()) { return p; }
+      if (p.start() <= d && d < p.end()) { return p; }
     }
     throw std::runtime_error{"Period not found"};
   }
