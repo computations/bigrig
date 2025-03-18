@@ -12,7 +12,7 @@ using namespace std::string_view_literals; // for the 'sv' suffix
 
 constexpr size_t MAX_REGIONS = 64;
 
-void print_periods(const std::vector<period_params_t> &periods) {
+void print_periods(const std::vector<bigrig::period_params_t> &periods) {
   LOG_INFO("   Running with %lu periods:", periods.size());
   for (const auto &p : periods) {
     LOG_INFO("      - Start time: %.2f", p.start);
@@ -30,7 +30,7 @@ void print_periods(const std::vector<period_params_t> &periods) {
   }
 }
 
-void print_model_parameters(const period_params_t &period) {
+void print_model_parameters(const bigrig::period_params_t &period) {
   MESSAGE_INFO("   Model Parameters:");
   MESSAGE_INFO("     Rate parameters:");
   LOG_INFO("       Dispersion(d): %.2f, Extinction(e): %.2f",

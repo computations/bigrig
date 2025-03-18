@@ -149,16 +149,17 @@ double biogeo_model_t::total_event_weight(const dist_t &dist) const {
 }
 
 double biogeo_model_t::total_speciation_weight(const dist_t &dist) const {
+  if (_tree_params) { return _tree_params.value().cladogenesis; }
   if (dist.singleton()) { return total_singleton_weight(dist); }
   return total_nonsingleton_weight(dist);
 }
 
-biogeo_model_t &biogeo_model_t::set_params(rate_params_t p) {
+biogeo_model_t &biogeo_model_t::set_rate_params(rate_params_t p) {
   _rate_params = p;
   return *this;
 }
-biogeo_model_t &biogeo_model_t::set_params(double d, double e) {
-  return set_params({.dis = d, .ext = e});
+biogeo_model_t &biogeo_model_t::set_rate_params(double d, double e) {
+  return set_rate_params({.dis = d, .ext = e});
 }
 
 biogeo_model_t &biogeo_model_t::set_cladogenesis_params(double v,
@@ -184,6 +185,11 @@ biogeo_model_t &biogeo_model_t::set_two_region_duplicity(bool d) {
 
 biogeo_model_t &biogeo_model_t::set_extinction(bool e) {
   _extinction = e;
+  return *this;
+}
+
+biogeo_model_t &biogeo_model_t::set_tree_params(const tree_params_t &tp) {
+  _tree_params = tp;
   return *this;
 }
 

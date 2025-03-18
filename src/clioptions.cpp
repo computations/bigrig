@@ -281,11 +281,26 @@ cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
   return {};
 }
 
-std::optional<period_params_t>
+std::optional<bigrig::tree_params_t> get_tree_params(const YAML::Node &yaml) {
+  constexpr auto LAMBDA_KEY = "lambda";
+  if (yaml[LAMBDA_KEY]) {
+    return {
+        bigrig::tree_params_t{.cladogenesis = yaml[LAMBDA_KEY].as<double>()}};
+  }
+  return {};
+}
+
+std::optional<bool> get_period_extinction(const YAML::Node &yaml) {
+  constexpr auto EXTINCTION_KEY = "allow-extinction";
+  return get_yaml_val_or_nothing<bool>(yaml, EXTINCTION_KEY);
+}
+
+std::optional<bigrig::period_params_t>
 cli_options_t::get_period(const YAML::Node &yaml) {
-  period_params_t period_params;
-  bool            ok        = true;
-  constexpr auto  START_KEY = "start";
+  bigrig::period_params_t period_params;
+  bool                    ok        = true;
+  constexpr auto          START_KEY = "start";
+
   if (yaml[START_KEY]) {
     period_params.start = yaml[START_KEY].as<double>();
   } else {
@@ -309,14 +324,17 @@ cli_options_t::get_period(const YAML::Node &yaml) {
     ok = false;
   }
 
+  period_params.tree       = get_tree_params(yaml);
+  period_params.extinction = get_period_extinction(yaml);
+
   if (ok) { return period_params; }
   return {};
 }
 
-std::vector<period_params_t>
+std::vector<bigrig::period_params_t>
 cli_options_t::get_periods(const YAML::Node &yaml) {
-  std::vector<period_params_t> ret;
-  constexpr auto               PERIOD_KEY = "periods";
+  std::vector<bigrig::period_params_t> ret;
+  constexpr auto                       PERIOD_KEY = "periods";
   if (yaml[PERIOD_KEY]) {
     auto   list  = yaml[PERIOD_KEY];
     size_t index = 0;
@@ -326,28 +344,32 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
         LOG_ERROR("Period %lu is malformed", index);
         return {};
       }
-      period.value().index = index++;
+      index++;
       ret.push_back(period.value());
     }
   } else {
     auto rates        = get_rates(yaml);
     auto clado_params = get_cladogenesis(yaml);
+    auto tree_params  = get_tree_params(yaml);
+    auto extinction   = get_period_extinction(yaml);
     bool ok           = true;
 
     if (!rates.has_value()) {
       ok = false;
       MESSAGE_ERROR("Failed to find rates in the config file");
     }
+
     if (!clado_params.has_value()) {
       ok = false;
       MESSAGE_ERROR("Failed to find cladogensis parameters in the config file");
     }
 
     if (ok) {
-      return {period_params_t{.rates = rates.value(),
-                              .clado = clado_params.value(),
-                              .start = 0.0,
-                              .index = 0}};
+      return {bigrig::period_params_t{.rates      = rates.value(),
+                                      .clado      = clado_params.value(),
+                                      .tree       = tree_params,
+                                      .start      = 0.0,
+                                      .extinction = extinction}};
     }
   }
   return ret;
@@ -426,7 +448,7 @@ cli_options_t::convert_cli_parameters(std::optional<double> dis,
   ok      &= check_passed_cli_parameter(jump, "jump");
 
   if (ok) {
-    period_params_t period;
+    bigrig::period_params_t period;
     period.start = 0.0;
     period.rates = {.dis = dis.value(), .ext = ext.value()};
     period.clado = {.allopatry = allo.value(),
@@ -439,33 +461,4 @@ cli_options_t::convert_cli_parameters(std::optional<double> dis,
   return false;
 }
 
-bigrig::period_list_t cli_options_t::make_periods() const {
-  std::vector<bigrig::period_t> ret;
-  for (const auto &cli_period : periods) {
-    bigrig::period_t period{
-        cli_period.start,
-        0.0,
-        {.dis = cli_period.rates.dis, .ext = cli_period.rates.ext},
-        {.allopatry = cli_period.clado.allopatry,
-         .sympatry  = cli_period.clado.sympatry,
-         .copy      = cli_period.clado.copy,
-         .jump      = cli_period.clado.jump},
-        two_region_duplicity.value_or(true),
-        cli_period.index};
-    if (!period.model().check_ok(root_range.value().regions())) {
-      LOG_ERROR("There is an issue with the model for period '%lu', we can't "
-                "continue",
-                cli_period.index);
-      return {};
-    }
-    ret.push_back(period);
-  }
-
-  for (size_t i = 0; i < ret.size() - 1; ++i) {
-    auto &p1 = ret[i];
-    auto &p2 = ret[i + 1];
-    p1.set_length(p2.start() - p1.start());
-  }
-  ret.back().set_length(std::numeric_limits<double>::infinity());
-  return ret;
-}
+bigrig::period_list_t cli_options_t::make_periods() const { return {periods}; }

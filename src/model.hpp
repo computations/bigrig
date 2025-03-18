@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <sstream>
+#include <optional>
 
 namespace bigrig {
 
@@ -113,6 +114,10 @@ static_assert(offsetof(cladogenesis_params_t, jump)
                   + sizeof(cladogenesis_params_t::data_type)
               == sizeof(cladogenesis_params_t));
 
+struct tree_params_t {
+  double cladogenesis;
+};
+
 /**
  * Class containing the model parameters, which includes:
  * - Rate parameters,
@@ -143,9 +148,9 @@ public:
    */
   inline rate_params_t rates() const { return _rate_params; }
 
-  biogeo_model_t &set_params(rate_params_t p);
+  biogeo_model_t &set_rate_params(rate_params_t p);
 
-  biogeo_model_t &set_params(double d, double e);
+  biogeo_model_t &set_rate_params(double d, double e);
 
   biogeo_model_t &set_region_count(size_t regions);
 
@@ -157,6 +162,8 @@ public:
   biogeo_model_t &set_two_region_duplicity(bool d);
 
   biogeo_model_t &set_extinction(bool e);
+
+  biogeo_model_t &set_tree_params(const tree_params_t&);
 
   inline cladogenesis_params_t cladogenesis_params() const {
     return _clad_params;
@@ -205,8 +212,9 @@ public:
   bool check_ok(size_t region_count) const;
 
 private:
-  rate_params_t         _rate_params;
-  cladogenesis_params_t _clad_params;
+  rate_params_t                _rate_params;
+  cladogenesis_params_t        _clad_params;
+  std::optional<tree_params_t> _tree_params;
 
   bool _duplicity  = false;
   bool _extinction = false;

@@ -2,32 +2,35 @@
 
 #include "model.hpp"
 
+#include <logger.hpp>
 #include <memory>
 #include <ranges>
 #include <vector>
 
 namespace bigrig {
 
+struct period_params_t {
+  bigrig::rate_params_t                rates;
+  bigrig::cladogenesis_params_t        clado;
+  std::optional<bigrig::tree_params_t> tree;
+  double                               start;
+  std::optional<bool>                  extinction;
+};
+
 class period_t {
 public:
   period_t()                            = default;
   period_t(const period_t &)            = default;
   period_t &operator=(const period_t &) = default;
-  period_t(double                       start,
-           double                       length,
-           const rate_params_t         &rp,
-           const cladogenesis_params_t &cp,
-           bool                         two_region_duplicity,
-           size_t                       index)
-      : _start{start},
-        _length{length},
-        _model{std::make_shared<biogeo_model_t>(rp, cp, two_region_duplicity)},
-        _index{index} {}
 
-  period_t(double                                 start,
-           double                                 length,
-           const std::shared_ptr<biogeo_model_t> &model)
-      : _start{start}, _length{length}, _model{model} {}
+  period_t(double                          start,
+           double                          length,
+           std::shared_ptr<biogeo_model_t> model,
+           size_t                          index)
+      : _start{start}, _length{length}, _model{model}, _index{index} {}
+
+  period_t(double start, double length, std::shared_ptr<biogeo_model_t> model)
+      : _start{start}, _length{length}, _model{model}, _index{0} {}
 
   double start() const { return _start; }
   double length() const { return _length; }
@@ -75,6 +78,29 @@ public:
     clamp_periods(start, end);
   }
 
+  period_list_t(const std::vector<period_params_t> &params) {
+    size_t index = 0;
+    for (auto &param : params) {
+      auto model = std::make_shared<biogeo_model_t>();
+      model->set_rate_params(param.rates);
+      model->set_cladogenesis_params(param.clado);
+      if (param.tree) { model->set_tree_params(param.tree.value()); }
+      model->set_two_region_duplicity(false);
+      if (param.extinction) { model->set_extinction(param.extinction.value()); }
+
+      _periods.emplace_back(param.start, 0, model, index);
+      index++;
+    }
+
+    for (size_t i = 0; i < _periods.size() - 1; ++i) {
+      auto &p1 = _periods[i];
+      auto &p2 = _periods[i + 1];
+
+      p1.set_length(p2.start() - p1.start());
+    }
+    _periods.back().set_length(std::numeric_limits<double>::infinity());
+  }
+
   using period_iter       = std::vector<period_t>::iterator;
   using const_period_iter = std::vector<period_t>::const_iterator;
 
@@ -93,6 +119,20 @@ public:
       if (p.start() <= d && d < p.end()) { return p; }
     }
     throw std::runtime_error{"Period not found"};
+  }
+
+  bool validate(size_t region_count) const {
+    bool ok = true;
+
+    for (auto &p : _periods) {
+      if (!p.model().check_ok(region_count)) {
+        LOG_ERROR("There is an issue with the model for period '%lu', we can't "
+                  "continue",
+                  p.index());
+      }
+    }
+
+    return ok;
   }
 
 private:

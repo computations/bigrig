@@ -14,7 +14,7 @@ TEST_CASE("splitting", "[sample]") {
   pcg64_fast       gen(Catch::getSeed());
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0)
+  model.set_rate_params(1.0, 1.0)
       .set_cladogenesis_params(1.0, 1.0, 1.0, 0.0)
       .set_two_region_duplicity(false);
 
@@ -182,7 +182,7 @@ TEST_CASE("split g-test") {
                  bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_two_region_duplicity(false);
+  model.set_rate_params(1.0, 1.0).set_two_region_duplicity(false);
   INFO("init dist:" << init_dist);
   INFO("model params: " << params.to_debug_string());
 
@@ -238,14 +238,13 @@ TEST_CASE("split g-test") {
   CHECK(g < q);
 }
 
-TEST_CASE("split regression g-test") {
+TEST_CASE("split regression g-test", "[slow]") {
   pcg64_fast gen(Catch::getSeed());
 
   /* These values are computed to ensure a probability of
    *  - Type I error = 0.00001
    *  - Type II error = 0.00001
-   *  - And deviation is less than = 0.01
-   */
+   *  - And deviation is less than = 0.01 */
   constexpr size_t iters = 201'970;
   constexpr double q     = 18.420680743952584;
 
@@ -270,7 +269,7 @@ TEST_CASE("split regression g-test") {
                  bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_two_region_duplicity(false);
+  model.set_rate_params(1.0, 1.0).set_two_region_duplicity(false);
   INFO("init dist:" << init_dist);
   INFO("model params: " << params.to_debug_string());
 
@@ -359,7 +358,7 @@ TEST_CASE("split index chi2 test", "[sample]") {
           63});
 
   bigrig::biogeo_model_t model;
-  model.set_params(1.0, 1.0).set_two_region_duplicity(false);
+  model.set_rate_params(1.0, 1.0).set_two_region_duplicity(false);
 
   std::vector<size_t> index_counts;
   index_counts.resize(init_dist.regions());
@@ -367,9 +366,9 @@ TEST_CASE("split index chi2 test", "[sample]") {
   SECTION("sympatry") {
     model.set_cladogenesis_params(0.0, 1.0, 0.0, 0.0);
     for (size_t i = 0; i < trials; ++i) {
-      auto   split       = bigrig::split_dist(init_dist, model, gen);
-      auto   tmp_dist    = (split.left & split.right);
-      size_t split_index = tmp_dist.last_full_region() - 1;
+      auto   split               = bigrig::split_dist(init_dist, model, gen);
+      auto   tmp_dist            = (split.left & split.right);
+      size_t split_index         = tmp_dist.last_full_region() - 1;
       index_counts[split_index] += 1;
     }
 
@@ -380,7 +379,7 @@ TEST_CASE("split index chi2 test", "[sample]") {
     for (auto c : index_counts) {
       if (c == 0) { continue; }
       double num  = c - expected_count;
-      num *= num;
+      num        *= num;
       chi2       += num / expected_count;
     }
   }
@@ -401,7 +400,7 @@ TEST_CASE("split index chi2 test", "[sample]") {
     for (auto c : index_counts) {
       if (c == 0) { continue; }
       double num  = c - expected_count;
-      num *= num;
+      num        *= num;
       chi2       += num / expected_count;
     }
     CHECK(chi2 < chi2_lut[df]);
@@ -423,7 +422,7 @@ TEST_CASE("split index chi2 test", "[sample]") {
     for (auto c : index_counts) {
       if (c == 0) { continue; }
       double num  = c - expected_count;
-      num *= num;
+      num        *= num;
       chi2       += num / expected_count;
     }
     CHECK(chi2 < chi2_lut[df]);

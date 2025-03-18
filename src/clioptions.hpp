@@ -33,13 +33,6 @@ public:
       : std::invalid_argument{msg} {}
 };
 
-struct period_params_t {
-  bigrig::rate_params_t         rates;
-  bigrig::cladogenesis_params_t clado;
-  double                        start;
-  size_t                        index;
-};
-
 struct program_stats_t {
   double execution_time_in_seconds() const { return execution_time.count(); }
   std::chrono::duration<double> execution_time;
@@ -103,7 +96,7 @@ struct cli_options_t {
   /**
    * Rates which have been provided by the user.
    */
-  std::vector<period_params_t> periods;
+  std::vector<bigrig::period_params_t> periods;
 
   /**
    * Enable overwriting the exsisting result files.
@@ -146,6 +139,14 @@ struct cli_options_t {
 
   pcg64_fast            &get_rng();
   bigrig::rng_wrapper_t &get_rng_wrapper();
+
+  size_t compute_region_count() const {
+    if (root_range.value()) { return root_range->regions(); }
+    if (region_count) { return region_count.value(); }
+
+    MESSAGE_ERROR("There was an issue with the root region");
+    throw std::runtime_error{"Failed to compute the region count"};
+  }
 
   bool cli_arg_specified() const;
 
@@ -204,8 +205,11 @@ private:
   static std::optional<bigrig::cladogenesis_params_t>
   get_cladogenesis(const YAML::Node &yaml);
 
-  static std::optional<period_params_t> get_period(const YAML::Node &yaml);
-  static std::vector<period_params_t>   get_periods(const YAML::Node &yaml);
+  static std::optional<bigrig::period_params_t>
+  get_period(const YAML::Node &yaml);
+
+  static std::vector<bigrig::period_params_t>
+  get_periods(const YAML::Node &yaml);
 
   static std::optional<bool>                     get_redo(const YAML::Node &);
   static std::optional<bigrig::operation_mode_e> get_mode(const YAML::Node &);

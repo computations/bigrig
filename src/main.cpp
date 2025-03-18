@@ -135,14 +135,23 @@ int main() {
   auto tree = get_tree(cli_options);
   tree.set_mode(cli_options.mode.value_or(bigrig::operation_mode_e::FAST));
 
+  bool ok = true;
+
   auto periods = cli_options.make_periods();
+  if (!periods.validate(cli_options.compute_region_count())) {
+    MESSAGE_ERROR("There was an issue with the periods");
+    ok = false;
+  }
+
   if (periods.empty()) { return 1; }
   tree.set_periods(periods);
 
   if (!tree.is_ready(cli_options.simulate_tree.value_or(false))) {
-    MESSAGE_ERROR("Could not use the tree provided, exiting");
-    return 1;
+    MESSAGE_ERROR("Could not use the tree provided");
+    ok = false;
   }
+
+  if (!ok) { return 1; }
 
   auto gen = cli_options.get_rng();
 

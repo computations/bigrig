@@ -10,7 +10,7 @@ TEST_CASE("model init") {
   bigrig::biogeo_model_t model;
 
   SECTION("Setting parameters") {
-    model.set_params(1.0, 1.0).set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
+    model.set_rate_params(1.0, 1.0).set_cladogenesis_params(1.0, 1.0, 1.0, 1.0);
 
     CHECK(model.extinction_weight(sample_dist) == 2.0);
     CHECK(model.dispersion_weight(sample_dist) == 2.0);
