@@ -19,18 +19,43 @@ struct period_params_t {
 
 class period_t {
 public:
-  period_t()                            = default;
-  period_t(const period_t &)            = default;
-  period_t &operator=(const period_t &) = default;
+  period_t() : _start{0.0}, _length{0.0}, _model{nullptr}, _index{0} {}
+  period_t(const period_t &other)
+      : _start{other._start},
+        _length{other._length},
+        _model{other._model ? std::make_unique<biogeo_model_t>(*other._model)
+                            : nullptr},
+        _index{other._index} {}
 
-  period_t(double                          start,
-           double                          length,
-           std::shared_ptr<biogeo_model_t> model,
-           size_t                          index)
-      : _start{start}, _length{length}, _model{model}, _index{index} {}
+  period_t &operator=(const period_t &other) {
+    _start  = other._start;
+    _length = other._length;
+    _model  = other._model ? std::make_unique<biogeo_model_t>(*other._model)
+                           : nullptr;
+    _index  = other._index;
 
-  period_t(double start, double length, std::shared_ptr<biogeo_model_t> model)
-      : _start{start}, _length{length}, _model{model}, _index{0} {}
+    return *this;
+  }
+
+  period_t(double                start,
+           double                length,
+           const biogeo_model_t &model,
+           size_t                index)
+      : _start{start},
+        _length{length},
+        _model{new biogeo_model_t{model}},
+        _index{index} {}
+
+  period_t(double                                 start,
+           double                                 length,
+           const std::unique_ptr<biogeo_model_t> &model,
+           size_t                                 index)
+      : period_t{start, length, *model, index} {}
+
+  period_t(double                                 start,
+           double                                 length,
+           const std::unique_ptr<biogeo_model_t> &model)
+      : period_t{start, length, *model, 0} {}
 
   double start() const { return _start; }
   double length() const { return _length; }
@@ -42,22 +67,34 @@ public:
     _start            = s;
     _length           = new_length;
   }
-  void   adjust_end(double e) { _length = e - _start; }
+  void   set_end(double e) { _length = e - _start; }
   size_t index() const { return _index; }
 
   void clamp(double s, double e) {
+    if (e < s) {
+      throw std::runtime_error{
+          "Cannot clamp with an end time earlier than the start time"};
+    }
     if (start() < s) { adjust_start(s); }
-    if (end() > e) { adjust_end(e); }
+    if (end() > e) { set_end(e); }
   }
 
   const biogeo_model_t &model() const { return *_model; }
 
-  std::shared_ptr<biogeo_model_t> model_ptr() const { return _model; }
+  std::unique_ptr<biogeo_model_t> const &model_ptr() const { return _model; }
+
+  void set_model(const biogeo_model_t &model) {
+    _model = std::make_unique<biogeo_model_t>(model);
+  }
+
+  void set_model(const std::unique_ptr<biogeo_model_t> &model) {
+    set_model(*model);
+  }
 
 private:
   double                          _start;
   double                          _length;
-  std::shared_ptr<biogeo_model_t> _model;
+  std::unique_ptr<biogeo_model_t> _model;
   size_t                          _index;
 };
 
@@ -81,12 +118,12 @@ public:
   period_list_t(const std::vector<period_params_t> &params) {
     size_t index = 0;
     for (auto &param : params) {
-      auto model = std::make_shared<biogeo_model_t>();
-      model->set_rate_params(param.rates);
-      model->set_cladogenesis_params(param.clado);
-      if (param.tree) { model->set_tree_params(param.tree.value()); }
-      model->set_two_region_duplicity(false);
-      if (param.extinction) { model->set_extinction(param.extinction.value()); }
+      biogeo_model_t model{};
+      model.set_rate_params(param.rates);
+      model.set_cladogenesis_params(param.clado);
+      if (param.tree) { model.set_tree_params(param.tree.value()); }
+      model.set_two_region_duplicity(false);
+      if (param.extinction) { model.set_extinction(param.extinction.value()); }
 
       _periods.emplace_back(param.start, 0, model, index);
       index++;
@@ -133,6 +170,10 @@ public:
     }
 
     return ok;
+  }
+
+  void set_extinction(bool e_ok) {
+    for (auto &p : _periods) { p.model_ptr()->set_extinction(e_ok); }
   }
 
 private:

@@ -3,6 +3,7 @@ add_executable(bigrig_test
   tree.cpp
   split.cpp
   model.cpp
+  period.cpp
 )
 
 option(RIGOROUS_TESTS "Peform rigorous tests" OFF)

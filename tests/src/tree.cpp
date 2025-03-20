@@ -104,8 +104,8 @@ TEST_CASE("tree sample", "[tree]") {
       "aa:0.5272,(az:0.6393,(do:0.0054,bh:0.6231):0.1945):0.9229):0.9103,ck:0."
       "2594):0.1416):0.2421):0.7125):0.9754):0.4298);");
 
-  auto model = std::make_shared<bigrig::biogeo_model_t>();
-  model->set_rate_params({.dis = dis, .ext = ext})
+  bigrig::biogeo_model_t model{};
+  model.set_rate_params({.dis = dis, .ext = ext})
       .set_cladogenesis_params(
           {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0})
       .set_two_region_duplicity(false);

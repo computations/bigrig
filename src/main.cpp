@@ -161,7 +161,7 @@ int main() {
     MESSAGE_INFO("Simulating ranges on the tree");
     tree.simulate(cli_options.root_range.value(), gen);
   } else {
-    for (auto &p : periods) { p.model_ptr()->set_extinction(true); }
+    periods.set_extinction(true);
     MESSAGE_INFO("Simulating ranges and tree");
     tree.simulate_tree(cli_options.root_range.value(),
                        periods,
