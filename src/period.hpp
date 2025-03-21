@@ -176,6 +176,8 @@ public:
     for (auto &p : _periods) { p.model_ptr()->set_extinction(e_ok); }
   }
 
+  size_t size() const { return _periods.size(); }
+
 private:
   void clamp_periods(double start, double end) {
     for (auto &p : _periods) { p.clamp(start, end); }

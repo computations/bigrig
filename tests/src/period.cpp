@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <cmath>
+#include <limits>
 #include <period.hpp>
 
 using namespace bigrig;
@@ -84,5 +86,71 @@ TEST_CASE("period") {
 }
 
 TEST_CASE("period list") {
-  SECTION("default constructor") {}
+  SECTION("default constructor") {
+    period_list_t pl1;
+    REQUIRE(pl1.size() == 0);
+
+    double get_time = GENERATE(0.0,
+                               1.0,
+                               2.0,
+                               std::numeric_limits<double>::infinity(),
+                               std::numeric_limits<double>::quiet_NaN());
+
+    CHECK_THROWS(pl1.get(get_time));
+  }
+
+  SECTION("one period") {
+    period_list_t pl1{{period_params_t{}}};
+    REQUIRE(pl1.size() == 1);
+
+    double get_time = GENERATE(0.0,
+                               1.0,
+                               2.0,
+                               std::numeric_limits<double>::infinity(),
+                               std::numeric_limits<double>::quiet_NaN());
+
+    if (std::isfinite(get_time)) {
+      auto p1 = pl1.get(get_time);
+      CHECK(p1.start() == 0.0);
+      CHECK(p1.end() == std::numeric_limits<double>::infinity());
+    } else {
+      CHECK_THROWS(pl1.get(get_time));
+    }
+  }
+
+  SECTION("two periods") {
+    period_params_t pp1{};
+    period_params_t pp2{};
+
+    pp1.start = 0.0;
+    pp2.start = 1.0;
+
+    period_list_t pl1{{pp1, pp2}};
+
+    REQUIRE(pl1.size() == 2);
+
+    CHECK(pl1.get(0.0).model_ptr() != pl1.get(1.0).model_ptr());
+
+    double get_time = GENERATE(0.0,
+                               1.0,
+                               2.0,
+                               std::numeric_limits<double>::infinity(),
+                               std::numeric_limits<double>::quiet_NaN());
+
+    if (std::isfinite(get_time)) {
+      auto p1 = pl1.get(get_time);
+
+      CHECK(p1.start() <= get_time);
+      CHECK(p1.end() > get_time);
+
+    } else {
+      CHECK_THROWS(pl1.get(get_time));
+    }
+
+    auto test_filter = [](const auto &p) { return p.start() > 0.5; };
+
+    for (auto p : pl1 | std::ranges::views::filter(test_filter)) {
+      CHECK(p.start() > 0.5);
+    }
+  }
 }
