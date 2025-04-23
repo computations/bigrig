@@ -15,7 +15,7 @@ inline bigrig::tree_t get_tree(const cli_options_t &cli_options) {
   return bigrig::tree_t{};
 }
 
-int main() {
+int main(int argc, char **argv) {
   logger::get_log_states().add_stream(
       stdout,
       logger::log_level::info | logger::log_level::warning
@@ -106,7 +106,7 @@ int main() {
       },
       "Run in fast mode (default on).");
 
-  CLI11_PARSE(app);
+  CLI11_PARSE(app, argc, argv);
 
   if (!cli_options.convert_cli_parameters(
           dispersion, extinction, allopatry, sympatry, copy, jump)) {
