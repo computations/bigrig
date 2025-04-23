@@ -1,5 +1,6 @@
 #include "node.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace bigrig {
@@ -229,6 +230,21 @@ void node_t::assign_periods(const period_list_t &periods) {
 dist_t node_t::start_range() const {
   if (_transitions.empty()) { return _final_state; }
   return _transitions.front().initial_state;
+}
+
+double node_t::brlen_sum() const {
+  double sum = _brlen;
+  for (const auto &c : _children) { sum += c->brlen_sum(); }
+  return sum;
+}
+
+double node_t::max_tree_height() const {
+  double max_child = 0.0;
+  for (const auto &c : _children) {
+    max_child = std::max(c->max_tree_height(), max_child);
+  }
+
+  return _brlen + max_child;
 }
 
 } // namespace bigrig

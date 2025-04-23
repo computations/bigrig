@@ -63,8 +63,8 @@ public:
                      std::uniform_random_bit_generator auto &gen,
                      operation_mode_e mode = operation_mode_e::FAST) {
     auto dist = initial_distribution;
-
     double leftover = 0.0;
+
     while (true) {
       /*
        * two cases:
@@ -197,6 +197,9 @@ public:
 
   void   set_label(const std::string &str);
   dist_t start_range() const;
+
+  double brlen_sum() const;
+  double max_tree_height() const;
 
 private:
   void     parse_periods(const std::vector<period_t> &periods);
