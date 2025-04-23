@@ -1,13 +1,10 @@
-#include "tree.hpp"
-
-#include "pcg_random.hpp"
-
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <limits>
-#include <memory>
+#include <pcg_random.hpp>
+#include <tree.hpp>
 
 std::vector<std::string> tree_strings = {};
 
