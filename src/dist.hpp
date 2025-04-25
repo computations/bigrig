@@ -451,7 +451,7 @@ simulate_transitions(dist_t                                  init_dist,
                      std::uniform_random_bit_generator auto &gen,
                      operation_mode_e                        mode) {
   std::vector<transition_t> results;
-  results.reserve(util::VECTOR_INITIAL_RESERVE);
+  results.reserve(util::VECTOR_INITIAL_RESERVE_COUNT);
   double remainder = 0;
   for (const auto &current_period : periods) {
     double brlen = current_period.length();

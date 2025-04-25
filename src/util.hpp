@@ -58,6 +58,6 @@ constexpr auto YAML_EXT   = ".yaml";
 constexpr auto JSON_EXT   = ".json";
 constexpr auto CSV_EXT    = ".csv";
 
-constexpr size_t VECTOR_INITIAL_RESERVE = 8;
+constexpr size_t VECTOR_INITIAL_RESERVE_COUNT = 8;
 
 } // namespace bigrig::util
