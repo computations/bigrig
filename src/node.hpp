@@ -62,7 +62,7 @@ public:
                      const period_list_t &periods,
                      std::uniform_random_bit_generator auto &gen,
                      operation_mode_e mode = operation_mode_e::FAST) {
-    auto dist = initial_distribution;
+    auto   dist     = initial_distribution;
     double leftover = 0.0;
 
     while (true) {
@@ -79,12 +79,12 @@ public:
 
       auto total_rate = model.total_event_weight(dist);
 
-      if(total_rate <= 0.0){
+      if (total_rate <= 0.0) {
         MESSAGE_ERROR("Rate while simulating the tree is invalid");
         throw std::runtime_error{"total_rate is not positive"};
       }
 
-      if(!std::isfinite(_brlen)){
+      if (!std::isfinite(_brlen)) {
         MESSAGE_ERROR("Simulation ran to infinity");
         throw std::runtime_error{"brlen is infinite"};
       }
@@ -159,6 +159,12 @@ public:
 
   size_t leaf_count() const;
   size_t node_count() const;
+
+  size_t reconstructed_leaf_count() const;
+  size_t reconstructed_leaf_count(double height) const;
+
+  double reconstructed_brlen_sum() const;
+  double reconstructed_brlen_sum(double height) const;
 
   bool is_binary() const;
   bool is_valid() const;

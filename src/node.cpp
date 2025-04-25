@@ -247,4 +247,34 @@ double node_t::max_tree_height() const {
   return _brlen + max_child;
 }
 
+size_t node_t::reconstructed_leaf_count(double height) const {
+  if (_children.empty()) { return abs_time() == height ? 1 : 0; }
+
+  size_t leaf_count = 0;
+  for (const auto &c : _children) {
+    leaf_count += c->reconstructed_leaf_count(height);
+  }
+  return leaf_count;
+}
+
+size_t node_t::reconstructed_leaf_count() const {
+  double height = max_tree_height();
+
+  return reconstructed_leaf_count(height);
+}
+
+double node_t::reconstructed_brlen_sum(double height) const {
+  if (reconstructed_leaf_count(height) == 0) { return 0.0; }
+
+  double sum = _brlen;
+  for (const auto &c : _children) { sum += c->reconstructed_brlen_sum(height); }
+  return sum;
+}
+
+double node_t::reconstructed_brlen_sum() const {
+  double height = max_tree_height();
+
+  return reconstructed_brlen_sum(height);
+}
+
 } // namespace bigrig
