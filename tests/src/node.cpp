@@ -197,9 +197,9 @@ TEST_CASE("simulate tree") {
     CHECK_THAT(leaf_t_statistic, Catch::Matchers::WithinAbs(0, 4));
 
     /* The epxected values for branch lengths breaks down at rate ratio == 1,
-    * because we would have to evaluate a 0/0 expression. So, we skip that part,
-    * and simply check all the other cases
-    */
+     * because we would have to evaluate a 0/0 expression. So, we skip that
+     * part, and simply check all the other cases
+     */
     if (rate_ratio != 1) {
       double brlen_mean = brlen_sum / iters;
       double brlen_std  = compute_std(brlen_sum, brlen_sum_sq, iters);
