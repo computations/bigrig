@@ -11,6 +11,12 @@ add_library(bigrig_interface_obj OBJECT
   io.cpp
 )
 
+find_package(OpenMP)
+
+if(OpenMP_FOUND) 
+  target_link_libraries(bigrig_obj PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 option(ENABLE_BMI "Enable Bit Manipulation Instructions (BMI) instructions" OFF)
 if(ENABLE_BMI)
   target_compile_options(bigrig_obj PUBLIC -mbmi)

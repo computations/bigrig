@@ -52,6 +52,10 @@ inline auto compute_base26(size_t i) -> std::string {
   return ret;
 }
 
+template <typename T> constexpr T xorshift(const T& n, int i) {
+  return n ^ (n >> i);
+}
+
 constexpr auto PHYILP_EXT = ".phy";
 constexpr auto NEWICK_EXT = ".nwk";
 constexpr auto YAML_EXT   = ".yaml";

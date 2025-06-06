@@ -372,14 +372,17 @@ transition_t spread_rejection(dist_t                                  init_dist,
   bool       singleton    = init_dist.singleton();
   const auto region_count = init_dist.regions();
 
-  std::exponential_distribution<double> dis_die(d);
   std::exponential_distribution<double> exp_die(e);
 
   std::vector<transition_t> rolls(region_count);
 
   for (size_t i = 0; i < region_count; ++i) {
     if (singleton && init_dist[i]) { continue; }
-    double waiting_time = init_dist[i] ? exp_die(gen) : dis_die(gen);
+    double waiting_time
+        = init_dist[i]
+            ? exp_die(gen)
+            : std::exponential_distribution<double>(
+                  model.dispersion_weight_for_index(init_dist, i))(gen);
     rolls[i] = transition_t{waiting_time, init_dist, init_dist.flip_region(i)};
   }
 
@@ -407,7 +410,7 @@ spread_flip_region(dist_t                                  init_dist,
         region_roll -= e;
       }
     } else {
-      region_roll -= d;
+      region_roll -= model.dispersion_weight_for_index(init_dist, i);
     }
     if (region_roll <= 0) {
       auto new_dist = init_dist.flip_region(i);

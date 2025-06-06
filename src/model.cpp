@@ -26,13 +26,48 @@ size_t biogeo_model_t::extinction_count(const dist_t &dist) const {
 }
 
 double biogeo_model_t::dispersion_weight(const dist_t &dist) const {
-  return _rate_params.dis * dispersion_count(dist);
+  if (!_adjustment_matrix.has_value()) {
+    return _rate_params.dis * dispersion_count(dist);
+  }
+
+  const auto inv_dist = ~dist;
+  double     sum      = 0.0;
+
+#pragma omp simd collapse(2)
+  for (size_t i = 0; i < dist.regions(); ++i) {
+    for (size_t j = 0; j < dist.regions(); ++j) {
+      sum += dispersion_rate(i, j) * dist[i] * inv_dist[j];
+    }
+  }
+
+  return sum;
 }
 
 double biogeo_model_t::extinction_weight(const dist_t &dist) const {
   return dist.singleton() && !_extinction
            ? 0.0
            : _rate_params.ext * extinction_count(dist);
+}
+
+double biogeo_model_t::dispersion_weight_for_index(const dist_t &dist,
+                                                   size_t        index) const {
+  if (!_adjustment_matrix.has_value()) { return _rate_params.dis; }
+  if (dist[index]) { return 0.0; }
+
+  double sum = 0.0;
+#pragma omp for simd
+  for (size_t i = 0; i < dist.regions(); ++i) {
+    sum += dispersion_rate(i, index) * dist[i];
+  }
+  return sum;
+}
+
+inline double biogeo_model_t::dispersion_rate(size_t from, size_t to) const {
+  if (!_adjustment_matrix.has_value()) { return _rate_params.dis; }
+  double dispersion      = _rate_params.dis;
+  auto  &distance_matrix = _adjustment_matrix.value();
+
+  return dispersion * distance_matrix.get_adjustment(from, to);
 }
 
 double biogeo_model_t::total_rate_weight(const dist_t &dist) const {
@@ -190,6 +225,12 @@ biogeo_model_t &biogeo_model_t::set_extinction(bool e) {
 
 biogeo_model_t &biogeo_model_t::set_tree_params(const tree_params_t &tp) {
   _tree_params = tp;
+  return *this;
+}
+
+biogeo_model_t &
+biogeo_model_t::set_adjustment_matrix(const adjustment_matrix_t &am) {
+  _adjustment_matrix = am;
   return *this;
 }
 

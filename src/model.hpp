@@ -1,8 +1,10 @@
 #pragma once
 
+#include "adjustment.hpp"
+
 #include <cstddef>
-#include <sstream>
 #include <optional>
+#include <sstream>
 
 namespace bigrig {
 
@@ -163,7 +165,9 @@ public:
 
   biogeo_model_t &set_extinction(bool e);
 
-  biogeo_model_t &set_tree_params(const tree_params_t&);
+  biogeo_model_t &set_tree_params(const tree_params_t &);
+
+  biogeo_model_t &set_adjustment_matrix(const adjustment_matrix_t &);
 
   inline cladogenesis_params_t cladogenesis_params() const {
     return _clad_params;
@@ -179,6 +183,10 @@ public:
 
   double dispersion_weight(const dist_t &dist) const;
   double extinction_weight(const dist_t &dist) const;
+
+  double dispersion_weight_for_index(const dist_t &dist, size_t index) const;
+
+  double dispersion_rate(size_t from, size_t to) const;
 
   inline bool extinction_allowed() const { return _extinction; }
 
@@ -212,9 +220,10 @@ public:
   bool check_ok(size_t region_count) const;
 
 private:
-  rate_params_t                _rate_params;
-  cladogenesis_params_t        _clad_params;
-  std::optional<tree_params_t> _tree_params;
+  rate_params_t                      _rate_params;
+  cladogenesis_params_t              _clad_params;
+  std::optional<tree_params_t>       _tree_params;
+  std::optional<adjustment_matrix_t> _adjustment_matrix;
 
   bool _duplicity  = false;
   bool _extinction = false;

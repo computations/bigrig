@@ -1,3 +1,5 @@
+#include "adjustment.hpp"
+
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -283,4 +285,50 @@ TEST_CASE("spread index chi2 test", "[sample]") {
   }
   REQUIRE(chi2 >= 0);
   CHECK(chi2 < chi2_lut[df]);
+}
+
+TEST_CASE("spread regression with adjustment matrix", "[adjust]") {
+  constexpr size_t regions = 4;
+
+#if D_RIGOROUS
+  /* 99.999% confidence that error is less than 0.0001 */
+  constexpr size_t iters   = 1'886'084'219;
+  constexpr double abs_tol = 1.0e-4;
+#else
+  /* 99.999% confidence that error is less than 0.01 */
+  constexpr size_t iters   = 188'609;
+  constexpr double abs_tol = 1.0e-2;
+#endif
+
+  pcg64_fast gen(Catch::getSeed());
+
+  bigrig::adjustment_matrix_t adjust;
+  adjust.simulate(regions, gen);
+
+  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b0001, regions},
+                                      bigrig::dist_t{0b0100, regions},
+                                      bigrig::dist_t{0b1010, regions},
+                                      bigrig::dist_t{0b1110, regions},
+                                      bigrig::dist_t{0b1111, regions});
+
+  double dis = GENERATE(0.25, 0.66, 1.0, 2.0);
+  double ext = GENERATE(0.25, 0.66, 1.0, 2.0);
+
+  bigrig::biogeo_model_t model(dis, ext, true);
+  model.set_adjustment_matrix(adjust);
+
+  double rej_total = 0;
+  double ana_total = 0;
+
+  for (size_t i = 0; i < iters; ++i) {
+    auto rej_res  = bigrig::spread_rejection(init_dist, model, gen);
+    rej_total    += rej_res.waiting_time;
+    auto ana_res  = bigrig::spread_analytic(init_dist, model, gen);
+    ana_total    += ana_res.waiting_time;
+  }
+
+  double rej_mean = rej_total / iters;
+  double ana_mean = ana_total / iters;
+
+  CHECK_THAT(rej_mean - ana_mean, Catch::Matchers::WithinAbs(0, abs_tol));
 }
