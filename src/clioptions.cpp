@@ -1,5 +1,6 @@
 #include "clioptions.hpp"
 
+#include "adjustment.hpp"
 #include "dist.hpp"
 #include "logger.hpp"
 #include "period.hpp"
@@ -7,6 +8,9 @@
 #include "util.hpp"
 
 #include <algorithm>
+#include <csv.hpp>
+#include <fstream>
+#include <string>
 
 template <typename T>
 std::optional<T> get_yaml_val_or_nothing(const YAML::Node &yaml,
@@ -334,9 +338,10 @@ cli_options_t::get_period(const YAML::Node &yaml) {
 std::vector<bigrig::period_params_t>
 cli_options_t::get_periods(const YAML::Node &yaml) {
   std::vector<bigrig::period_params_t> ret;
-  constexpr auto                       PERIOD_KEY = "periods";
-  if (yaml[PERIOD_KEY]) {
-    auto   list  = yaml[PERIOD_KEY];
+
+  constexpr auto PERIODS_KEY = "periods";
+  if (yaml[PERIODS_KEY]) {
+    auto   list  = yaml[PERIODS_KEY];
     size_t index = 0;
     for (auto y : list) {
       auto period = get_period(y);
@@ -365,11 +370,14 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
     }
 
     if (ok) {
-      return {bigrig::period_params_t{.rates      = rates.value(),
-                                      .clado      = clado_params.value(),
-                                      .tree       = tree_params,
-                                      .start      = 0.0,
-                                      .extinction = extinction}};
+      return {bigrig::period_params_t{
+          .rates             = rates.value(),
+          .clado             = clado_params.value(),
+          .tree              = tree_params,
+          .start             = 0.0,
+          .extinction        = extinction,
+          .adjustment_matrix = {},
+      }};
     }
   }
   return ret;
@@ -414,6 +422,74 @@ std::optional<bool> cli_options_t::get_simulate_tree(const YAML::Node &yaml) {
 std::optional<double> cli_options_t::get_tree_height(const YAML::Node &yaml) {
   constexpr auto TREE_HEIGHT_KEY = "tree-height";
   return get_yaml_val_or_nothing<double>(yaml, TREE_HEIGHT_KEY);
+}
+
+std::optional<bigrig::adjustment_matrix_params_t>
+cli_options_t::get_adjustment_matrix_parameters(const YAML::Node &yaml) {
+  constexpr auto ADJUSTMENT_PARAMS_KEY = "adjust";
+  if (!yaml[ADJUSTMENT_PARAMS_KEY]) { return {}; }
+
+  auto sub_yaml = yaml[ADJUSTMENT_PARAMS_KEY];
+  return {bigrig::adjustment_matrix_params_t{
+      .adjustments = get_adjustment_matrix(sub_yaml),
+      .exponent    = get_distance_exponent(sub_yaml),
+      .simulate    = get_simulate_adjustment_matrix(sub_yaml),
+  }};
+}
+
+std::optional<std::vector<double>>
+cli_options_t::get_adjustment_matrix(const YAML::Node &yaml) {
+  auto filename = get_adjustment_matrix_filename(yaml);
+  if (!filename.has_value()) { return {}; }
+
+  struct row {
+    std::string from;
+    std::string to;
+    double      value;
+  };
+  std::vector<row> rows;
+
+  csv::CSVReader reader{filename.value().string()};
+
+  for (auto &cur_row : reader) {
+    rows.push_back(row{
+        .from  = cur_row[0].get(),
+        .to    = cur_row[1].get(),
+        .value = cur_row[2].get<double>(),
+    });
+  }
+
+  std::sort(rows.begin(), rows.end(), [](const row &a, const row &b) {
+    return a.from > b.from && a.to > b.to;
+  });
+
+  std::vector<double> ret;
+  ret.resize(rows.size());
+
+  std::transform(rows.begin(), rows.end(), ret.begin(), [](const auto &row) {
+    return row.value;
+  });
+
+  return ret;
+}
+
+std::optional<std::filesystem::path>
+cli_options_t::get_adjustment_matrix_filename(const YAML::Node &yaml) {
+  constexpr auto DISTANCE_MATRIX_FILENAME_KEY = "file";
+  return get_yaml_val_or_nothing<std::string>(yaml,
+                                              DISTANCE_MATRIX_FILENAME_KEY);
+}
+
+std::optional<double>
+cli_options_t::get_distance_exponent(const YAML::Node &yaml) {
+  constexpr auto DISTANCE_MATRIX_EXPONENT_KEY = "exponent";
+  return get_yaml_val_or_nothing<double>(yaml, DISTANCE_MATRIX_EXPONENT_KEY);
+}
+
+std::optional<double>
+cli_options_t::get_simulate_adjustment_matrix(const YAML::Node &yaml) {
+  constexpr auto SIMULATE_DISTANCE_MATRIX = "simulate";
+  return get_yaml_val_or_nothing<bool>(yaml, SIMULATE_DISTANCE_MATRIX);
 }
 
 template <typename T>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "adjustment.hpp"
 #include "model.hpp"
 
 #include <logger.hpp>
@@ -13,8 +14,12 @@ struct period_params_t {
   bigrig::rate_params_t                rates;
   bigrig::cladogenesis_params_t        clado;
   std::optional<bigrig::tree_params_t> tree;
-  double                               start;
-  std::optional<bool>                  extinction;
+
+  double start = std::numeric_limits<double>::signaling_NaN();
+
+  std::optional<bool>                        extinction;
+
+  std::optional<bigrig::adjustment_matrix_params_t> adjustment_matrix;
 };
 
 class period_t {

@@ -126,6 +126,24 @@ struct cli_options_t {
    */
   std::optional<double> tree_height;
 
+  /**
+   * Path to a file containing the distance matrix, in the form of
+   *
+   * from, to, distance
+   * a, b, 1.2
+   * a, c, 1.1
+   * ...
+   */
+  std::optional<std::filesystem::path> distance_matrix_filename;
+
+  /**
+   * The distance matrix exponent is used to influence how "much" the distance
+   * matrix matters. If it is not specified, we will default to -1.
+   */
+  std::optional<double> distance_exponent;
+
+  std::optional<bool> simulate_distance_matrix;
+
   std::filesystem::path phylip_filename() const;
 
   std::filesystem::path yaml_filename() const;
@@ -186,7 +204,8 @@ struct cli_options_t {
         mode{get_mode(yaml)},
         rng_seed{get_seed(yaml)},
         simulate_tree{get_simulate_tree(yaml)},
-        tree_height{get_tree_height(yaml)} {}
+        tree_height{get_tree_height(yaml)},
+        distance_matrix_filename{get_adjustment_matrix_filename(yaml)} {}
 
 private:
   static std::optional<std::filesystem::path>
@@ -217,4 +236,18 @@ private:
 
   static std::optional<bool>   get_simulate_tree(const YAML::Node &);
   static std::optional<double> get_tree_height(const YAML::Node &);
+
+  static std::optional<bigrig::adjustment_matrix_params_t>
+  get_adjustment_matrix_parameters(const YAML::Node &yaml);
+
+  static std::optional<std::vector<double>>
+  get_adjustment_matrix(const YAML::Node &yaml);
+
+  static std::optional<std::filesystem::path>
+  get_adjustment_matrix_filename(const YAML::Node &);
+
+  static std::optional<double> get_distance_exponent(const YAML::Node &);
+
+  static std::optional<double>
+  get_simulate_adjustment_matrix(const YAML::Node &);
 };

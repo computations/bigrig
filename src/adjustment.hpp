@@ -3,23 +3,41 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
 namespace bigrig {
 
-struct region_arc_t {
-  size_t from;
-  size_t to;
-
-  bool operator==(const region_arc_t &rhs) const = default;
+struct adjustment_matrix_params_t {
+  std::optional<std::vector<double>> adjustments;
+  std::optional<double>              exponent;
+  std::optional<bool>                simulate;
 };
 
 typedef std::vector<double> region_adjustment_map_t;
 
 class adjustment_matrix_t {
 public:
-  adjustment_matrix_t()                                       = default;
+  adjustment_matrix_t() = default;
+
+  adjustment_matrix_t(const adjustment_matrix_params_t &params,
+                      size_t                            region_count)
+      : _region_count{region_count} {
+    if (params.adjustments.has_value()) {
+      auto &matrix = params.adjustments.value();
+      if (matrix_size() != matrix.size()) {
+        throw std::runtime_error{"The matrix is not the correct size"};
+      }
+      _map = matrix;
+    }
+
+    if (params.exponent.has_value()) {
+      apply_exponent(params.exponent.value());
+    }
+  }
+
   adjustment_matrix_t(const adjustment_matrix_t &rhs)         = default;
   //: _map{rhs._map}, _region_count{rhs._region_count} {}
   adjustment_matrix_t &operator=(const adjustment_matrix_t &) = default;
@@ -56,6 +74,8 @@ public:
       }
     }
   }
+
+  size_t matrix_size() const { return _region_count * _region_count; }
 
 private:
   region_adjustment_map_t _map;
