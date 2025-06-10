@@ -11,14 +11,11 @@
 namespace bigrig {
 
 struct period_params_t {
-  bigrig::rate_params_t                rates;
-  bigrig::cladogenesis_params_t        clado;
-  std::optional<bigrig::tree_params_t> tree;
-
-  double start = std::numeric_limits<double>::signaling_NaN();
-
-  std::optional<bool>                        extinction;
-
+  bigrig::rate_params_t                             rates;
+  bigrig::cladogenesis_params_t                     clado;
+  std::optional<bigrig::tree_params_t>              tree;
+  double                                            start = 0.0;
+  std::optional<bool>                               extinction;
   std::optional<bigrig::adjustment_matrix_params_t> adjustment_matrix;
 };
 
