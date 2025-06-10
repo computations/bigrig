@@ -13,6 +13,9 @@ add_library(bigrig_interface_obj OBJECT
 
 find_package(OpenMP)
 
+target_compile_options(bigrig_obj PUBLIC -fdiagnostics-color=always)
+target_compile_options(bigrig_interface_obj PUBLIC -fdiagnostics-color=always)
+
 if(OpenMP_FOUND) 
   target_link_libraries(bigrig_obj PUBLIC OpenMP::OpenMP_CXX)
 endif()
@@ -42,7 +45,7 @@ target_link_libraries(bigrig_obj PUBLIC corax logger)
 target_include_directories(bigrig_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_link_libraries(bigrig_interface_obj PUBLIC logger CLI11 yaml-cpp corax
-   nlohmann_json::nlohmann_json)
+   nlohmann_json::nlohmann_json csv)
 target_include_directories(bigrig_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_compile_options(bigrig_obj PRIVATE -Wall -Wextra)
@@ -55,6 +58,8 @@ target_compile_options(bigrig_interface_obj PRIVATE -Wall -Wextra)
 add_executable(bigrig
     main.cpp
 )
+
+target_compile_options(bigrig PUBLIC -fdiagnostics-color=always)
 
 target_link_libraries(bigrig 
   bigrig_obj 

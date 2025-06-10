@@ -2,12 +2,18 @@ include(FetchContent)
 
 FetchContent_Declare(json
   GIT_REPOSITORY https://github.com/nlohmann/json
-  GIT_TAG v3.12.0)
+  GIT_SHALLOW TRUE
+  GIT_TAG v3.12.0
+)
 
-FetchContent_GetProperties(json)
-if(NOT json_POPULATED)
-  FetchContent_MakeAvailable(json)
-endif()
+FetchContent_Declare(
+  csv  
+  GIT_REPOSITORY https://github.com/vincentlaucsb/csv-parser.git
+  GIT_SHALLOW TRUE 
+  GIT_TAG 2.2.1
+)
+
+FetchContent_MakeAvailable(json csv)
 
 add_subdirectory(coraxlib EXCLUDE_FROM_ALL)
 add_subdirectory(logger EXCLUDE_FROM_ALL)
