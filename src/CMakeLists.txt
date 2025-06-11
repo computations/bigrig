@@ -13,6 +13,9 @@ add_library(bigrig_interface_obj OBJECT
 
 find_package(OpenMP)
 
+target_compile_features(bigrig_obj PUBLIC cxx_std_23)
+target_compile_features(bigrig_interface_obj PUBLIC cxx_std_23)
+
 target_compile_options(bigrig_obj PUBLIC -fdiagnostics-color=always)
 target_compile_options(bigrig_interface_obj PUBLIC -fdiagnostics-color=always)
 
@@ -72,6 +75,7 @@ set_target_properties(bigrig
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 
+target_compile_features(bigrig PUBLIC cxx_std_23)
 target_compile_options(bigrig PRIVATE -Wall -Wextra)
 
 target_include_directories(bigrig_interface_obj PUBLIC "${CMAKE_SOURCE_DIR}/lib/pcg/include")
