@@ -53,8 +53,10 @@ target_include_directories(bigrig_obj PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_compile_options(bigrig_obj PRIVATE -Wall -Wextra)
 
-target_compile_options(bigrig_obj PUBLIC $<$<CONFIG:Debug>:-fsanitize=undefined>)
-target_link_options(bigrig_obj PUBLIC $<$<CONFIG:Debug>:-fsanitize=undefined>)
+target_compile_options(bigrig_obj PUBLIC $<$<CONFIG:Debug>:-fsanitize=undefined
+  --coverage>)
+target_link_options(bigrig_obj PUBLIC $<$<CONFIG:Debug>:-fsanitize=undefined
+  --coverage>)
 
 target_compile_options(bigrig_interface_obj PRIVATE -Wall -Wextra)
 
