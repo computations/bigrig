@@ -8,9 +8,32 @@
 #include "util.hpp"
 
 #include <algorithm>
-#include <csv.hpp>
-#include <fstream>
+#include <expected>
+#include <filesystem>
 #include <string>
+
+[[nodiscard]] bool verify_path_is_readable(const std::filesystem::path &path) {
+  bool ok     = true;
+  auto status = std::filesystem::status(path);
+  if ((std::filesystem::perms::owner_read & status.permissions())
+      == std::filesystem::perms::none) {
+    LOG_ERROR("The path '%s' is not readable", path.c_str());
+    ok = false;
+  }
+  return ok;
+}
+
+[[nodiscard]] bool verify_path_is_writable(const std::filesystem::path &path) {
+  bool ok             = true;
+  auto status         = std::filesystem::status(path);
+  auto required_perms = std::filesystem::perms::owner_write
+                      | std::filesystem::perms::owner_exec;
+  if ((required_perms & status.permissions()) == std::filesystem::perms::none) {
+    LOG_ERROR("The path '%s' is not writable", path.c_str());
+    ok = false;
+  }
+  return ok;
+}
 
 template <typename T>
 std::optional<T> get_yaml_val_or_nothing(const YAML::Node &yaml,
@@ -331,6 +354,8 @@ cli_options_t::get_period(const YAML::Node &yaml) {
   period_params.tree       = get_tree_params(yaml);
   period_params.extinction = get_period_extinction(yaml);
 
+  period_params.adjustment_matrix = get_adjustment_matrix_parameters(yaml);
+
   if (ok) { return period_params; }
   return {};
 }
@@ -373,8 +398,8 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
       return {bigrig::period_params_t{
           .rates             = rates.value(),
           .clado             = clado_params.value(),
-          .tree              = tree_params,
           .start             = 0.0,
+          .tree              = tree_params,
           .extinction        = extinction,
           .adjustment_matrix = {},
       }};
@@ -431,53 +456,20 @@ cli_options_t::get_adjustment_matrix_parameters(const YAML::Node &yaml) {
 
   auto sub_yaml = yaml[ADJUSTMENT_PARAMS_KEY];
   return {bigrig::adjustment_matrix_params_t{
-      .adjustments = get_adjustment_matrix(sub_yaml),
-      .exponent    = get_distance_exponent(sub_yaml),
-      .simulate    = get_simulate_adjustment_matrix(sub_yaml),
+      .matrix_filename = get_adjustment_matrix_filename(sub_yaml),
+      .adjustments     = std::nullopt,
+      .exponent        = get_distance_exponent(sub_yaml),
+      .simulate        = get_simulate_adjustment_matrix(sub_yaml),
   }};
 }
 
-std::optional<std::vector<double>>
-cli_options_t::get_adjustment_matrix(const YAML::Node &yaml) {
-  auto filename = get_adjustment_matrix_filename(yaml);
-  if (!filename.has_value()) { return {}; }
-
-  struct row {
-    std::string from;
-    std::string to;
-    double      value;
-  };
-  std::vector<row> rows;
-
-  csv::CSVReader reader{filename.value().string()};
-
-  for (auto &cur_row : reader) {
-    rows.push_back(row{
-        .from  = cur_row[0].get(),
-        .to    = cur_row[1].get(),
-        .value = cur_row[2].get<double>(),
-    });
-  }
-
-  std::sort(rows.begin(), rows.end(), [](const row &a, const row &b) {
-    return a.from > b.from && a.to > b.to;
-  });
-
-  std::vector<double> ret;
-  ret.resize(rows.size());
-
-  std::transform(rows.begin(), rows.end(), ret.begin(), [](const auto &row) {
-    return row.value;
-  });
-
-  return ret;
-}
-
-std::optional<std::filesystem::path>
+std::expected<std::filesystem::path, bigrig::io_err>
 cli_options_t::get_adjustment_matrix_filename(const YAML::Node &yaml) {
   constexpr auto DISTANCE_MATRIX_FILENAME_KEY = "file";
-  return get_yaml_val_or_nothing<std::string>(yaml,
-                                              DISTANCE_MATRIX_FILENAME_KEY);
+  if (!yaml[DISTANCE_MATRIX_FILENAME_KEY]) {
+    return std::unexpected{bigrig::io_err::KeyNotFound};
+  }
+  return {yaml[DISTANCE_MATRIX_FILENAME_KEY].as<std::string>()};
 }
 
 std::optional<double>

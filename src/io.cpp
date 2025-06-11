@@ -4,6 +4,9 @@
 #include "logger.hpp"
 #include "model.hpp"
 
+#include <cmath>
+#include <csv.hpp>
+#include <expected>
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -100,17 +103,6 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
   return oss.str();
 }
 
-[[nodiscard]] bool verify_path_is_readable(const std::filesystem::path &path) {
-  bool ok     = true;
-  auto status = std::filesystem::status(path);
-  if ((std::filesystem::perms::owner_read & status.permissions())
-      == std::filesystem::perms::none) {
-    LOG_ERROR("The path '%s' is not readable", path.c_str());
-    ok = false;
-  }
-  return ok;
-}
-
 /**
  * Check that the tree file path is ok to use.
  */
@@ -134,18 +126,6 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
     LOG_ERROR("The tree file '%s' can't be read by us as we don't have the "
               "permissions",
               tree_filename.c_str());
-    ok = false;
-  }
-  return ok;
-}
-
-[[nodiscard]] bool verify_path_is_writable(const std::filesystem::path &path) {
-  bool ok             = true;
-  auto status         = std::filesystem::status(path);
-  auto required_perms = std::filesystem::perms::owner_write
-                      | std::filesystem::perms::owner_exec;
-  if ((required_perms & status.permissions()) == std::filesystem::perms::none) {
-    LOG_ERROR("The path '%s' is not writable", path.c_str());
     ok = false;
   }
   return ok;
@@ -242,6 +222,97 @@ validate_root_region(const std::optional<bigrig::dist_t> &root_range,
   return ok;
 }
 
+[[nodiscard]] bigrig::adjustment_matrix_symmetry
+determine_matrix_symmetry(const std::vector<bigrig::adjacency_arc_t> &matrix,
+                          size_t region_count) {
+  size_t symmetric_size = (region_count * (region_count + 1)) / 2;
+
+  if (matrix.size() == symmetric_size) {
+    return bigrig::adjustment_matrix_symmetry::symmetric;
+  }
+
+  size_t nonsymmetric_size = (region_count - 1) * region_count;
+
+  if (matrix.size() == nonsymmetric_size) {
+    return bigrig::adjustment_matrix_symmetry::nonsymmetric;
+  }
+  return bigrig::adjustment_matrix_symmetry::unknown;
+}
+
+[[nodiscard]] bool
+validate_matrix_symmetry(const std::vector<bigrig::adjacency_arc_t> &matrix) {
+  for (auto a : matrix) {
+    bool row_symmetry = false;
+    for (auto b : matrix) { row_symmetry |= a.reverse(b); }
+    if (!row_symmetry) { return false; }
+  }
+  return true;
+}
+
+[[nodiscard]] bool
+validiate_adjustment_matrix(const std::vector<bigrig::adjacency_arc_t> &matrix,
+                            size_t region_count) {
+  /*
+   * there are two cases:
+   *  - Symmetric adjustment matrix
+   *  - Nonsymmetric adjustment matrix
+   * In both of these cases, the diagonal does nothing, so we should not include
+   * it. Therfore, the two formulas are
+   *  - n(n-1)
+   *  - n(n+1)/2
+   * So, we need to determine which case it is, and then check the matrix size.
+   *
+   * This data structure at this moment is a list of tuples:
+   *  (from, to, value)
+   * So, to check if the matrix is intended to be symmetric, we need to check if
+   * (a, b, _) and (b, a, _) are in the list.
+   */
+
+  auto symmetry = determine_matrix_symmetry(matrix, region_count);
+
+  switch (symmetry) {
+  case bigrig::adjustment_matrix_symmetry::symmetric:
+    if (!validate_matrix_symmetry(matrix)) {
+      MESSAGE_ERROR(
+          "A matrix is not fully symmetric, despite being the correct size");
+      return false;
+    }
+    return true;
+  case bigrig::adjustment_matrix_symmetry::nonsymmetric:
+    return true;
+
+  default:
+  case bigrig::adjustment_matrix_symmetry::unknown:
+    return false;
+  }
+}
+
+[[nodiscard]] bool validate_adjustment_matrix_params(
+    const std::optional<bigrig::adjustment_matrix_params_t>
+        &adjustment_params) {
+  if (!adjustment_params.has_value()) { return true; }
+  bool ok = true;
+
+  auto params = adjustment_params.value();
+
+  if (params.simulate.has_value() && params.simulate.value()
+      && params.adjustments.has_value()) {
+    MESSAGE_ERROR("Both an adjustment matrix and the simulate option were set. "
+                  "These are incompatible");
+    ok &= false;
+  }
+
+  if (params.exponent.has_value()) {
+    double &exponent = params.exponent.value();
+    if (!std::isfinite(exponent)) {
+      MESSAGE_ERROR("There is an issue with the adjustment matrix exponent");
+      ok &= false;
+    }
+  }
+
+  return ok;
+}
+
 /**
  * Check that the program options are valid
  *
@@ -265,6 +336,8 @@ validate_root_region(const std::optional<bigrig::dist_t> &root_range,
     ok &= validate_model_parameter(p.clado.sympatry, "sympatry");
     ok &= validate_model_parameter(p.clado.copy, "copy");
     ok &= validate_model_parameter(p.clado.jump, "jump");
+
+    ok &= validate_adjustment_matrix_params(p.adjustment_matrix);
   }
 
   return ok;
@@ -312,6 +385,37 @@ bool normalize_paths(cli_options_t &cli_options) {
     ok = false;
   }
   return ok;
+}
+
+std::expected<std::vector<bigrig::adjacency_arc_t>, bigrig::io_err>
+read_adjustment_matrix(const bigrig::adjustment_matrix_params_t &params) {
+  auto &filename = *params.matrix_filename;
+
+  std::vector<bigrig::adjacency_arc_t> rows;
+
+  if (!std::filesystem::exists(filename)) {
+    LOG_ERROR("The matrix file '%s' does not exist", filename.c_str());
+    return std::unexpected{bigrig::io_err::ReadError};
+  }
+  if (!verify_path_is_readable(filename)) {
+    return std::unexpected{bigrig::io_err::ReadError};
+  }
+
+  csv::CSVReader reader{filename.string()};
+
+  for (auto &cur_row : reader) {
+    rows.push_back(bigrig::adjacency_arc_t{
+        .from  = cur_row[0].get(),
+        .to    = cur_row[1].get(),
+        .value = cur_row[2].get<double>(),
+    });
+  }
+
+  std::sort(rows.begin(), rows.end(), [](const auto &a, const auto &b) {
+    return a.from < b.from && a.to < b.to;
+  });
+
+  return rows;
 }
 
 /**
@@ -832,7 +936,9 @@ void write_output_files(const cli_options_t         &cli_options,
   }
 }
 
-void finalize_options(cli_options_t &cli_options) {
+[[nodiscard]] bool finalize_options(cli_options_t &cli_options) {
+  bool ok = true;
+
   if (cli_options.rng_seed.has_value()) {
     cli_options.get_rng_wrapper().seed(cli_options.rng_seed.value());
   } else {
@@ -842,6 +948,27 @@ void finalize_options(cli_options_t &cli_options) {
     cli_options.root_range = bigrig::make_random_dist(
         cli_options.region_count.value(), cli_options.get_rng());
   }
+
+  for (auto [index, p] : std::views::enumerate(cli_options.periods)) {
+    if (p.adjustment_matrix.has_value()) {
+      auto res = read_adjustment_matrix(p.adjustment_matrix.value());
+      if (!res) {
+        LOG_ERROR("Could not read the matrix file for period %lu", index);
+        ok &= false;
+      } else {
+        auto &matrix = *res;
+        if (!validiate_adjustment_matrix(matrix,
+                                         cli_options.root_range->regions())) {
+          LOG_ERROR("The matrix was malformed for period %lu", index);
+          ok &= false;
+          continue;
+        }
+        p.adjustment_matrix->adjustments = *res;
+      }
+    }
+  }
+
+  return ok;
 }
 
 /**
@@ -852,6 +979,7 @@ void finalize_options(cli_options_t &cli_options) {
  * - Making directories
  * - Normalizing paths
  * - Checking existing results
+ *   Loading the adjustment matrices
  */
 bool validate_and_finalize_options(cli_options_t &cli_options) {
   if (cli_options.config_filename.has_value()
@@ -878,7 +1006,10 @@ bool validate_and_finalize_options(cli_options_t &cli_options) {
     return false;
   }
 
-  finalize_options(cli_options);
+  if (!finalize_options(cli_options)) {
+    MESSAGE_ERROR("Failed to finalize the setup exiting");
+    return false;
+  };
 
   write_header(cli_options);
 

@@ -1,8 +1,12 @@
 #pragma once
 
+#include "errors.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <expected>
+#include <filesystem>
 #include <optional>
 #include <random>
 #include <stdexcept>
@@ -10,10 +14,28 @@
 
 namespace bigrig {
 
+enum class adjustment_matrix_symmetry {
+  symmetric,
+  nonsymmetric,
+  unknown
+};
+
+struct adjacency_arc_t {
+  std::string from;
+  std::string to;
+  double      value;
+
+  [[nodiscard]] bool reverse(const adjacency_arc_t &a) const {
+    return from == a.to && to == a.from;
+  }
+};
+
+
 struct adjustment_matrix_params_t {
-  std::optional<std::vector<double>> adjustments;
-  std::optional<double>              exponent;
-  std::optional<bool>                simulate;
+  std::expected<std::filesystem::path, io_err> matrix_filename;
+  std::optional<std::vector<adjacency_arc_t>>          adjustments;
+  std::optional<double>                                exponent;
+  std::optional<bool>                                  simulate;
 };
 
 typedef std::vector<double> region_adjustment_map_t;
@@ -30,7 +52,7 @@ public:
       if (matrix_size() != matrix.size()) {
         throw std::runtime_error{"The matrix is not the correct size"};
       }
-      _map = matrix;
+      //_map = matrix;
     }
 
     if (params.exponent.has_value()) {
