@@ -117,7 +117,9 @@ public:
     clamp_periods(start, end);
   }
 
-  period_list_t(const std::vector<period_params_t> &params) {
+  period_list_t(const std::vector<period_params_t>     &params,
+                const std::vector<std::string>         &area_names,
+                std::uniform_random_bit_generator auto &gen) {
     size_t index = 0;
     for (auto &param : params) {
       biogeo_model_t model{};
@@ -130,6 +132,8 @@ public:
       _periods.emplace_back(param.start, 0, model, index);
       index++;
     }
+
+    setup_matrices(params, area_names, gen);
 
     for (size_t i = 0; i < _periods.size() - 1; ++i) {
       auto &p1 = _periods[i];
@@ -181,6 +185,18 @@ public:
   size_t size() const { return _periods.size(); }
 
 private:
+  void setup_matrices(const std::vector<period_params_t>     &params,
+                      const std::vector<std::string>         &area_names,
+                      std::uniform_random_bit_generator auto &gen) {
+    for (auto [period, param] : std::views::zip(_periods, params)) {
+      if (auto am_params = param.adjustment_matrix; am_params) {
+        adjustment_matrix_t m{*am_params, area_names, gen};
+
+        period.model_ptr()->set_adjustment_matrix(m);
+      }
+    }
+  }
+
   void clamp_periods(double start, double end) {
     for (auto &p : _periods) { p.clamp(start, end); }
   }

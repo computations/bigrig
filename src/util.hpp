@@ -1,9 +1,12 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <ranges>
 #include <string>
+#include <vector>
 
 namespace bigrig::util {
 
@@ -52,7 +55,15 @@ inline auto compute_base26(size_t i) -> std::string {
   return ret;
 }
 
-template <typename T> constexpr T xorshift(const T& n, int i) {
+inline auto generate_area_names(size_t region_count)
+    -> std::vector<std::string> {
+  return std::ranges::iota_view{0ul, region_count}
+       | std::views::transform(
+             [](auto i) -> std::string { return compute_base26(i); })
+       | std::ranges::to<std::vector>();
+}
+
+template <typename T> constexpr T xorshift(const T &n, int i) {
   return n ^ (n >> i);
 }
 

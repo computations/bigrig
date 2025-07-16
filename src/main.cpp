@@ -16,6 +16,8 @@ inline bigrig::tree_t get_tree(const cli_options_t &cli_options) {
 }
 
 int main(int argc, char **argv) {
+  const auto start_time{std::chrono::high_resolution_clock::now()};
+
   logger::get_log_states().add_stream(
       stdout,
       logger::log_level::info | logger::log_level::warning
@@ -131,13 +133,18 @@ int main(int argc, char **argv) {
             | logger::log_level::debug);
   }
 
-  MESSAGE_INFO("Parsing tree");
+  auto gen = cli_options.get_rng();
+
+  if (cli_options.simulate_tree.value_or(false)) {
+    MESSAGE_INFO("Parsing tree");
+  }
+
   auto tree = get_tree(cli_options);
   tree.set_mode(cli_options.mode.value_or(bigrig::operation_mode_e::FAST));
 
   bool ok = true;
 
-  auto periods = cli_options.make_periods();
+  auto periods = cli_options.make_periods(gen);
   if (!periods.validate(cli_options.compute_region_count())) {
     MESSAGE_ERROR("There was an issue with the periods");
     ok = false;
@@ -153,9 +160,8 @@ int main(int argc, char **argv) {
 
   if (!ok) { return 1; }
 
-  auto gen = cli_options.get_rng();
+  const auto config_time{std::chrono::high_resolution_clock::now()};
 
-  const auto start_time{std::chrono::high_resolution_clock::now()};
   if (!cli_options.simulate_tree.value_or(false)) {
     LOG_INFO("Tree has %lu taxa", tree.leaf_count());
     MESSAGE_INFO("Simulating ranges on the tree");
@@ -170,7 +176,9 @@ int main(int argc, char **argv) {
     LOG_INFO("Simulated tree with %lu taxa", tree.leaf_count());
   }
   const auto      end_time{std::chrono::high_resolution_clock::now()};
-  program_stats_t program_stats{end_time - start_time};
+  program_stats_t program_stats{.start_time  = start_time,
+                                .config_time = config_time,
+                                .end_time    = end_time};
 
   MESSAGE_INFO("Writing results to files");
   write_output_files(cli_options, tree, periods, program_stats);

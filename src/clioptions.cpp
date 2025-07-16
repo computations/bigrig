@@ -82,19 +82,53 @@ std::filesystem::path cli_options_t::csv_events_filename() const {
 }
 
 std::filesystem::path cli_options_t::csv_periods_filename() const {
-  constexpr auto state_subprefix  = ".periods";
-  auto           tmp              = prefix.value();
-  tmp                            += state_subprefix;
-  tmp                            += bigrig::util::CSV_EXT;
+  constexpr auto periods_subprefix  = ".periods";
+  auto           tmp                = prefix.value();
+  tmp                              += periods_subprefix;
+  tmp                              += bigrig::util::CSV_EXT;
+  return tmp;
+}
+
+std::filesystem::path cli_options_t::csv_matrix_filename() const {
+  constexpr auto matrix_subprefix  = ".periods.matrix";
+  auto           tmp               = prefix.value();
+  tmp                             += matrix_subprefix;
+  tmp                             += bigrig::util::CSV_EXT;
+  return tmp;
+}
+
+std::filesystem::path cli_options_t::csv_region_names_filename() const {
+  constexpr auto regions_subprefix  = ".regions";
+  auto           tmp                = prefix.value();
+  tmp                              += regions_subprefix;
+  tmp                              += bigrig::util::CSV_EXT;
   return tmp;
 }
 
 std::filesystem::path cli_options_t::csv_program_stats_filename() const {
-  constexpr auto state_subprefix  = ".program-stats";
+  constexpr auto stats_subprefix  = ".program-stats";
   auto           tmp              = prefix.value();
-  tmp                            += state_subprefix;
+  tmp                            += stats_subprefix;
   tmp                            += bigrig::util::CSV_EXT;
   return tmp;
+}
+
+std::vector<std::filesystem::path> cli_options_t::csv_file_vector() const {
+  return {csv_splits_filename(),
+          csv_events_filename(),
+          csv_periods_filename(),
+          csv_matrix_filename(),
+          csv_region_names_filename(),
+          csv_program_stats_filename()};
+}
+
+std::vector<std::filesystem::path>
+cli_options_t::result_filename_vector() const {
+  if (yaml_file_set()) { return {yaml_filename()}; }
+  if (json_file_set()) { return {json_filename()}; }
+  if (csv_file_set()) { return csv_file_vector(); }
+  MESSAGE_ERROR("Results files are ill-configured");
+  return {};
 }
 
 /**
@@ -235,6 +269,13 @@ cli_options_t::get_root_range(const YAML::Node &yaml) {
 std::optional<size_t> cli_options_t::get_region_count(const YAML::Node &yaml) {
   constexpr auto REGION_COUNT_KEY = "region-count";
   return get_yaml_val_or_nothing<size_t>(yaml, REGION_COUNT_KEY);
+}
+
+std::optional<std::vector<std::string>>
+cli_options_t::get_region_names(const YAML::Node &yaml) {
+  constexpr auto REGION_NAMES_KEY = "region-names";
+  return get_yaml_val_or_nothing<std::vector<std::string>>(yaml,
+                                                           REGION_NAMES_KEY);
 }
 
 std::optional<bigrig::rate_params_t>
@@ -382,6 +423,7 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
     auto clado_params = get_cladogenesis(yaml);
     auto tree_params  = get_tree_params(yaml);
     auto extinction   = get_period_extinction(yaml);
+    auto matrix       = get_adjustment_matrix_parameters(yaml);
     bool ok           = true;
 
     if (!rates.has_value()) {
@@ -478,7 +520,7 @@ cli_options_t::get_distance_exponent(const YAML::Node &yaml) {
   return get_yaml_val_or_nothing<double>(yaml, DISTANCE_MATRIX_EXPONENT_KEY);
 }
 
-std::optional<double>
+std::optional<bool>
 cli_options_t::get_simulate_adjustment_matrix(const YAML::Node &yaml) {
   constexpr auto SIMULATE_DISTANCE_MATRIX = "simulate";
   return get_yaml_val_or_nothing<bool>(yaml, SIMULATE_DISTANCE_MATRIX);
@@ -516,7 +558,7 @@ cli_options_t::convert_cli_parameters(std::optional<double> dis,
   ok      &= check_passed_cli_parameter(jump, "jump");
 
   if (ok) {
-    bigrig::period_params_t period;
+    bigrig::period_params_t period{};
     period.start = 0.0;
     period.rates = {.dis = dis.value(), .ext = ext.value()};
     period.clado = {.allopatry = allo.value(),
@@ -528,5 +570,3 @@ cli_options_t::convert_cli_parameters(std::optional<double> dis,
   }
   return false;
 }
-
-bigrig::period_list_t cli_options_t::make_periods() const { return {periods}; }

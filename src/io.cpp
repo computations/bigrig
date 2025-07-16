@@ -3,12 +3,15 @@
 #include "clioptions.hpp"
 #include "logger.hpp"
 #include "model.hpp"
+#include "util.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <csv.hpp>
 #include <expected>
 #include <filesystem>
 #include <optional>
+#include <ranges>
 #include <string_view>
 
 using namespace std::string_view_literals; // for the 'sv' suffix
@@ -239,19 +242,24 @@ determine_matrix_symmetry(const std::vector<bigrig::adjacency_arc_t> &matrix,
   return bigrig::adjustment_matrix_symmetry::unknown;
 }
 
+/**
+ * Checks that a matrix is symmetric
+ */
 [[nodiscard]] bool
-validate_matrix_symmetry(const std::vector<bigrig::adjacency_arc_t> &matrix) {
-  for (auto a : matrix) {
-    bool row_symmetry = false;
-    for (auto b : matrix) { row_symmetry |= a.reverse(b); }
-    if (!row_symmetry) { return false; }
+validate_matrix_symmetry(const bigrig::adjacency_graph_t &matrix) {
+  auto &adjacencies = matrix.adjacencies;
+  for (auto a : adjacencies) {
+    if (!std::ranges::any_of(
+            adjacencies, [&](const auto &b) -> bool { return a.reverse(b); })) {
+      return false;
+    }
   }
   return true;
 }
 
 [[nodiscard]] bool
-validiate_adjustment_matrix(const std::vector<bigrig::adjacency_arc_t> &matrix,
-                            size_t region_count) {
+validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
+                            size_t                           region_count) {
   /*
    * there are two cases:
    *  - Symmetric adjustment matrix
@@ -268,7 +276,7 @@ validiate_adjustment_matrix(const std::vector<bigrig::adjacency_arc_t> &matrix,
    * (a, b, _) and (b, a, _) are in the list.
    */
 
-  auto symmetry = determine_matrix_symmetry(matrix, region_count);
+  auto symmetry = determine_matrix_symmetry(matrix.adjacencies, region_count);
 
   switch (symmetry) {
   case bigrig::adjustment_matrix_symmetry::symmetric:
@@ -278,6 +286,7 @@ validiate_adjustment_matrix(const std::vector<bigrig::adjacency_arc_t> &matrix,
       return false;
     }
     return true;
+
   case bigrig::adjustment_matrix_symmetry::nonsymmetric:
     return true;
 
@@ -387,10 +396,8 @@ bool normalize_paths(cli_options_t &cli_options) {
   return ok;
 }
 
-std::expected<std::vector<bigrig::adjacency_arc_t>, bigrig::io_err>
-read_adjustment_matrix(const bigrig::adjustment_matrix_params_t &params) {
-  auto &filename = *params.matrix_filename;
-
+std::expected<bigrig::adjacency_graph_t, bigrig::io_err>
+read_adjustment_matrix(const std::filesystem::path &filename) {
   std::vector<bigrig::adjacency_arc_t> rows;
 
   if (!std::filesystem::exists(filename)) {
@@ -415,7 +422,15 @@ read_adjustment_matrix(const bigrig::adjustment_matrix_params_t &params) {
     return a.from < b.from && a.to < b.to;
   });
 
-  return rows;
+  size_t estimated_region_count
+      = (rows | std::views::transform([](const auto &a) -> std::string {
+           return a.from;
+         })
+         | std::ranges::to<std::unordered_set<std::string>>())
+            .size();
+
+  return {{.adjacencies = rows,
+           .type = determine_matrix_symmetry(rows, estimated_region_count)}};
 }
 
 /**
@@ -432,37 +447,9 @@ read_adjustment_matrix(const bigrig::adjustment_matrix_params_t &params) {
                 cli_options.phylip_filename().c_str());
     ok = false;
   }
-  if (cli_options.yaml_file_set()
-      && std::filesystem::exists(cli_options.yaml_filename())) {
-    LOG_WARNING("Results file %s exists already",
-                cli_options.yaml_filename().c_str());
-    ok = false;
-  }
-  if (cli_options.json_file_set()
-      && std::filesystem::exists(cli_options.json_filename())) {
-    LOG_WARNING("Results file %s exists already",
-                cli_options.json_filename().c_str());
-    ok = false;
-  }
-  if (cli_options.csv_file_set()) {
-    if (std::filesystem::exists(cli_options.csv_splits_filename())) {
-      LOG_WARNING("Results file %s exists already",
-                  cli_options.csv_splits_filename().c_str());
-      ok = false;
-    }
-    if (std::filesystem::exists(cli_options.csv_events_filename())) {
-      LOG_WARNING("Results file %s exists already",
-                  cli_options.csv_events_filename().c_str());
-      ok = false;
-    }
-    if (std::filesystem::exists(cli_options.csv_periods_filename())) {
-      LOG_WARNING("Results file %s exists already",
-                  cli_options.csv_periods_filename().c_str());
-      ok = false;
-    }
-    if (std::filesystem::exists(cli_options.csv_program_stats_filename())) {
-      LOG_WARNING("Results file %s exists already",
-                  cli_options.csv_program_stats_filename().c_str());
+  for (auto results_filename : cli_options.result_filename_vector()) {
+    if (std::filesystem::exists(results_filename)) {
+      LOG_WARNING("Results file %s exists already", results_filename.c_str());
       ok = false;
     }
   }
@@ -840,6 +827,50 @@ void write_periods_csv_file(const cli_options_t         &cli_options,
   }
 }
 
+void write_matrix_csv_file(const cli_options_t         &cli_options,
+                           const bigrig::period_list_t &periods) {
+  auto                 output_filename = cli_options.csv_matrix_filename();
+  constexpr std::array fields{
+      "index"sv,
+      "from"sv,
+      "to"sv,
+      "value"sv,
+  };
+
+  auto        output_file  = init_csv(output_filename, fields);
+  const auto &region_names = *cli_options.region_names;
+
+  for (const auto &p : periods) {
+    if (!p.model().has_adjustment_matrix()) { continue; }
+    auto am = p.model().get_adjustment_matrix();
+    for (auto [from_idx, to_idx] : std::views::cartesian_product(
+             std::views::iota(0ul, region_names.size()),
+             std::views::iota(0ul, region_names.size()))) {
+      if (from_idx == to_idx) { continue; }
+      if (am.is_symmetric() && to_idx > from_idx) { continue; }
+
+      output_file << make_csv_row(
+          std::array{std::to_string(p.index()),
+                     region_names[from_idx],
+                     region_names[to_idx],
+                     std::to_string(am.get_adjustment(from_idx, to_idx))});
+    }
+  }
+}
+
+void write_regions_names_csv_file(const cli_options_t &cli_options) {
+  if (!cli_options.region_names) { return; }
+  auto region_names = *cli_options.region_names;
+
+  auto output_filename = cli_options.csv_region_names_filename();
+  constexpr std::array fields{"index"sv, "name"sv};
+
+  auto output_file = init_csv(output_filename, fields);
+  for (auto [i, n] : std::views::enumerate(region_names)) {
+    output_file << make_csv_row(std::array{std::to_string(i), n});
+  }
+}
+
 void write_program_stats_csv_file(const cli_options_t   &cli_options,
                                   const program_stats_t &program_stats) {
   auto output_filename = cli_options.csv_program_stats_filename();
@@ -849,6 +880,10 @@ void write_program_stats_csv_file(const cli_options_t   &cli_options,
   output_file << make_csv_row(std::array<std::string, 2>{
       "execution-time",
       std::to_string(program_stats.execution_time_in_seconds())});
+  output_file << make_csv_row(std::array<std::string, 2>{
+      "config-time", std::to_string(program_stats.config_time_in_seconds())});
+  output_file << make_csv_row(std::array<std::string, 2>{
+      "total-time", std::to_string(program_stats.total_time_in_seconds())});
 }
 
 void write_csv_files(const cli_options_t         &cli_options,
@@ -858,6 +893,8 @@ void write_csv_files(const cli_options_t         &cli_options,
   write_split_csv_file(cli_options, tree);
   write_events_csv_file(cli_options, tree);
   write_periods_csv_file(cli_options, periods);
+  write_matrix_csv_file(cli_options, periods);
+  write_regions_names_csv_file(cli_options);
   write_program_stats_csv_file(cli_options, program_stats);
 }
 
@@ -949,9 +986,15 @@ void write_output_files(const cli_options_t         &cli_options,
         cli_options.region_count.value(), cli_options.get_rng());
   }
 
+  if (auto &rns = cli_options.region_names; !rns) {
+    rns = bigrig::util::generate_area_names(cli_options.root_range->regions());
+  }
+
   for (auto [index, p] : std::views::enumerate(cli_options.periods)) {
-    if (p.adjustment_matrix.has_value()) {
-      auto res = read_adjustment_matrix(p.adjustment_matrix.value());
+    if (!p.adjustment_matrix) { continue; }
+
+    if (auto filename = p.adjustment_matrix->matrix_filename; filename) {
+      auto res = read_adjustment_matrix(*filename);
       if (!res) {
         LOG_ERROR("Could not read the matrix file for period %lu", index);
         ok &= false;
@@ -963,7 +1006,7 @@ void write_output_files(const cli_options_t         &cli_options,
           ok &= false;
           continue;
         }
-        p.adjustment_matrix->adjustments = *res;
+        p.adjustment_matrix->adjustments = matrix;
       }
     }
   }

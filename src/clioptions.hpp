@@ -1,14 +1,15 @@
 #pragma once
 
 #include "dist.hpp"
+#include "errors.hpp"
 #include "model.hpp"
 #include "period.hpp"
 #include "rng.hpp"
-#include "errors.hpp"
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
+#include <chrono>
 #include <filesystem>
 #include <logger.hpp>
 #include <nlohmann/json.hpp>
@@ -35,10 +36,24 @@ public:
 };
 
 struct program_stats_t {
-  double execution_time_in_seconds() const { return execution_time.count(); }
-  std::chrono::duration<double> execution_time;
-};
+  using time_point_t
+      = std::chrono::time_point<std::chrono::high_resolution_clock>;
+  double execution_time_in_seconds() const {
+    return std::chrono::duration<double>(end_time - config_time).count();
+  }
 
+  double config_time_in_seconds() const {
+    return std::chrono::duration<double>(config_time - start_time).count();
+  }
+
+  double total_time_in_seconds() const {
+    return std::chrono::duration<double>(end_time - start_time).count();
+  }
+
+  time_point_t start_time;
+  time_point_t config_time;
+  time_point_t end_time;
+};
 
 [[nodiscard]] bool verify_path_is_readable(const std::filesystem::path &path);
 
@@ -100,6 +115,13 @@ struct cli_options_t {
   std::optional<size_t> region_count;
 
   /**
+   * Name of the regions. 
+   *
+   * If not given, region names will be generated as needed.
+   */
+  std::optional<std::vector<std::string>> region_names;
+
+  /**
    * Rates which have been provided by the user.
    */
   std::vector<bigrig::period_params_t> periods;
@@ -141,14 +163,30 @@ struct cli_options_t {
   std::filesystem::path csv_splits_filename() const;
   std::filesystem::path csv_events_filename() const;
   std::filesystem::path csv_periods_filename() const;
+  std::filesystem::path csv_matrix_filename() const;
+  std::filesystem::path csv_region_names_filename() const;
   std::filesystem::path csv_program_stats_filename() const;
+
+  std::vector<std::filesystem::path> csv_file_vector() const;
+
+  std::vector<std::filesystem::path> result_filename_vector() const;
 
   pcg64_fast            &get_rng();
   bigrig::rng_wrapper_t &get_rng_wrapper();
 
   size_t compute_region_count() const {
     if (root_range.value()) { return root_range->regions(); }
-    if (region_count) { return region_count.value(); }
+    if (region_count && region_names) {
+      if (region_count != region_names->size()) {
+        MESSAGE_ERROR(
+            "The number of regions provided in names differs from the "
+            "region count");
+        throw std::runtime_error{"Failed to compute the region count"};
+      }
+      return region_count.value();
+    } else if (region_count || region_names) {
+      return region_count ? region_count.value() : region_names->size();
+    }
 
     MESSAGE_ERROR("There was an issue with the root region");
     throw std::runtime_error{"Failed to compute the region count"};
@@ -171,7 +209,10 @@ struct cli_options_t {
                                             std::optional<double> copy,
                                             std::optional<double> jump);
 
-  bigrig::period_list_t make_periods() const;
+  bigrig::period_list_t
+  make_periods(std::uniform_random_bit_generator auto &gen) const {
+    return {periods, *region_names, gen};
+  }
 
   cli_options_t() = default;
 
@@ -186,6 +227,7 @@ struct cli_options_t {
         output_format_type{get_output_format(yaml)},
         root_range{get_root_range(yaml)},
         region_count{get_region_count(yaml)},
+        region_names{get_region_names(yaml)},
         periods{get_periods(yaml)},
         redo{get_redo(yaml)},
         two_region_duplicity{get_two_region_duplicity(yaml)},
@@ -205,6 +247,9 @@ private:
   static std::optional<bool> get_two_region_duplicity(const YAML::Node &);
   static std::optional<bigrig::dist_t> get_root_range(const YAML::Node &);
   static std::optional<size_t>         get_region_count(const YAML::Node &yaml);
+
+  static std::optional<std::vector<std::string>>
+  get_region_names(const YAML::Node &);
 
   static std::optional<bigrig::rate_params_t> get_rates(const YAML::Node &yaml);
 
@@ -227,7 +272,7 @@ private:
   static std::optional<bigrig::adjustment_matrix_params_t>
   get_adjustment_matrix_parameters(const YAML::Node &yaml);
 
-  static std::optional<std::vector<bigrig::adjacency_arc_t>>
+  static std::optional<bigrig::adjustment_matrix_t>
   get_adjustment_matrix(const YAML::Node &yaml);
 
   static std::expected<std::filesystem::path, bigrig::io_err>
@@ -235,6 +280,7 @@ private:
 
   static std::optional<double> get_distance_exponent(const YAML::Node &);
 
-  static std::optional<double>
-  get_simulate_adjustment_matrix(const YAML::Node &);
+  static std::optional<bool> get_simulate_adjustment_matrix(const YAML::Node &);
+
+  std::vector<std::string> generate_region_names();
 };

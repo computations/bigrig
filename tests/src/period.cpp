@@ -1,8 +1,11 @@
+#include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <cmath>
 #include <limits>
 #include <period.hpp>
+#include <rng.hpp>
+#include <util.hpp>
 
 using namespace bigrig;
 
@@ -86,6 +89,8 @@ TEST_CASE("period") {
 }
 
 TEST_CASE("period list") {
+  constexpr size_t region_count = 2;
+  pcg64_fast       gen{Catch::getSeed()};
   SECTION("default constructor") {
     period_list_t pl1;
     REQUIRE(pl1.size() == 0);
@@ -100,7 +105,9 @@ TEST_CASE("period list") {
   }
 
   SECTION("one period") {
-    period_list_t pl1{{period_params_t{}}};
+    period_list_t pl1{{period_params_t{}},
+                      bigrig::util::generate_area_names(region_count),
+                      gen};
     REQUIRE(pl1.size() == 1);
 
     double get_time = GENERATE(0.0,
@@ -125,7 +132,8 @@ TEST_CASE("period list") {
     pp1.start = 0.0;
     pp2.start = 1.0;
 
-    period_list_t pl1{{pp1, pp2}};
+    period_list_t pl1{
+        {pp1, pp2}, bigrig::util::generate_area_names(region_count), gen};
 
     REQUIRE(pl1.size() == 2);
 

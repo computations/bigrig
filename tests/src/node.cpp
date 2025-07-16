@@ -7,6 +7,7 @@
 #include <node.hpp>
 #include <period.hpp>
 #include <rng.hpp>
+#include <util.hpp>
 
 constexpr double compute_std(double sum, double sum_sq, size_t iters) {
   return (sum_sq - sum * sum / iters) / (iters - 1);
@@ -35,9 +36,13 @@ bigrig::period_list_t
 make_single_period(bigrig::rate_params_t         rate_params,
                    bigrig::cladogenesis_params_t clado_params,
                    bigrig::tree_params_t         tree_params,
+                   size_t                        region_count,
                    bool                          ext_allowed) {
-  return {{make_period_params(
-      rate_params, clado_params, tree_params, ext_allowed)}};
+  pcg64_fast gen(Catch::getSeed());
+  return {std::vector<bigrig::period_params_t>{make_period_params(
+              rate_params, clado_params, tree_params, ext_allowed)},
+          bigrig::util::generate_area_names(region_count),
+          gen};
 }
 
 TEST_CASE("node constructors") {
@@ -63,7 +68,7 @@ TEST_CASE("simulate tree") {
     INFO("duration: " << duration);
 
     bigrig::period_list_t periods = make_single_period(
-        rate_params, clado_params, tree_params, ext_allowed);
+        rate_params, clado_params, tree_params, REGIONS, ext_allowed);
 
     bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1, REGIONS});
 
@@ -135,7 +140,7 @@ TEST_CASE("simulate tree") {
     auto duration    = GENERATE(0.5, 1.0, 2.0);
 
     bigrig::period_list_t periods = make_single_period(
-        rate_params, clado_params, tree_params, ext_allowed);
+        rate_params, clado_params, tree_params, REGIONS, ext_allowed);
 
     INFO("cladogenesis: " << tree_params.cladogenesis);
     INFO("extinction: " << rate_params.ext);

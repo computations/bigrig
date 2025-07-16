@@ -33,6 +33,7 @@ tree_t::get_dist_by_string_id(const std::string &key) const {
 std::string tree_t::to_newick() const {
   std::stringstream oss;
   _tree->to_newick(oss);
+  oss << ";";
   return oss.str();
 }
 
@@ -40,6 +41,7 @@ std::string tree_t::to_newick(
     std::function<void(std::ostream &, const node_t &)> cb) const {
   std::stringstream oss;
   _tree->to_newick(oss, cb);
+  oss << ";";
   return oss.str();
 }
 

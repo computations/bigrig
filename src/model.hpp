@@ -169,6 +169,12 @@ public:
 
   biogeo_model_t &set_adjustment_matrix(const adjustment_matrix_t &);
 
+  bool has_adjustment_matrix() const { return _adjustment_matrix.has_value(); }
+
+  adjustment_matrix_t const &get_adjustment_matrix() const {
+    return *_adjustment_matrix;
+  }
+
   inline cladogenesis_params_t cladogenesis_params() const {
     return _clad_params;
   }

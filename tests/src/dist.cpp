@@ -111,8 +111,7 @@ TEST_CASE("spread", "[spread]") {
 }
 
 TEST_CASE("stats for spread", "[spread][stats]") {
-  constexpr size_t regions    = 4;
-  constexpr double expected_t = 4.0;
+  constexpr size_t regions = 4;
 
 #if D_RIGOROUS
   /* 99.999% confidence that error is less than 0.0001 */
@@ -290,13 +289,13 @@ TEST_CASE("spread index chi2 test", "[sample]") {
 TEST_CASE("spread regression with adjustment matrix", "[adjust]") {
   constexpr size_t regions = 4;
 
+  /* for these two tests, I don't know what the error rates are, because they
+   * seem to be higher due to the adjustment matrix simulation */
 #if D_RIGOROUS
-  /* 99.999% confidence that error is less than 0.0001 */
   constexpr size_t iters   = 1'886'084'219;
   constexpr double abs_tol = 1.0e-4;
 #else
-  /* 99.999% confidence that error is less than 0.01 */
-  constexpr size_t iters   = 188'609;
+  constexpr size_t iters   = 1'886'090;
   constexpr double abs_tol = 1.0e-2;
 #endif
 
@@ -329,6 +328,8 @@ TEST_CASE("spread regression with adjustment matrix", "[adjust]") {
 
   double rej_mean = rej_total / iters;
   double ana_mean = ana_total / iters;
+
+  INFO("rej_mean: " << rej_mean << "\nana_mean: " << ana_mean);
 
   CHECK_THAT(rej_mean - ana_mean, Catch::Matchers::WithinAbs(0, abs_tol));
 }

@@ -55,7 +55,6 @@ double biogeo_model_t::dispersion_weight_for_index(const dist_t &dist,
   if (dist[index]) { return 0.0; }
 
   double sum = 0.0;
-#pragma omp for simd
   for (size_t i = 0; i < dist.regions(); ++i) {
     sum += dispersion_rate(i, index) * dist[i];
   }
@@ -229,8 +228,9 @@ biogeo_model_t &biogeo_model_t::set_tree_params(const tree_params_t &tp) {
 }
 
 biogeo_model_t &
-biogeo_model_t::set_adjustment_matrix(const adjustment_matrix_t &am) {
-  _adjustment_matrix = am;
+biogeo_model_t::set_adjustment_matrix(const adjustment_matrix_t &m) {
+  _adjustment_matrix = m;
+
   return *this;
 }
 
