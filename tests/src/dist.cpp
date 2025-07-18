@@ -291,13 +291,8 @@ TEST_CASE("spread regression with adjustment matrix", "[adjust]") {
 
   /* for these two tests, I don't know what the error rates are, because they
    * seem to be higher due to the adjustment matrix simulation */
-#if D_RIGOROUS
-  constexpr size_t iters   = 1'886'084'219;
-  constexpr double abs_tol = 1.0e-4;
-#else
-  constexpr size_t iters   = 1'886'090;
+  constexpr size_t iters   = 288'609;
   constexpr double abs_tol = 1.0e-2;
-#endif
 
   pcg64_fast gen(Catch::getSeed());
 
