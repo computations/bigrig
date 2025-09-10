@@ -69,6 +69,14 @@ inline double biogeo_model_t::dispersion_rate(size_t from, size_t to) const {
   return dispersion * distance_matrix.get_adjustment(from, to);
 }
 
+inline double biogeo_model_t::jump_rate(size_t from, size_t to) const {
+  if (!_adjustment_matrix.has_value()) { return _clad_params.jump; }
+  double jump            = _clad_params.jump;
+  auto  &distance_matrix = _adjustment_matrix.value();
+
+  return jump * distance_matrix.get_adjustment(from, to);
+}
+
 double biogeo_model_t::total_rate_weight(const dist_t &dist) const {
   return extinction_weight(dist) + dispersion_weight(dist);
 }
@@ -152,7 +160,20 @@ size_t biogeo_model_t::copy_count(const dist_t &dist) const {
 }
 
 double biogeo_model_t::jump_weight(const dist_t &dist) const {
-  return jump_count(dist) * _clad_params.jump;
+  if (_clad_params.jump == 0.0) { return 0.0; }
+  if (!_adjustment_matrix.has_value()) {
+    return jump_count(dist) * _clad_params.jump;
+  }
+
+  const auto inv_dist = ~dist;
+  double     sum      = 0.0;
+#pragma omp simd collapse(2)
+  for (size_t i = 0; i < dist.regions(); ++i) {
+    for (size_t j = 0; j < dist.regions(); ++j) {
+      sum += jump_rate(i, j) * dist[i] * inv_dist[j];
+    }
+  }
+  return sum;
 }
 
 double biogeo_model_t::sympatry_weight(const dist_t &dist) const {

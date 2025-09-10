@@ -203,6 +203,8 @@ public:
   size_t sympatry_count(const dist_t &dist) const;
   size_t copy_count(const dist_t &dist) const;
 
+  double jump_rate(size_t from, size_t to) const;
+
   double jump_weight(const dist_t &dist) const;
   double allopatry_weight(const dist_t &dist) const;
   double sympatry_weight(const dist_t &dist) const;
