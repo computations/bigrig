@@ -118,6 +118,8 @@ public:
 
   constexpr inline dist_t region_intersection(dist_t d) { return *this & d; }
 
+  constexpr inline bool subset(dist_t d) { return !((*this & ~d)._dist); }
+
   /**
    * Returns true if the difference between two dists is exactly one region.
    */
