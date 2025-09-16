@@ -316,6 +316,89 @@ TEST_CASE("split regression g-test", "[slow]") {
   CHECK(g < q);
 }
 
+TEST_CASE("split regression g-test with adjustment matrix", "[slow]") {
+  pcg64_fast gen(Catch::getSeed());
+
+  /* These values are computed to ensure a probability of
+   *  - Type I error = 0.00001
+   *  - Type II error = 0.00001
+   *  - And deviation is less than = 0.01 */
+  constexpr size_t iters = 201'970;
+  constexpr double q     = 18.420680743952584;
+
+  auto keys = {bigrig::split_type_e::jump,
+               bigrig::split_type_e::sympatric,
+               bigrig::split_type_e::allopatric,
+               bigrig::split_type_e::singleton,
+               bigrig::split_type_e::invalid};
+
+  bigrig::dist_t init_dist = GENERATE(bigrig::dist_t{0b1000, 4},
+                                      bigrig::dist_t{0b1110, 4},
+                                      bigrig::dist_t{0b1100, 4},
+                                      bigrig::dist_t{0b1011, 4},
+                                      bigrig::dist_t{0b1111, 4},
+                                      bigrig::dist_t{0b11'0011, 6});
+
+  bigrig::adjustment_matrix_t adjust;
+  adjust.simulate(init_dist.regions(), gen);
+
+  bigrig::cladogenesis_params_t params
+      = GENERATE(bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 0.0},
+                 bigrig::cladogenesis_params_t{2.0, 1.0, 1.0, 0.0},
+                 bigrig::cladogenesis_params_t{2.0, 1.0, 2.0, 0.0},
+                 bigrig::cladogenesis_params_t{1.0, 1.0, 1.0, 1.0},
+                 bigrig::cladogenesis_params_t{1.0, 1.0, 2.0, 1.0});
+
+  bigrig::biogeo_model_t model;
+  model.set_rate_params(1.0, 1.0).set_two_region_duplicity(false);
+  model.set_adjustment_matrix(adjust);
+  INFO("init dist:" << init_dist);
+  INFO("model params: " << params.to_debug_string());
+
+  model.set_cladogenesis_params(params);
+  std::unordered_map<bigrig::split_type_e, size_t> regression_split_type_counts;
+  std::unordered_map<bigrig::split_type_e, size_t> split_type_counts;
+
+  for (size_t i = 0; i < iters; ++i) {
+    auto rej_res
+        = bigrig::split_dist_rejection_method_adjusted(init_dist, model, gen);
+    regression_split_type_counts[rej_res.type] += 1;
+
+    auto new_res = bigrig::split_dist(init_dist, model, gen);
+    split_type_counts[new_res.type] += 1;
+  }
+
+  double g = 0.0;
+  for (const auto &key : keys) {
+    if (regression_split_type_counts[key] == 0) { continue; }
+    double g_i = static_cast<double>(split_type_counts[key])
+               / static_cast<double>(regression_split_type_counts[key]);
+    g_i  = std::log(g_i);
+    g   += g_i * split_type_counts[key];
+  }
+  INFO("split_type_counts[jump]: "
+       << split_type_counts[bigrig::split_type_e::jump]);
+  INFO("regression_split_type_counts[jump]: "
+       << regression_split_type_counts[bigrig::split_type_e::jump]);
+
+  INFO("split_type_counts[sympatry]: "
+       << split_type_counts[bigrig::split_type_e::sympatric]);
+  INFO("regression_split_type_counts[sympatry]: "
+       << regression_split_type_counts[bigrig::split_type_e::sympatric]);
+
+  INFO("split_type_counts[allopatric]: "
+       << split_type_counts[bigrig::split_type_e::allopatric]);
+  INFO("regression_split_type_counts[allopatric]: "
+       << regression_split_type_counts[bigrig::split_type_e::allopatric]);
+
+  INFO("split_type_counts[singleton]: "
+       << split_type_counts[bigrig::split_type_e::singleton]);
+  INFO("regression_split_type_counts[singleton]: "
+       << regression_split_type_counts[bigrig::split_type_e::singleton]);
+
+  CHECK(g < q);
+}
+
 TEST_CASE("split index chi2 test", "[sample]") {
   pcg64_fast gen(Catch::getSeed());
 

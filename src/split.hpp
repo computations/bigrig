@@ -37,9 +37,10 @@ struct split_t {
 split_type_e roll_split_type(dist_t                                  init_dist,
                              const biogeo_model_t                   &model,
                              std::uniform_random_bit_generator auto &gen) {
+  double total_weight = model.total_speciation_weight(init_dist);
+
   if (init_dist.singleton()) {
-    double total_weight = model.total_singleton_weight(init_dist);
-    double jump_weight  = model.jump_weight(init_dist);
+    double jump_weight = model.jump_weight(init_dist);
 
     jump_weight /= total_weight;
 
@@ -47,11 +48,10 @@ split_type_e roll_split_type(dist_t                                  init_dist,
     if (jump_coin(gen)) { return split_type_e::jump; }
     return split_type_e::singleton;
   }
+
   double allo_weight = model.allopatry_weight(init_dist);
   double sym_weight  = model.sympatry_weight(init_dist);
   double jump_weight = model.jump_weight(init_dist);
-
-  double total_weight = model.total_nonsingleton_weight(init_dist);
 
   /*
    * There is a function in the standard lib that will do this, but I
@@ -165,7 +165,7 @@ split_t
 split_dist_rejection_method(dist_t                                  init_dist,
                             const biogeo_model_t                   &model,
                             std::uniform_random_bit_generator auto &gen) {
-  // Singleton case
+  // Singleton and non jump case
   if (!model.jumps_ok() && init_dist.singleton()) {
     LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
     return {init_dist, init_dist, init_dist, split_type_e::singleton, 0};
@@ -173,12 +173,9 @@ split_dist_rejection_method(dist_t                                  init_dist,
   auto max_dist = (1ul << init_dist.regions()) - 1;
   std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
 
-  auto model_params = model.cladogenesis_params().normalize();
+  auto model_params = model.cladogenesis_params();
 
-  std::bernoulli_distribution sympatry_coin(model_params.sympatry);
-  std::bernoulli_distribution allopatry_coin(model_params.allopatry);
-  std::bernoulli_distribution copy_coin(model_params.copy);
-  std::bernoulli_distribution jump_coin(model_params.jump);
+  std::uniform_real_distribution accept_die(0.0, model_params.sum());
 
   dist_t       left_dist, right_dist;
   split_type_e split_type;
@@ -186,22 +183,138 @@ split_dist_rejection_method(dist_t                                  init_dist,
 
   while (true) {
     sample_count++;
+    /*
+     * This generates the possible splits _uniformly_, which makes it unsuitable
+     * for adjustment generation.
+     */
     left_dist  = dist_t{dist_gen(gen), init_dist.regions()};
     right_dist = dist_t{dist_gen(gen), init_dist.regions()};
     split_type = determine_split_type(init_dist, left_dist, right_dist);
 
     if (split_type == split_type_e::invalid) { continue; }
-    if (split_type == split_type_e::sympatric) {
-      if (sympatry_coin(gen)) { break; }
-    } else if (split_type == split_type_e::allopatric) {
-      if (allopatry_coin(gen)) { break; }
-    } else if (split_type == split_type_e::singleton) {
-      if (copy_coin(gen)) { break; }
-    } else if (split_type == split_type_e::jump) {
-      if (jump_coin(gen)) { break; }
+
+    auto roll = accept_die(gen);
+
+    if (split_type == split_type_e::sympatric
+        && roll <= model_params.sympatry) {
+      break;
+    } else if (split_type == split_type_e::allopatric
+               && roll <= model_params.allopatry) {
+      break;
+    } else if (split_type == split_type_e::singleton
+               && roll <= model_params.copy) {
+      break;
+    } else if (split_type == split_type_e::jump && roll <= model_params.jump) {
+      break;
     }
   }
   LOG_DEBUG("Splitting took %lu samples", sample_count);
   return {left_dist, right_dist, init_dist, split_type, 0};
+}
+
+split_t generate_uniform_split(dist_t                                  parent,
+                               split_type_e                            type,
+                               std::uniform_random_bit_generator auto &gen) {
+  auto max_dist = (1ul << parent.regions()) - 1;
+  std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
+  std::uniform_int_distribution<dist_base_t> index_coin(1,
+                                                        parent.regions() - 1);
+  while (true) {
+    auto left = dist_t{dist_gen(gen), parent.regions()};
+    auto right = dist_t{0ull, parent.regions()}.flip_region(index_coin(gen));
+
+    if ((left | right) != parent) { continue; }
+
+    if (std::bernoulli_distribution(0.5)(gen)) { std::swap(left, right); }
+
+    if (determine_split_type(parent, left, right) == type) {
+      return {.left         = left,
+              .right        = right,
+              .top          = parent,
+              .type         = type,
+              .period_index = 0};
+    }
+  }
+}
+
+/* assumes jump type split */
+split_t
+generate_adjusted_jump_split(dist_t                                  parent,
+                             const biogeo_model_t                   &model,
+                             std::uniform_random_bit_generator auto &gen) {
+  std::uniform_int_distribution<size_t> index_coin(0, parent.regions() - 1);
+  size_t                                loop_iters = 0;
+  while (true) {
+    loop_iters += 1;
+    auto from   = index_coin(gen);
+    if (!parent[from]) { continue; }
+
+    auto to = index_coin(gen);
+    if (parent[to]) { continue; }
+
+    double acceptance_prob = model.adjustment_prob(from, to);
+    if (acceptance_prob == 1.0
+        || !std::bernoulli_distribution(acceptance_prob)(gen)) {
+      continue;
+    }
+
+    dist_t left  = parent;
+    dist_t right = dist_t{0ull, parent.regions()}.flip_region(to);
+
+    if (std::bernoulli_distribution(0.5)(gen)) { std::swap(left, right); }
+
+    if (determine_split_type(parent, left, right) == split_type_e::jump) {
+      LOG_INFO("It took {} iters to generate an adjusted jump split",
+               loop_iters);
+      return {.left         = left,
+              .right        = right,
+              .top          = parent,
+              .type         = split_type_e::jump,
+              .period_index = 0};
+    }
+  }
+}
+
+split_t split_dist_rejection_method_adjusted(
+    dist_t                                  init_dist,
+    const biogeo_model_t                   &model,
+    std::uniform_random_bit_generator auto &gen) {
+  if (!model.jumps_ok() && init_dist.singleton()) {
+    LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
+    return {init_dist, init_dist, init_dist, split_type_e::singleton, 0};
+  }
+  auto max_dist = (1ul << init_dist.regions()) - 1;
+  std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
+
+  struct {
+    double sympatry  = 0.0;
+    double allopatry = 0.0;
+    double copy      = 0.0;
+    double jump      = 0.0;
+  } roll_table;
+
+  roll_table.sympatry = model.sympatry_weight(init_dist);
+  roll_table.allopatry
+      = model.allopatry_weight(init_dist) + roll_table.sympatry;
+  roll_table.copy = model.copy_weight(init_dist) + roll_table.allopatry;
+  roll_table.jump = model.jump_weight(init_dist) + roll_table.copy;
+
+  std::uniform_real_distribution type_die(0.0, roll_table.jump);
+
+  /* Determine Split Type */
+  auto roll = type_die(gen);
+  if (roll <= roll_table.sympatry) {
+    return generate_uniform_split(init_dist, split_type_e::sympatric, gen);
+  } else if (roll <= roll_table.allopatry) {
+    return generate_uniform_split(init_dist, split_type_e::allopatric, gen);
+  } else if (roll <= roll_table.copy) {
+    return {.left         = init_dist,
+            .right        = init_dist,
+            .top          = init_dist,
+            .type         = split_type_e::singleton,
+            .period_index = 0};
+  } else {
+    return generate_adjusted_jump_split(init_dist, model, gen);
+  }
 }
 } // namespace bigrig

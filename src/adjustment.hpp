@@ -103,17 +103,18 @@ public:
     });
   }
 
+  void simulate(size_t                                  region_count,
+                std::uniform_random_bit_generator auto &gen) {
+    _region_count = region_count;
+    simulate(gen);
+  }
+
   void simulate(std::uniform_random_bit_generator auto &gen) {
     constexpr double alpha_default = 2.0;
     constexpr double beta_default  = 2.0;
     simulate(alpha_default, beta_default, gen);
   }
 
-  void simulate(size_t                                  region_count,
-                std::uniform_random_bit_generator auto &gen) {
-    _region_count = region_count;
-    simulate(gen);
-  }
 
   void simulate(double                                  alpha,
                 double                                  beta,
@@ -125,7 +126,8 @@ public:
     /* Make a symmetric matrix */
     for (size_t i = 0; i < _region_count; ++i) {
       for (size_t j = i + 1; j < _region_count; ++j) {
-        _map[i * _region_count + j] = _map[j * _region_count + i] = dis(gen);
+        _map[i * _region_count + j] = _map[j * _region_count + i]
+            = dis(gen) + 1;
       }
     }
 
@@ -142,6 +144,8 @@ public:
   bool is_symmetric() const {
     return _type == adjustment_matrix_symmetry::symmetric;
   }
+
+  size_t get_row_size() const { return _region_count; }
 
 private:
   size_t get_index(size_t from, size_t to) const {

@@ -269,6 +269,12 @@ bool biogeo_model_t::check_cladogenesis_params_ok(size_t region_count) const {
   return ok;
 }
 
+double biogeo_model_t::adjustment_prob(size_t from, size_t to) const {
+  return _adjustment_matrix.has_value()
+           ? _adjustment_matrix->get_adjustment(from, to)
+           : 1.0;
+}
+
 bool biogeo_model_t::check_ok(size_t region_count) const {
   return check_cladogenesis_params_ok(region_count);
 }

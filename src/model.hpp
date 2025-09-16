@@ -179,6 +179,13 @@ public:
     return _clad_params;
   }
 
+  inline cladogenesis_params_t cladogenesis_params(const dist_t &parent) const {
+    return {.allopatry = allopatry_weight(parent),
+            .sympatry  = sympatry_weight(parent),
+            .copy      = copy_weight(parent),
+            .jump      = jump_weight(parent)};
+  }
+
   cladogenesis_params_t normalized_cladogenesis_params() const;
 
   cladogenesis_params_t
@@ -216,6 +223,8 @@ public:
   double total_event_weight(const dist_t &dist) const;
 
   double total_speciation_weight(const dist_t &dist) const;
+
+  double adjustment_prob(size_t from, size_t to) const;
 
   /**
    * Returns if jumps are enabled in the current model. This is done by

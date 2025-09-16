@@ -56,7 +56,7 @@ determine_split_type(dist_t init_dist, dist_t left_dist, dist_t right_dist) {
     if ((left_dist & right_dist).full_region_count() == 1) {
       return split_type_e::sympatric;
     }
-    if ((left_dist & right_dist).empty() == 0) {
+    if ((left_dist & right_dist).empty()) {
       return split_type_e::allopatric;
     }
   } else if (left_dist.singleton()
