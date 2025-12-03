@@ -23,6 +23,18 @@ node_t::node_t(corax_unode_t *n) {
   }
 }
 
+std::shared_ptr<node_t> node_t::clone() const {
+  auto ret = std::make_shared<node_t>(*this);
+
+  decltype(_children) tmp_children;
+  tmp_children.reserve(_children.size());
+  for (auto &c : _children) { tmp_children.emplace_back(c->clone()); }
+
+  std::swap(ret->_children, tmp_children);
+
+  return ret;
+}
+
 void node_t::add_child(const std::shared_ptr<node_t> &n) {
   _children.push_back(n);
 }
@@ -248,7 +260,9 @@ double node_t::max_tree_height() const {
 }
 
 size_t node_t::reconstructed_leaf_count(double height) const {
-  if (_children.empty()) { return abs_time() == height ? 1 : 0; }
+  if (_children.empty()) {
+    return !_final_state.empty() && abs_time() == height ? 1 : 0;
+  }
 
   size_t leaf_count = 0;
   for (const auto &c : _children) {
@@ -275,6 +289,27 @@ double node_t::reconstructed_brlen_sum() const {
   double height = max_tree_height();
 
   return reconstructed_brlen_sum(height);
+}
+
+bool node_t::contractible() const { return _children.size() == 1; }
+bool node_t::prunable() const { return _final_state.empty(); }
+
+void node_t::prune() {
+  if (is_leaf()) { return; }
+
+  for (auto &c : _children) { c->prune(); }
+  decltype(_children) tmp_children;
+  tmp_children.reserve(_children.size());
+
+  for (auto &c : _children) {
+    if (c->contractible()) {
+      for (auto &cc : c->children()) { tmp_children.push_back(cc); }
+      continue;
+    }
+    if (!c->prunable()) { tmp_children.push_back(c); }
+  }
+
+  std::swap(tmp_children, _children);
 }
 
 } // namespace bigrig

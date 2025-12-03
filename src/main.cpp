@@ -172,6 +172,7 @@ int main(int argc, char **argv) {
     tree.simulate_tree(cli_options.root_range.value(),
                        periods,
                        cli_options.tree_height.value_or(1.0),
+                       true /*prune tree after simulation*/,
                        gen);
     LOG_INFO("Simulated tree with %lu taxa", tree.leaf_count());
   }

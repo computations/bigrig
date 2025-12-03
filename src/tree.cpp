@@ -18,6 +18,13 @@ tree_t::tree_t(const std::string &tree_str) {
   convert_tree(corax_tree);
 }
 
+tree_t tree_t::clone() const {
+  tree_t ret;
+  ret._mode = _mode;
+  ret._tree = _tree->clone();
+  return ret;
+}
+
 /**
  * Get a dist by "string_id" key. The string_id is either the label, if the node
  * has one, or a string version of the assigned id.
@@ -123,5 +130,10 @@ void tree_t::set_periods(const period_t &period) {
   set_periods(std::vector<period_t>{period});
 }
 dist_t tree_t::get_root_range() const { return _tree->start_range(); }
+
+void tree_t::prune() {
+  auto tmp_tree = std::make_shared<node_t>(*_tree);
+  tmp_tree->prune();
+}
 
 } // namespace bigrig

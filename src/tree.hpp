@@ -31,6 +31,8 @@ public:
   tree_t(tree_t &&)            = default;
   tree_t &operator=(tree_t &&) = default;
 
+  tree_t clone() const;
+
   /**
    * Simulate the whole tree from an initial dist.
    */
@@ -44,9 +46,12 @@ public:
   void simulate_tree(dist_t               initial_distribution,
                      const period_list_t &periods,
                      double               tree_height,
+                     bool                 prune_tree,
                      std::uniform_random_bit_generator auto &gen) {
     _tree->simulate_tree(
         initial_distribution, tree_height, periods, gen, _mode);
+
+    if (prune_tree) { _tree->prune(); }
 
     _tree->assign_id_root();
     set_tree_labels();
@@ -83,6 +88,8 @@ public:
   void set_periods(const period_t &periods);
 
   dist_t get_root_range() const;
+
+  void prune();
 
   void set_tree_labels() {
     size_t leaf_itr = 0;

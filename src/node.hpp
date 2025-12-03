@@ -17,11 +17,15 @@ namespace bigrig {
 
 class node_t {
 public:
-  node_t() = default;
+  node_t()               = default;
+  node_t(const node_t &) = default;
+  node_t(node_t &&)      = default;
 
   node_t(corax_unode_t *n);
 
   void add_child(const std::shared_ptr<node_t> &n);
+
+  std::shared_ptr<node_t> clone() const;
 
   /**
    * Run the simulation, given the initial distribution, model and RNG.
@@ -206,6 +210,11 @@ public:
 
   double brlen_sum() const;
   double max_tree_height() const;
+
+  bool contractible() const;
+
+  bool prunable() const;
+  void prune();
 
 private:
   void     parse_periods(const std::vector<period_t> &periods);
