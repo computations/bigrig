@@ -50,7 +50,9 @@ inline auto compute_base26(size_t i) -> std::string {
   for (size_t j = 0; j < length; j++) {
     ret += 'a' + (i % 26);
     i   /= 26;
+    i   -= 1;
   }
+  std::reverse(ret.begin(), ret.end());
 
   return ret;
 }
