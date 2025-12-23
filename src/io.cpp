@@ -990,6 +990,11 @@ void write_output_files(const cli_options_t         &cli_options,
     rns = bigrig::util::generate_area_names(cli_options.root_range->regions());
   }
 
+  if (cli_options.periods.empty()) {
+    MESSAGE_WARNING("Using default period parameters");
+    cli_options.periods.push_back(cli_options_t::default_period_params());
+  }
+
   for (auto [index, p] : std::views::enumerate(cli_options.periods)) {
     if (!p.adjustment_matrix) { continue; }
 

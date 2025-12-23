@@ -450,6 +450,16 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
   return ret;
 }
 
+bigrig::period_params_t cli_options_t::default_period_params() {
+  return {.rates = {.dis = 1.0, .ext = 1.0},
+          .clado
+          = {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0},
+          .start             = 0,
+          .tree              = {},
+          .extinction        = {},
+          .adjustment_matrix = {}};
+}
+
 std::optional<bool> cli_options_t::get_redo(const YAML::Node &yaml) {
   constexpr auto REDO_KEY = "redo";
   return get_yaml_val_or_nothing<bool>(yaml, REDO_KEY);

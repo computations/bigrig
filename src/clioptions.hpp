@@ -115,7 +115,7 @@ struct cli_options_t {
   std::optional<size_t> region_count;
 
   /**
-   * Name of the regions. 
+   * Name of the regions.
    *
    * If not given, region names will be generated as needed.
    */
@@ -235,6 +235,8 @@ struct cli_options_t {
         rng_seed{get_seed(yaml)},
         simulate_tree{get_simulate_tree(yaml)},
         tree_height{get_tree_height(yaml)} {}
+
+  static bigrig::period_params_t default_period_params();
 
 private:
   static std::optional<std::filesystem::path>

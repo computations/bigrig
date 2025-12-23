@@ -88,6 +88,13 @@ int main(int argc, char **argv) {
         cli_options.output_format_type = output_format_type_e::YAML;
       },
       "Output results in a YAML file.");
+  app.add_flag(
+      "--csv",
+      [&cli_options](std::int64_t count) {
+        (void)(count); // Silence a warning
+        cli_options.output_format_type = output_format_type_e::CSV;
+      },
+      "Output results in a YAML file.");
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
