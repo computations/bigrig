@@ -4,6 +4,7 @@
 #include "model.hpp"
 #include "period.hpp"
 #include "split.hpp"
+#include "spread.hpp"
 
 #include <cmath>
 #include <corax/tree/utree.h>

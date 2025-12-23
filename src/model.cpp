@@ -1,7 +1,5 @@
 #include "model.hpp"
 
-#include "dist.hpp"
-
 namespace bigrig {
 
 cladogenesis_params_t biogeo_model_t::normalized_cladogenesis_params() const {

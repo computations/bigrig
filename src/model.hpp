@@ -1,14 +1,13 @@
 #pragma once
 
 #include "adjustment.hpp"
+#include "dist.hpp"
 
 #include <cstddef>
 #include <optional>
 #include <sstream>
 
 namespace bigrig {
-
-class dist_t;
 
 struct rate_params_t {
   double dis;
@@ -118,6 +117,12 @@ static_assert(offsetof(cladogenesis_params_t, jump)
 
 struct tree_params_t {
   double cladogenesis;
+};
+
+struct per_region_params_t {
+  std::optional<dist_t>                region;
+  std::optional<rate_params_t>         rates;
+  std::optional<cladogenesis_params_t> cladogenesis;
 };
 
 /**

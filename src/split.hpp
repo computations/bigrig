@@ -1,4 +1,5 @@
 #include "dist.hpp"
+#include "model.hpp"
 
 #include <stdexcept>
 

@@ -1,5 +1,4 @@
-#include "adjustment.hpp"
-
+#include <adjustment.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_get_random_seed.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -8,6 +7,7 @@
 #include <dist.hpp>
 #include <model.hpp>
 #include <pcg_random.hpp>
+#include <spread.hpp>
 
 TEST_CASE("dist operations", "[dist]") {
   constexpr size_t regions = 4;
