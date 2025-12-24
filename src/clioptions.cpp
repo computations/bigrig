@@ -363,6 +363,40 @@ std::optional<bool> get_period_extinction(const YAML::Node &yaml) {
   return get_yaml_val_or_nothing<bool>(yaml, EXTINCTION_KEY);
 }
 
+std::optional<bigrig::per_region_params_t>
+cli_options_t::get_per_region_params(const YAML::Node &yaml) {
+  bigrig::per_region_params_t ret;
+  constexpr auto              NAME_KEY  = "name";
+  constexpr auto              DIST_KEY  = "dist";
+  constexpr auto              INDEX_KEY = "index";
+
+  if (yaml[NAME_KEY]) { ret.region_id = yaml[NAME_KEY].as<std::string>(); }
+  if (yaml[DIST_KEY]) {
+    ret.region_id = bigrig::dist_t{yaml[DIST_KEY].as<std::string>()};
+  }
+  if (yaml[INDEX_KEY]) { ret.region_id = yaml[INDEX_KEY].as<size_t>(); }
+
+  ret.rates        = get_rates(yaml);
+  ret.cladogenesis = get_cladogenesis(yaml);
+
+  return ret;
+}
+
+std::optional<std::vector<bigrig::per_region_params_t>>
+cli_options_t::get_per_region_params_list(const YAML::Node &yaml) {
+  constexpr auto REGIONS_KEY = "regions";
+  if (!yaml[REGIONS_KEY]) { return {}; }
+
+  std::vector<bigrig::per_region_params_t> params;
+
+  for (auto node : yaml[REGIONS_KEY]) {
+    auto ret = get_per_region_params(node);
+    if (ret) { params.push_back(*ret); }
+  }
+
+  return params;
+}
+
 std::optional<bigrig::period_params_t>
 cli_options_t::get_period(const YAML::Node &yaml) {
   bigrig::period_params_t period_params;
@@ -397,6 +431,9 @@ cli_options_t::get_period(const YAML::Node &yaml) {
 
   period_params.adjustment_matrix = get_adjustment_matrix_parameters(yaml);
 
+  period_params.per_region_params
+      = get_per_region_params_list(yaml).value_or({});
+
   if (ok) { return period_params; }
   return {};
 }
@@ -419,12 +456,13 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
       ret.push_back(period.value());
     }
   } else {
-    auto rates        = get_rates(yaml);
-    auto clado_params = get_cladogenesis(yaml);
-    auto tree_params  = get_tree_params(yaml);
-    auto extinction   = get_period_extinction(yaml);
-    auto matrix       = get_adjustment_matrix_parameters(yaml);
-    bool ok           = true;
+    auto rates             = get_rates(yaml);
+    auto clado_params      = get_cladogenesis(yaml);
+    auto tree_params       = get_tree_params(yaml);
+    auto extinction        = get_period_extinction(yaml);
+    auto matrix            = get_adjustment_matrix_parameters(yaml);
+    auto per_region_params = get_per_region_params_list(yaml);
+    bool ok                = true;
 
     if (!rates.has_value()) {
       ok = false;
@@ -442,6 +480,7 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
           .clado             = clado_params.value(),
           .start             = 0.0,
           .tree              = tree_params,
+          .per_region_params = per_region_params.value_or({}),
           .extinction        = extinction,
           .adjustment_matrix = {},
       }};
@@ -456,6 +495,7 @@ bigrig::period_params_t cli_options_t::default_period_params() {
           = {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0},
           .start             = 0,
           .tree              = {},
+          .per_region_params = {},
           .extinction        = {},
           .adjustment_matrix = {}};
 }

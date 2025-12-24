@@ -109,6 +109,8 @@ static_assert(offsetof(cladogenesis_params_t, copy)
 static_assert(offsetof(cladogenesis_params_t, jump)
                   / sizeof(cladogenesis_params_t::data_type)
               == 3);
+static_assert(alignof(cladogenesis_params_t) == 8);
+static_assert(sizeof(cladogenesis_params_t) == 32);
 
 /* Check that jump is the last field */
 static_assert(offsetof(cladogenesis_params_t, jump)
@@ -120,9 +122,9 @@ struct tree_params_t {
 };
 
 struct per_region_params_t {
-  std::optional<dist_t>                region;
-  std::optional<rate_params_t>         rates;
-  std::optional<cladogenesis_params_t> cladogenesis;
+  std::variant<std::monostate, dist_t, std::string, size_t> region_id;
+  std::optional<rate_params_t>                              rates;
+  std::optional<cladogenesis_params_t>                      cladogenesis;
 };
 
 /**
@@ -159,12 +161,17 @@ public:
 
   biogeo_model_t &set_rate_params(double d, double e);
 
-  biogeo_model_t &set_region_count(size_t regions);
+  biogeo_model_t &set_per_region_rate_params(size_t        region_index,
+                                             rate_params_t p);
 
   biogeo_model_t &
   set_cladogenesis_params(double v, double s, double y, double j);
 
   biogeo_model_t &set_cladogenesis_params(const cladogenesis_params_t &p);
+
+  biogeo_model_t &
+  set_per_region_cladogenesis_params(size_t                       region_index,
+                                     const cladogenesis_params_t &p);
 
   biogeo_model_t &set_two_region_duplicity(bool d);
 
@@ -202,9 +209,28 @@ public:
   double dispersion_weight(const dist_t &dist) const;
   double extinction_weight(const dist_t &dist) const;
 
+  double dispersion_rate(size_t from, size_t to) const;
   double dispersion_weight_for_index(const dist_t &dist, size_t index) const;
 
-  double dispersion_rate(size_t from, size_t to) const;
+  constexpr double dispersion_weight_with_adj(const dist_t &dist) const {
+    auto   inv_dist = ~dist;
+    double sum      = 0.0;
+    auto  &adj_mat  = _adjustment_matrix.value();
+    for (size_t i = 0; i < dist.regions(); ++i) {
+      if (!inv_dist[i]) { continue; }
+      double dis = dispersion_rate_for_region(i);
+      for (size_t j = 0; j < dist.regions(); ++j) {
+        sum += dis * adj_mat.get_adjustment(j, i) * dist[j];
+      }
+    }
+    return sum;
+  }
+
+  constexpr double dispersion_rate_for_region(size_t region_index) const {
+    return _has_per_region_params && _per_region_params[region_index].rates
+             ? _per_region_params[region_index].rates->dis
+             : _rate_params.dis;
+  }
 
   inline bool extinction_allowed() const { return _extinction; }
 
@@ -215,12 +241,82 @@ public:
   size_t sympatry_count(const dist_t &dist) const;
   size_t copy_count(const dist_t &dist) const;
 
-  double jump_rate(size_t from, size_t to) const;
+  constexpr double jump_weight(const dist_t &dist) const {
+    if (!_has_per_region_params && _clad_params.jump == 0.0) { return 0.0; }
 
-  double jump_weight(const dist_t &dist) const;
-  double allopatry_weight(const dist_t &dist) const;
-  double sympatry_weight(const dist_t &dist) const;
-  double copy_weight(const dist_t &dist) const;
+    if (!_has_per_region_params && !_adjustment_matrix.has_value()) {
+      return jump_count(dist) * _clad_params.jump;
+    }
+
+    double sum = 0.0;
+
+    for (size_t i = 0; i < dist.regions(); ++i) {
+      if (dist[i]) { continue; }
+      double rate         = _clad_params.jump;
+      size_t region_index = i;
+      if (!_per_region_params.empty()) {
+        auto &prp = _per_region_params[i];
+        rate = prp.cladogenesis ? prp.cladogenesis->jump : _clad_params.jump;
+      }
+      double adj = 0.0;
+      if (_adjustment_matrix) {
+        for (size_t j = 0; j < dist.regions(); ++j) {
+          adj += _adjustment_matrix->get_adjustment(region_index, j);
+        }
+        sum += rate * adj;
+      } else {
+        sum += rate;
+      }
+    }
+
+    return sum;
+  }
+
+  constexpr double copy_weight(const dist_t &dist) const {
+    if (!dist.singleton()) { return 0.0; }
+    if (_has_per_region_params) {
+      for (size_t i = 0; i < _per_region_params.size(); ++i) {
+        auto &prp = _per_region_params[i];
+        if (dist[i]) { return prp.cladogenesis->copy; }
+      }
+    }
+
+    return copy_count(dist) * _clad_params.copy;
+  }
+
+  constexpr double allopatry_weight(const dist_t &dist) const {
+    if (dist.singleton()) { return 0.0; }
+    if (!_has_per_region_params) {
+      return allopatry_count(dist) * _clad_params.allopatry;
+    }
+
+    double sum = 0.0;
+    for (size_t i = 0; i < _per_region_params.size(); ++i) {
+      const auto &prp = _per_region_params[i];
+
+      sum += (prp.cladogenesis ? prp.cladogenesis->allopatry
+                               : _clad_params.allopatry)
+           * dist[i];
+    }
+    return sum;
+  }
+
+  constexpr double sympatry_weight(const dist_t &dist) const {
+    if (dist.singleton()) { return 0.0; }
+    if (!_has_per_region_params) {
+      return sympatry_count(dist) * _clad_params.sympatry;
+    }
+
+    double sum = 0.0;
+    for (size_t i = 0; i < _per_region_params.size(); ++i) {
+      const auto &prp = _per_region_params[i];
+
+      sum += (prp.cladogenesis ? prp.cladogenesis->sympatry
+                               : _clad_params.sympatry)
+           * dist[i];
+    }
+    return sum;
+  }
 
   double total_singleton_weight(const dist_t &dist) const;
   double total_nonsingleton_weight(const dist_t &dist) const;
@@ -239,15 +335,19 @@ public:
   constexpr bool jumps_ok() const { return _clad_params.jump != 0.0; }
 
   bool check_cladogenesis_params_ok(size_t region_count) const;
+  bool check_per_region_params_ok(size_t region_count) const;
   bool check_ok(size_t region_count) const;
 
 private:
   rate_params_t                      _rate_params;
   cladogenesis_params_t              _clad_params;
+  std::vector<per_region_params_t>   _per_region_params;
   std::optional<tree_params_t>       _tree_params;
   std::optional<adjustment_matrix_t> _adjustment_matrix;
 
-  bool _duplicity  = false;
-  bool _extinction = false;
+  bool _duplicity             = false;
+  bool _extinction            = false;
+  bool _has_per_region_params = false;
+  bool _has_adj_matrix        = false;
 };
 } // namespace bigrig

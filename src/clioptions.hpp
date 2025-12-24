@@ -16,6 +16,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <yaml-cpp/yaml.h>
 
 /**
@@ -209,6 +210,53 @@ struct cli_options_t {
                                             std::optional<double> copy,
                                             std::optional<double> jump);
 
+  bool convert_region_id_string(bigrig::per_region_params_t &prp) {
+    bool ok        = true;
+    auto region_id = prp.region_id;
+    if (!region_names) {
+      ok = false;
+      MESSAGE_ERROR("Attempted to use a region name when no region names "
+                    "have been defeined");
+    }
+    auto region_id_str = std::get<std::string>(region_id);
+    auto f
+        = std::find(region_names->begin(), region_names->end(), region_id_str);
+    if (f == region_names->end()) {
+      ok = false;
+      LOG_ERROR("Could not find region '%s' when setting per region parameters",
+                region_id_str.c_str());
+    }
+
+    prp.region_id
+        = static_cast<size_t>(std::distance(region_names->begin(), f));
+    return ok;
+  }
+
+  bool convert_region_id_dist(bigrig::per_region_params_t &prp) {
+    bool ok        = true;
+    auto region_id = std::get<bigrig::dist_t>(prp.region_id);
+    prp.region_id  = region_id.last_full_region();
+    return ok;
+  }
+
+  bool convert_per_region_params_region_id() {
+    bool ok = true;
+    for (auto &p : periods) {
+      for (auto &prp : p.per_region_params) {
+        auto region_id = prp.region_id;
+        if (std::holds_alternative<std::string>(region_id)) {
+          ok &= convert_region_id_string(prp);
+        } else if (std::holds_alternative<bigrig::dist_t>(region_id)) {
+          ok &= convert_region_id_dist(prp);
+        } else if (std::holds_alternative<std::monostate>(region_id)) {
+          LOG_ERROR("No region id given for period starting at %f", p.start);
+          ok &= false;
+        }
+      }
+    }
+    return ok;
+  }
+
   bigrig::period_list_t
   make_periods(std::uniform_random_bit_generator auto &gen) const {
     return {periods, *region_names, gen};
@@ -257,6 +305,12 @@ private:
 
   static std::optional<bigrig::cladogenesis_params_t>
   get_cladogenesis(const YAML::Node &yaml);
+
+  static std::optional<bigrig::per_region_params_t>
+  get_per_region_params(const YAML::Node &yaml);
+
+  static std::optional<std::vector<bigrig::per_region_params_t>>
+  get_per_region_params_list(const YAML::Node &yaml);
 
   static std::optional<bigrig::period_params_t>
   get_period(const YAML::Node &yaml);

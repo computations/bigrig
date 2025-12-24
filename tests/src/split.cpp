@@ -539,8 +539,7 @@ TEST_CASE("split index chi2 test adjustment case", "[sample]") {
       85.95017624510335,  87.16571139978757,  88.37941890144937,
       89.59134449068712,  90.80153203083871,  92.01002361413214};
 
-  constexpr size_t trials = 1e4;
-
+  constexpr size_t trials = 1.5e4;
 
   bigrig::dist_t init_dist = GENERATE(
       bigrig::dist_t{0b01'1100'1100, 10},

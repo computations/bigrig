@@ -15,6 +15,7 @@ struct period_params_t {
   bigrig::cladogenesis_params_t                     clado;
   double                                            start = 0.0;
   std::optional<bigrig::tree_params_t>              tree;
+  std::vector<per_region_params_t>                  per_region_params;
   std::optional<bool>                               extinction;
   std::optional<bigrig::adjustment_matrix_params_t> adjustment_matrix;
 };
@@ -123,11 +124,20 @@ public:
     size_t index = 0;
     for (auto &param : params) {
       biogeo_model_t model{};
-      model.set_rate_params(param.rates);
-      model.set_cladogenesis_params(param.clado);
+      model.set_rate_params(param.rates)
+          .set_cladogenesis_params(param.clado)
+          .set_two_region_duplicity(false);
       if (param.tree) { model.set_tree_params(param.tree.value()); }
-      model.set_two_region_duplicity(false);
       if (param.extinction) { model.set_extinction(param.extinction.value()); }
+      if (!param.per_region_params.empty()) {
+        for (auto p : param.per_region_params) {
+          auto region_id = std::get<size_t>(p.region_id);
+          if (p.cladogenesis) {
+            model.set_per_region_cladogenesis_params(region_id, *p.cladogenesis);
+          }
+          if (p.rates) { model.set_per_region_rate_params(region_id, *p.rates); }
+        }
+      }
 
       _periods.emplace_back(param.start, 0, model, index);
       index++;
@@ -169,6 +179,7 @@ public:
 
     for (auto &p : _periods) {
       if (!p.model().check_ok(region_count)) {
+        ok = false;
         LOG_ERROR("There is an issue with the model for period '%lu', we can't "
                   "continue",
                   p.index());

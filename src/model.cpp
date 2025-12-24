@@ -23,33 +23,43 @@ size_t biogeo_model_t::extinction_count(const dist_t &dist) const {
   return dist.full_region_count();
 }
 
+
 double biogeo_model_t::dispersion_weight(const dist_t &dist) const {
-  if (!_adjustment_matrix.has_value()) {
+  if (!_has_per_region_params && !_has_adj_matrix) {
     return _rate_params.dis * dispersion_count(dist);
   }
 
-  const auto inv_dist = ~dist;
-  double     sum      = 0.0;
+  if (_has_adj_matrix) { return dispersion_weight_with_adj(dist); }
 
-#pragma omp simd collapse(2)
+  auto   inv_dist = ~dist;
+  double sum      = 0.0;
   for (size_t i = 0; i < dist.regions(); ++i) {
-    for (size_t j = 0; j < dist.regions(); ++j) {
-      sum += dispersion_rate(i, j) * dist[i] * inv_dist[j];
-    }
+    if (!inv_dist[i]) { continue; }
+    double dis = dispersion_rate_for_region(i);
+    for (size_t j = 0; j < dist.regions(); ++j) { sum += dis * dist[j]; }
   }
-
   return sum;
 }
 
 double biogeo_model_t::extinction_weight(const dist_t &dist) const {
-  return dist.singleton() && !_extinction
-           ? 0.0
-           : _rate_params.ext * extinction_count(dist);
+  if (!_has_per_region_params) {
+    return dist.singleton() && !_extinction
+             ? 0.0
+             : _rate_params.ext * extinction_count(dist);
+  }
+
+  double sum = 0.0;
+  for (size_t i = 0; i < dist.regions(); ++i) {
+    if (!dist[i]) { continue; }
+    sum += _per_region_params[i].rates ? _per_region_params[i].rates->ext
+                                       : _rate_params.ext;
+  }
+  return sum;
 }
 
 double biogeo_model_t::dispersion_weight_for_index(const dist_t &dist,
                                                    size_t        index) const {
-  if (!_adjustment_matrix.has_value()) { return _rate_params.dis; }
+  if (!_has_adj_matrix) { return dispersion_rate_for_region(index); }
   if (dist[index]) { return 0.0; }
 
   double sum = 0.0;
@@ -60,20 +70,11 @@ double biogeo_model_t::dispersion_weight_for_index(const dist_t &dist,
 }
 
 inline double biogeo_model_t::dispersion_rate(size_t from, size_t to) const {
-  if (!_adjustment_matrix.has_value()) { return _rate_params.dis; }
-  double dispersion      = _rate_params.dis;
-  auto  &distance_matrix = _adjustment_matrix.value();
-
-  return dispersion * distance_matrix.get_adjustment(from, to);
+  if (!_has_adj_matrix) { return dispersion_rate_for_region(to); }
+  double dispersion = dispersion_rate_for_region(to);
+  return dispersion * _adjustment_matrix->get_adjustment(from, to);
 }
 
-inline double biogeo_model_t::jump_rate(size_t from, size_t to) const {
-  if (!_adjustment_matrix.has_value()) { return _clad_params.jump; }
-  double jump            = _clad_params.jump;
-  auto  &distance_matrix = _adjustment_matrix.value();
-
-  return jump * distance_matrix.get_adjustment(from, to);
-}
 
 double biogeo_model_t::total_rate_weight(const dist_t &dist) const {
   return extinction_weight(dist) + dispersion_weight(dist);
@@ -157,35 +158,6 @@ size_t biogeo_model_t::copy_count(const dist_t &dist) const {
   return (dist.singleton()) * (_duplicity ? 1 : 2);
 }
 
-double biogeo_model_t::jump_weight(const dist_t &dist) const {
-  if (_clad_params.jump == 0.0) { return 0.0; }
-  if (!_adjustment_matrix.has_value()) {
-    return jump_count(dist) * _clad_params.jump;
-  }
-
-  const auto inv_dist = ~dist;
-  double     sum      = 0.0;
-#pragma omp simd collapse(2)
-  for (size_t i = 0; i < dist.regions(); ++i) {
-    for (size_t j = 0; j < dist.regions(); ++j) {
-      sum += jump_rate(i, j) * dist[i] * inv_dist[j];
-    }
-  }
-  return sum;
-}
-
-double biogeo_model_t::sympatry_weight(const dist_t &dist) const {
-  return sympatry_count(dist) * _clad_params.sympatry;
-}
-
-double biogeo_model_t::allopatry_weight(const dist_t &dist) const {
-  return allopatry_count(dist) * _clad_params.allopatry;
-}
-
-double biogeo_model_t::copy_weight(const dist_t &dist) const {
-  return copy_count(dist) * _clad_params.copy;
-}
-
 double biogeo_model_t::total_singleton_weight(const dist_t &dist) const {
   return copy_weight(dist) + jump_weight(dist);
 }
@@ -211,8 +183,19 @@ biogeo_model_t &biogeo_model_t::set_rate_params(rate_params_t p) {
   _rate_params = p;
   return *this;
 }
+
 biogeo_model_t &biogeo_model_t::set_rate_params(double d, double e) {
   return set_rate_params({.dis = d, .ext = e});
+}
+
+biogeo_model_t &biogeo_model_t::set_per_region_rate_params(size_t region_index,
+                                                           rate_params_t p) {
+  if (_per_region_params.size() <= region_index) {
+    _per_region_params.resize(region_index + 1);
+  }
+  _per_region_params.at(region_index).rates = p;
+  _has_per_region_params                    = true;
+  return *this;
 }
 
 biogeo_model_t &biogeo_model_t::set_cladogenesis_params(double v,
@@ -228,6 +211,17 @@ biogeo_model_t &
 biogeo_model_t::set_cladogenesis_params(const cladogenesis_params_t &p) {
   _clad_params = p;
 
+  return *this;
+}
+
+biogeo_model_t &biogeo_model_t::set_per_region_cladogenesis_params(
+    size_t region_index, const cladogenesis_params_t &p) {
+  if (_per_region_params.size() <= region_index) {
+    _per_region_params.resize(region_index + 1);
+  }
+
+  _per_region_params.at(region_index).cladogenesis = p;
+  _has_per_region_params                           = true;
   return *this;
 }
 
@@ -249,6 +243,7 @@ biogeo_model_t &biogeo_model_t::set_tree_params(const tree_params_t &tp) {
 biogeo_model_t &
 biogeo_model_t::set_adjustment_matrix(const adjustment_matrix_t &m) {
   _adjustment_matrix = m;
+  _has_adj_matrix    = true;
 
   return *this;
 }
@@ -267,13 +262,29 @@ bool biogeo_model_t::check_cladogenesis_params_ok(size_t region_count) const {
   return ok;
 }
 
+bool biogeo_model_t::check_per_region_params_ok(size_t region_count) const {
+  bool ok = true;
+  if (!_per_region_params.empty()
+      && _per_region_params.size() != region_count) {
+    ok = false;
+    MESSAGE_ERROR("There are too few per region params provided");
+  }
+
+  return ok;
+}
+
+bool biogeo_model_t::check_ok(size_t region_count) const {
+  bool OllKorrect = true;
+
+  OllKorrect &= check_cladogenesis_params_ok(region_count);
+  OllKorrect &= check_per_region_params_ok(region_count);
+
+  return OllKorrect;
+}
+
 double biogeo_model_t::adjustment_prob(size_t from, size_t to) const {
   return _adjustment_matrix.has_value()
            ? _adjustment_matrix->get_adjustment(from, to)
            : 1.0;
-}
-
-bool biogeo_model_t::check_ok(size_t region_count) const {
-  return check_cladogenesis_params_ok(region_count);
 }
 } // namespace bigrig

@@ -995,6 +995,8 @@ void write_output_files(const cli_options_t         &cli_options,
     cli_options.periods.push_back(cli_options_t::default_period_params());
   }
 
+  ok &= cli_options.convert_per_region_params_region_id();
+
   for (auto [index, p] : std::views::enumerate(cli_options.periods)) {
     if (!p.adjustment_matrix) { continue; }
 
