@@ -17,7 +17,7 @@
   auto status = std::filesystem::status(path);
   if ((std::filesystem::perms::owner_read & status.permissions())
       == std::filesystem::perms::none) {
-    LOG_ERROR("The path '%s' is not readable", path.c_str());
+    LOG_ERROR("The path '{}' is not readable", path.c_str());
     ok = false;
   }
   return ok;
@@ -29,7 +29,7 @@
   auto required_perms = std::filesystem::perms::owner_write
                       | std::filesystem::perms::owner_exec;
   if ((required_perms & status.permissions()) == std::filesystem::perms::none) {
-    LOG_ERROR("The path '%s' is not writable", path.c_str());
+    LOG_ERROR("The path '{}' is not writable", path.c_str());
     ok = false;
   }
   return ok;
@@ -127,7 +127,7 @@ cli_options_t::result_filename_vector() const {
   if (yaml_file_set()) { return {yaml_filename()}; }
   if (json_file_set()) { return {json_filename()}; }
   if (csv_file_set()) { return csv_file_vector(); }
-  MESSAGE_ERROR("Results files are ill-configured");
+  LOG_ERROR("Results files are ill-configured");
   return {};
 }
 
@@ -176,7 +176,7 @@ bool cli_options_t::csv_file_set() const {
  */
 
 void print_config_cli_warning(const char *option_name) {
-  LOG_WARNING("The '%s' option is specified in both the config file and "
+  LOG_WARNING("The '{}' option is specified in both the config file and "
               "the command line. Using the value from the command line",
               option_name);
 }
@@ -289,14 +289,14 @@ cli_options_t::get_rates(const YAML::Node &yaml) {
     if (rates[DISPERSION_KEY]) {
       dis = rates[DISPERSION_KEY].as<double>();
     } else {
-      MESSAGE_ERROR("No dispersion parameter provided for a period");
+      LOG_ERROR("No dispersion parameter provided for a period");
     }
 
     constexpr auto EXTINCTION_KEY = "extinction";
     if (rates[EXTINCTION_KEY]) {
       ext = rates[EXTINCTION_KEY].as<double>();
     } else {
-      MESSAGE_ERROR("No extinction parameter provided for a period");
+      LOG_ERROR("No extinction parameter provided for a period");
     }
     return {{dis, ext}};
   }
@@ -316,7 +316,7 @@ cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
     if (clado[ALLOPATRY_KEY]) {
       allopatry_rate = clado[ALLOPATRY_KEY].as<double>();
     } else {
-      MESSAGE_ERROR("No allopatry parameter provided for a period");
+      LOG_ERROR("No allopatry parameter provided for a period");
       ok = false;
     }
 
@@ -324,7 +324,7 @@ cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
     if (clado[SYMPATRY_KEY]) {
       sympatry_rate = clado[SYMPATRY_KEY].as<double>();
     } else {
-      MESSAGE_ERROR("No sympatry parameter provided for a period");
+      LOG_ERROR("No sympatry parameter provided for a period");
       ok = false;
     }
 
@@ -332,7 +332,7 @@ cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
     if (clado[COPY_KEY]) {
       copy_rate = clado[COPY_KEY].as<double>();
     } else {
-      MESSAGE_ERROR("No copy parameter provided for a period");
+      LOG_ERROR("No copy parameter provided for a period");
       ok = false;
     }
 
@@ -340,7 +340,7 @@ cli_options_t::get_cladogenesis(const YAML::Node &yaml) {
     if (clado[JUMP_KEY]) {
       jump_rate = clado[JUMP_KEY].as<double>();
     } else {
-      MESSAGE_ERROR("No jump parameter provided for a period");
+      LOG_ERROR("No jump parameter provided for a period");
       ok = false;
     }
 
@@ -406,7 +406,7 @@ cli_options_t::get_period(const YAML::Node &yaml) {
   if (yaml[START_KEY]) {
     period_params.start = yaml[START_KEY].as<double>();
   } else {
-    MESSAGE_ERROR("No start time provided for a period");
+    LOG_ERROR("No start time provided for a period");
     ok = false;
   }
 
@@ -414,7 +414,7 @@ cli_options_t::get_period(const YAML::Node &yaml) {
   if (rates.has_value()) {
     period_params.rates = rates.value();
   } else {
-    MESSAGE_ERROR("Rates for a period are malformed");
+    LOG_ERROR("Rates for a period are malformed");
     ok = false;
   }
 
@@ -422,7 +422,7 @@ cli_options_t::get_period(const YAML::Node &yaml) {
   if (clado_params.has_value()) {
     period_params.clado = clado_params.value();
   } else {
-    MESSAGE_ERROR("Cladogenesis parameters for a period are malformed");
+    LOG_ERROR("Cladogenesis parameters for a period are malformed");
     ok = false;
   }
 
@@ -449,7 +449,7 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
     for (auto y : list) {
       auto period = get_period(y);
       if (!period.has_value()) {
-        LOG_ERROR("Period %lu is malformed", index);
+        LOG_ERROR("Period {} is malformed", index);
         return {};
       }
       index++;
@@ -466,12 +466,12 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
 
     if (!rates.has_value()) {
       ok = false;
-      MESSAGE_ERROR("Failed to find rates in the config file");
+      LOG_ERROR("Failed to find rates in the config file");
     }
 
     if (!clado_params.has_value()) {
       ok = false;
-      MESSAGE_ERROR("Failed to find cladogensis parameters in the config file");
+      LOG_ERROR("Failed to find cladogensis parameters in the config file");
     }
 
     if (ok) {
@@ -580,7 +580,7 @@ template <typename T>
 [[nodiscard]] bool check_passed_cli_parameter(const std::optional<T> &o,
                                               const char             *name) {
   if (!o.has_value()) {
-    LOG_ERROR("No value provided for parameter '%s' when other values were "
+    LOG_ERROR("No value provided for parameter '{}' when other values were "
               "provided on the command line",
               name);
     return false;

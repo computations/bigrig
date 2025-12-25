@@ -52,7 +52,7 @@ transition_t spread_rejection(dist_t                                  init_dist,
       = *std::min_element(rolls.begin(), rolls.end(), [](auto a, auto b) {
           return a.waiting_time < b.waiting_time;
         });
-  LOG_DEBUG("waiting time: %f", min_ele.waiting_time);
+  LOG_DEBUG("waiting time: {}", min_ele.waiting_time);
   return min_ele;
 }
 

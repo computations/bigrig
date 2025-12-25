@@ -115,20 +115,20 @@ int main(int argc, char **argv) {
 
   if (!cli_options.convert_cli_parameters(
           dispersion, extinction, allopatry, sympatry, copy, jump)) {
-    MESSAGE_ERROR("If model parameters are passed on the command line, all of "
+    LOG_ERROR("If model parameters are passed on the command line, all of "
                   "the parameters must be provided");
     return 1;
   }
 
   if (!validate_and_finalize_options(cli_options)) {
-    MESSAGE_ERROR("Use --help to get a list of all options");
+    LOG_ERROR("Use --help to get a list of all options");
     return 1;
   }
 
   if (cli_options.debug_log) {
     std::filesystem::path debug_filename  = cli_options.prefix.value();
     debug_filename                       += ".debug.log";
-    LOG_INFO("Logging debug information to %s", debug_filename.c_str());
+    LOG_INFO("Logging debug information to {}", debug_filename.c_str());
     logger::get_log_states().add_file_stream(
         debug_filename.c_str(),
         logger::info | logger::debug | logger::defaults);
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
   auto gen = cli_options.get_rng();
 
   if (cli_options.simulate_tree.value_or(false)) {
-    MESSAGE_INFO("Parsing tree");
+    LOG_INFO("Parsing tree");
   }
 
   auto tree = get_tree(cli_options);
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 
   auto periods = cli_options.make_periods(gen);
   if (!periods.validate(cli_options.compute_region_count())) {
-    MESSAGE_ERROR("There was an issue with the periods");
+    LOG_ERROR("There was an issue with the periods");
     ok = false;
   }
 
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
   tree.set_periods(periods);
 
   if (!tree.is_ready(cli_options.simulate_tree.value_or(false))) {
-    MESSAGE_ERROR("Could not use the tree provided");
+    LOG_ERROR("Could not use the tree provided");
     ok = false;
   }
 
@@ -164,27 +164,27 @@ int main(int argc, char **argv) {
   const auto config_time{std::chrono::high_resolution_clock::now()};
 
   if (!cli_options.simulate_tree.value_or(false)) {
-    LOG_INFO("Tree has %lu taxa", tree.leaf_count());
-    MESSAGE_INFO("Simulating ranges on the tree");
+    LOG_INFO("Tree has {} taxa", tree.leaf_count());
+    LOG_INFO("Simulating ranges on the tree");
     tree.simulate(cli_options.root_range.value(), gen);
   } else {
     periods.set_extinction(true);
-    MESSAGE_INFO("Simulating ranges and tree");
+    LOG_INFO("Simulating ranges and tree");
     tree.simulate_tree(cli_options.root_range.value(),
                        periods,
                        cli_options.tree_height.value_or(1.0),
                        true /*prune tree after simulation*/,
                        gen);
-    LOG_INFO("Simulated tree with %lu taxa", tree.leaf_count());
+    LOG_INFO("Simulated tree with {} taxa", tree.leaf_count());
   }
   const auto      end_time{std::chrono::high_resolution_clock::now()};
   program_stats_t program_stats{.start_time  = start_time,
                                 .config_time = config_time,
                                 .end_time    = end_time};
 
-  MESSAGE_INFO("Writing results to files");
+  LOG_INFO("Writing results to files");
   write_output_files(cli_options, tree, periods, program_stats);
 
-  MESSAGE_INFO("Done!");
+  LOG_INFO("Done!");
   return 0;
 }

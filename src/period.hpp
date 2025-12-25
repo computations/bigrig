@@ -180,7 +180,7 @@ public:
     for (auto &p : _periods) {
       if (!p.model().check_ok(region_count)) {
         ok = false;
-        LOG_ERROR("There is an issue with the model for period '%lu', we can't "
+        LOG_ERROR("There is an issue with the model for period '{}', we can't "
                   "continue",
                   p.index());
       }

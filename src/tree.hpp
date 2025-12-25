@@ -38,7 +38,7 @@ public:
    */
   void simulate(dist_t                                  initial_distribution,
                 std::uniform_random_bit_generator auto &gen) {
-    LOG_DEBUG("Starting sample with init dist = %lb",
+    LOG_DEBUG("Starting sample with init dist = {:0b}",
               static_cast<uint64_t>(initial_distribution));
     _tree->simulate(initial_distribution, gen, _mode);
   }

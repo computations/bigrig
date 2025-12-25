@@ -41,11 +41,11 @@ public:
   void simulate(dist_t                                  initial_distribution,
                 std::uniform_random_bit_generator auto &gen,
                 operation_mode_e mode = operation_mode_e::FAST) {
-    LOG_DEBUG("Node sampling with initial_distribution = %s",
+    LOG_DEBUG("Node sampling with initial_distribution = {}",
               initial_distribution.to_str().c_str());
     _transitions
         = simulate_transitions(initial_distribution, _periods, gen, mode);
-    LOG_DEBUG("Finished sampling with %lu transitions", _transitions.size());
+    LOG_DEBUG("Finished sampling with {} transitions", _transitions.size());
 
     if (_transitions.size() == 0) {
       _final_state = initial_distribution;
@@ -85,12 +85,12 @@ public:
       auto total_rate = model.total_event_weight(dist);
 
       if (total_rate <= 0.0) {
-        MESSAGE_ERROR("Rate while simulating the tree is invalid");
+        LOG_ERROR("Rate while simulating the tree is invalid");
         throw std::runtime_error{"total_rate is not positive"};
       }
 
       if (!std::isfinite(_brlen)) {
-        MESSAGE_ERROR("Simulation ran to infinity");
+        LOG_ERROR("Simulation ran to infinity");
         throw std::runtime_error{"brlen is infinite"};
       }
 
@@ -119,7 +119,7 @@ public:
 
       std::bernoulli_distribution type_coin(speciation_rate / total_rate);
       if (type_coin(gen)) {
-        LOG_DEBUG("Rolled a cladogenesis event. Time left %f", time_left);
+        LOG_DEBUG("Rolled a cladogenesis event. Time left {}", time_left);
         auto res   = split_dist(dist, model, gen);
         _split     = res;
         _abs_time += _brlen;
@@ -137,7 +137,7 @@ public:
         _final_state = dist;
         return;
       } else {
-        LOG_DEBUG("Rolled a transition event. Time left %f", time_left);
+        LOG_DEBUG("Rolled a transition event. Time left {}", time_left);
         auto res         = spread_flip_region(dist, model, gen);
         res.period_index = period.index();
         res.waiting_time = waiting_time;

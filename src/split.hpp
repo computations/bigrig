@@ -71,8 +71,8 @@ split_type_e roll_split_type(dist_t                                  init_dist,
     roll -= o.first;
   }
 
-  LOG_ERROR("Rolled an invalid split. roll: %f, allo_weight: %f, sym_weight: "
-            "%f, jump_weight: %f",
+  LOG_ERROR("Rolled an invalid split. roll: {}, allo_weight: {}, sym_weight: "
+            "{}, jump_weight: {}",
             roll,
             allo_weight,
             sym_weight,
@@ -168,7 +168,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
                             std::uniform_random_bit_generator auto &gen) {
   // Singleton and non jump case
   if (!model.jumps_ok() && init_dist.singleton()) {
-    LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
+    LOG_DEBUG("Splitting a singleton: {}", init_dist.to_str().c_str());
     return {init_dist, init_dist, init_dist, split_type_e::singleton, 0};
   }
   auto max_dist = (1ul << init_dist.regions()) - 1;
@@ -209,7 +209,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
       break;
     }
   }
-  LOG_DEBUG("Splitting took %lu samples", sample_count);
+  LOG_DEBUG("Splitting took {} samples", sample_count);
   return {left_dist, right_dist, init_dist, split_type, 0};
 }
 
@@ -221,7 +221,7 @@ split_t generate_uniform_split(dist_t                                  parent,
   std::uniform_int_distribution<dist_base_t> index_coin(1,
                                                         parent.regions() - 1);
   while (true) {
-    auto left = dist_t{dist_gen(gen), parent.regions()};
+    auto left  = dist_t{dist_gen(gen), parent.regions()};
     auto right = dist_t{0ull, parent.regions()}.flip_region(index_coin(gen));
 
     if ((left | right) != parent) { continue; }
@@ -281,7 +281,7 @@ split_t split_dist_rejection_method_adjusted(
     const biogeo_model_t                   &model,
     std::uniform_random_bit_generator auto &gen) {
   if (!model.jumps_ok() && init_dist.singleton()) {
-    LOG_DEBUG("Splitting a singleton: %s", init_dist.to_str().c_str());
+    LOG_DEBUG("Splitting a singleton: {}", init_dist.to_str().c_str());
     return {init_dist, init_dist, init_dist, split_type_e::singleton, 0};
   }
   auto max_dist = (1ul << init_dist.regions()) - 1;

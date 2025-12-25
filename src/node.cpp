@@ -205,7 +205,7 @@ bool node_t::is_binary() const {
 
 bool node_t::is_valid() const {
   if (!validate_periods()) {
-    LOG_ERROR("Failed to validate periods for node '%s'", string_id().c_str());
+    LOG_ERROR("Failed to validate periods for node '{}'", string_id().c_str());
     return false;
   }
 
@@ -218,7 +218,7 @@ bool node_t::is_valid() const {
 
 bool node_t::validate_periods() const {
   if (_periods.empty()) {
-    LOG_ERROR("Period vector for node '%s' is empty", string_id().c_str());
+    LOG_ERROR("Period vector for node '{}' is empty", string_id().c_str());
     return false;
   }
 
@@ -226,7 +226,7 @@ bool node_t::validate_periods() const {
   double           total_length = 0.0;
   for (auto p : _periods) { total_length += p.length(); }
   if (std::abs(total_length - _brlen) > abstol) {
-    LOG_ERROR("Total period length for node '%s' is incorrect",
+    LOG_ERROR("Total period length for node '{}' is incorrect",
               string_id().c_str());
     return false;
   }

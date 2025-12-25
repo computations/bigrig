@@ -179,9 +179,8 @@ struct cli_options_t {
     if (root_range.value()) { return root_range->regions(); }
     if (region_count && region_names) {
       if (region_count != region_names->size()) {
-        MESSAGE_ERROR(
-            "The number of regions provided in names differs from the "
-            "region count");
+        LOG_ERROR("The number of regions provided in names differs from the "
+                  "region count");
         throw std::runtime_error{"Failed to compute the region count"};
       }
       return region_count.value();
@@ -189,7 +188,7 @@ struct cli_options_t {
       return region_count ? region_count.value() : region_names->size();
     }
 
-    MESSAGE_ERROR("There was an issue with the root region");
+    LOG_ERROR("There was an issue with the root region");
     throw std::runtime_error{"Failed to compute the region count"};
   }
 
@@ -215,15 +214,15 @@ struct cli_options_t {
     auto region_id = prp.region_id;
     if (!region_names) {
       ok = false;
-      MESSAGE_ERROR("Attempted to use a region name when no region names "
-                    "have been defeined");
+      LOG_ERROR("Attempted to use a region name when no region names have been "
+                "defeined");
     }
     auto region_id_str = std::get<std::string>(region_id);
     auto f
         = std::find(region_names->begin(), region_names->end(), region_id_str);
     if (f == region_names->end()) {
       ok = false;
-      LOG_ERROR("Could not find region '%s' when setting per region parameters",
+      LOG_ERROR("Could not find region '{}' when setting per region parameters",
                 region_id_str.c_str());
     }
 
@@ -249,7 +248,7 @@ struct cli_options_t {
         } else if (std::holds_alternative<bigrig::dist_t>(region_id)) {
           ok &= convert_region_id_dist(prp);
         } else if (std::holds_alternative<std::monostate>(region_id)) {
-          LOG_ERROR("No region id given for period starting at %f", p.start);
+          LOG_ERROR("No region id given for period starting at {}", p.start);
           ok &= false;
         }
       }

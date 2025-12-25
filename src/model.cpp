@@ -251,11 +251,11 @@ biogeo_model_t::set_adjustment_matrix(const adjustment_matrix_t &m) {
 bool biogeo_model_t::check_cladogenesis_params_ok(size_t region_count) const {
   bool ok = true;
   if (total_nonsingleton_weight(make_full_dist(region_count)) == 0.0) {
-    MESSAGE_ERROR("The sympatry, allopatry, or jump weights are invalid");
+    LOG_ERROR("The sympatry, allopatry, or jump weights are invalid");
     ok = false;
   }
   if (total_singleton_weight(make_singleton_dist(region_count)) == 0.0) {
-    MESSAGE_ERROR("The copy or jump weights are invalid");
+    LOG_ERROR("The copy or jump weights are invalid");
     ok = false;
   }
 
@@ -267,7 +267,7 @@ bool biogeo_model_t::check_per_region_params_ok(size_t region_count) const {
   if (!_per_region_params.empty()
       && _per_region_params.size() != region_count) {
     ok = false;
-    MESSAGE_ERROR("There are too few per region params provided");
+    LOG_ERROR("There are too few per region params provided");
   }
 
   return ok;

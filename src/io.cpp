@@ -19,63 +19,65 @@ using namespace std::string_view_literals; // for the 'sv' suffix
 constexpr size_t MAX_REGIONS = 64;
 
 void print_periods(const std::vector<bigrig::period_params_t> &periods) {
-  LOG_INFO("   Running with %lu periods:", periods.size());
+  LOG_INFO("   Running with {} periods:", periods.size());
   for (const auto &p : periods) {
-    LOG_INFO("      - Start time: %.2f", p.start);
-    MESSAGE_INFO("        Rate parameters:");
-    LOG_INFO("          Dispersion(d): %.2f, Extinction(e): %.2f",
+    LOG_INFO("      - Start time: {:.2f}", p.start);
+    LOG_INFO("        Rate parameters:");
+    LOG_INFO("          Dispersion(d): {:.2f}, Extinction(e): {:.2f}",
              p.rates.dis,
              p.rates.ext);
-    MESSAGE_INFO("        Cladogenesis parameters:");
-    LOG_INFO("          Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
-             "Jump(j): %.2f",
-             p.clado.allopatry,
-             p.clado.sympatry,
-             p.clado.copy,
-             p.clado.jump);
+    LOG_INFO("        Cladogenesis parameters:");
+    LOG_INFO(
+        "          Allopatry(v): {:.2f}, Sympatry(s): {:.2f}, Copy(y): {:.2f}, "
+        "Jump(j): {:.2f}",
+        p.clado.allopatry,
+        p.clado.sympatry,
+        p.clado.copy,
+        p.clado.jump);
   }
 }
 
 void print_model_parameters(const bigrig::period_params_t &period) {
-  MESSAGE_INFO("   Model Parameters:");
-  MESSAGE_INFO("     Rate parameters:");
-  LOG_INFO("       Dispersion(d): %.2f, Extinction(e): %.2f",
+  LOG_INFO("   Model Parameters:");
+  LOG_INFO("     Rate parameters:");
+  LOG_INFO("       Dispersion(d): {:.2f}, Extinction(e): {:.2f}",
            period.rates.dis,
            period.rates.ext);
-  MESSAGE_INFO("     Cladogenesis parameters:");
-  LOG_INFO("       Allopatry(v): %.2f, Sympatry(s): %.2f, Copy(y): %.2f, "
-           "Jump(j): %.2f",
-           period.clado.allopatry,
-           period.clado.sympatry,
-           period.clado.copy,
-           period.clado.jump);
+  LOG_INFO("     Cladogenesis parameters:");
+  LOG_INFO(
+      "          Allopatry(v): {:.2f}, Sympatry(s): {:.2f}, Copy(y): {:.2f}, "
+      "Jump(j): {:.2f}",
+      period.clado.allopatry,
+      period.clado.sympatry,
+      period.clado.copy,
+      period.clado.jump);
 }
 
 /**
  * Print the message at the start of the run.
  */
 void write_header(const cli_options_t &cli_options) {
-  MESSAGE_INFO("Running simulation with the following options:");
+  LOG_INFO("Running simulation with the following options:");
   if (cli_options.tree_filename.has_value()) {
-    LOG_INFO("   Tree file: %s", cli_options.tree_filename.value().c_str());
+    LOG_INFO("   Tree file: {}", cli_options.tree_filename.value().c_str());
   } else {
-    MESSAGE_INFO("   Tree: Simulate");
+    LOG_INFO("   Tree: Simulate");
   }
-  LOG_INFO("   Prefix: %s", cli_options.prefix.value().c_str());
-  LOG_INFO("   Root range: %s",
+  LOG_INFO("   Prefix: {}", cli_options.prefix.value().c_str());
+  LOG_INFO("   Root range: {}",
            cli_options.root_range.value().to_str().c_str());
-  LOG_INFO("   Region count: %u", cli_options.root_range->regions());
+  LOG_INFO("   Region count: {}", cli_options.root_range->regions());
   if (cli_options.periods.size() == 1) {
     print_model_parameters(cli_options.periods.front());
   } else {
     print_periods(cli_options.periods);
   }
   if (cli_options.rng_seed.has_value()) {
-    LOG_INFO("   Seed: %lu", cli_options.rng_seed.value());
+    LOG_INFO("   Seed: {}", cli_options.rng_seed.value());
   }
   if (cli_options.mode.has_value()
       && cli_options.mode.value() == bigrig::operation_mode_e::SIM) {
-    MESSAGE_WARNING(
+    LOG_WARNING(
         "Setting the operation mode to simulation, results will be slow");
   }
 }
@@ -112,21 +114,21 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
 [[nodiscard]] bool validate_tree_filename(
     const std::optional<std::filesystem::path> &tree_filename_option) {
   if (!tree_filename_option.has_value()) {
-    MESSAGE_WARNING("No tree file was provided");
+    LOG_WARNING("No tree file was provided");
     return true;
   }
   const auto &tree_filename = tree_filename_option.value();
   bool        ok            = true;
   if (!std::filesystem::exists(tree_filename)) {
-    LOG_ERROR("The tree file '%s' does not exist", tree_filename.c_str());
+    LOG_ERROR("The tree file '{}' does not exist", tree_filename.c_str());
     ok = false;
   } else if (!std::filesystem::is_regular_file(tree_filename)) {
-    LOG_ERROR("The tree file '%s' is not a file that we can read",
+    LOG_ERROR("The tree file '{}' is not a file that we can read",
               tree_filename.c_str());
     ok = false;
   }
   if (!verify_path_is_readable(tree_filename)) {
-    LOG_ERROR("The tree file '%s' can't be read by us as we don't have the "
+    LOG_ERROR("The tree file '{}' can't be read by us as we don't have the "
               "permissions",
               tree_filename.c_str());
     ok = false;
@@ -143,7 +145,7 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
 [[nodiscard]] bool validate_and_make_prefix(
     const std::optional<std::filesystem::path> &prefix_option) {
   if (!prefix_option.has_value()) {
-    MESSAGE_ERROR("No prefix was provided");
+    LOG_ERROR("No prefix was provided");
     return false;
   }
   auto prefix = prefix_option.value();
@@ -151,16 +153,16 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
 
   if (prefix.has_parent_path()
       && !std::filesystem::exists(prefix.parent_path())) {
-    LOG_WARNING("The path '%s' does not exist", prefix.parent_path().c_str());
+    LOG_WARNING("The path '{}' does not exist", prefix.parent_path().c_str());
 
     try {
       std::filesystem::create_directories(prefix.parent_path());
     } catch (const std::filesystem::filesystem_error &err) {
-      LOG_ERROR("%s", err.what());
+      LOG_ERROR("{}", err.what());
       ok = false;
     }
   } else if (!verify_path_is_writable(prefix.parent_path())) {
-    LOG_ERROR("The prefix '%s' is not writable", prefix.c_str());
+    LOG_ERROR("The prefix '{}' is not writable", prefix.c_str());
     ok = false;
   }
 
@@ -171,12 +173,12 @@ std::string to_phylip_all_nodes(const bigrig::tree_t &tree) {
                                             const char                  *name) {
   bool ok = true;
   if (!param.has_value()) {
-    LOG_ERROR("The model parameter '%s' was not set. Please provide a "
+    LOG_ERROR("The model parameter '{}' was not set. Please provide a "
               "value for this parameter",
               name);
     ok = false;
   } else if (param.value() < 0) {
-    LOG_ERROR("Simulating with '%s' = %f is not valid, please pick "
+    LOG_ERROR("Simulating with '{}' = {} is not valid, please pick "
               "a positive number",
               name,
               param.value());
@@ -190,33 +192,33 @@ validate_root_region(const std::optional<bigrig::dist_t> &root_range,
                      const std::optional<size_t>         &region_count) {
   bool ok = true;
   if (!root_range.has_value() && !region_count.has_value()) {
-    MESSAGE_ERROR("The root range was not provided. Please provide a value for "
-                  "the root range");
+    LOG_ERROR("The root range was not provided. Please provide a value for "
+              "the root range");
     return false;
   }
   if (root_range.has_value() && region_count.has_value()
       && root_range.value().regions() != region_count.value()) {
-    MESSAGE_ERROR("Both a root range and region count was provided, but they "
-                  "differ in size");
+    LOG_ERROR("Both a root range and region count was provided, but they "
+              "differ in size");
     ok = false;
   }
   if (root_range.has_value()) {
     if (root_range.value().regions() >= MAX_REGIONS) {
-      LOG_ERROR("Simulating with %u regions is unsupported. Please choose a "
-                "number less than %lu regions",
+      LOG_ERROR("Simulating with {} regions is unsupported. Please choose a "
+                "number less than {} regions",
                 root_range.value().regions(),
                 MAX_REGIONS);
       ok = false;
     }
     if (root_range.value().empty()) {
-      MESSAGE_ERROR("Cannot simulate with an empty root range. Please provide "
-                    "a range with at least one region set");
+      LOG_ERROR("Cannot simulate with an empty root range. Please provide "
+                "a range with at least one region set");
       ok = false;
     }
   }
   if (region_count.has_value() && region_count.value() >= MAX_REGIONS) {
-    LOG_ERROR("region-count is set to %lu, but that number of regions is "
-              "unsupported. Please a choose a number less than %lu "
+    LOG_ERROR("region-count is set to {}, but that number of regions is "
+              "unsupported. Please a choose a number less than {} "
               "regions",
               region_count.value(),
               MAX_REGIONS);
@@ -281,7 +283,7 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
   switch (symmetry) {
   case bigrig::adjustment_matrix_symmetry::symmetric:
     if (!validate_matrix_symmetry(matrix)) {
-      MESSAGE_ERROR(
+      LOG_ERROR(
           "A matrix is not fully symmetric, despite being the correct size");
       return false;
     }
@@ -306,15 +308,15 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
 
   if (params.simulate.has_value() && params.simulate.value()
       && params.adjustments.has_value()) {
-    MESSAGE_ERROR("Both an adjustment matrix and the simulate option were set. "
-                  "These are incompatible");
+    LOG_ERROR("Both an adjustment matrix and the simulate option were set. "
+              "These are incompatible");
     ok &= false;
   }
 
   if (params.exponent.has_value()) {
     double &exponent = params.exponent.value();
     if (!std::isfinite(exponent)) {
-      MESSAGE_ERROR("There is an issue with the adjustment matrix exponent");
+      LOG_ERROR("There is an issue with the adjustment matrix exponent");
       ok &= false;
     }
   }
@@ -356,10 +358,10 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
 verify_config_file(const std::filesystem::path &config_filename) {
   bool ok = true;
   if (!std::filesystem::exists(config_filename)) {
-    LOG_ERROR("The config file %s does not exist", config_filename.c_str());
+    LOG_ERROR("The config file {} does not exist", config_filename.c_str());
     ok = false;
   } else if (!verify_path_is_readable(config_filename)) {
-    LOG_ERROR("We don't have the permissions to read the config file %s",
+    LOG_ERROR("We don't have the permissions to read the config file {}",
               config_filename.c_str());
     ok = false;
   }
@@ -379,7 +381,7 @@ bool normalize_paths(cli_options_t &cli_options) {
     cli_options.tree_filename = std::filesystem::weakly_canonical(
         std::filesystem::absolute(cli_options.tree_filename.value()));
   } catch (const std::filesystem::filesystem_error &err) {
-    LOG_ERROR("Failed to canonicalize '%s' because '%s'",
+    LOG_ERROR("Failed to canonicalize '{}' because '{}'",
               cli_options.tree_filename.value().c_str(),
               err.what());
     ok = false;
@@ -388,7 +390,7 @@ bool normalize_paths(cli_options_t &cli_options) {
     cli_options.prefix = std::filesystem::weakly_canonical(
         std::filesystem::absolute(cli_options.prefix.value()));
   } catch (const std::filesystem::filesystem_error &err) {
-    LOG_ERROR("Failed to canonicalize '%s' because '%s'",
+    LOG_ERROR("Failed to canonicalize '{}' because '{}'",
               cli_options.prefix.value().c_str(),
               err.what());
     ok = false;
@@ -401,7 +403,7 @@ read_adjustment_matrix(const std::filesystem::path &filename) {
   std::vector<bigrig::adjacency_arc_t> rows;
 
   if (!std::filesystem::exists(filename)) {
-    LOG_ERROR("The matrix file '%s' does not exist", filename.c_str());
+    LOG_ERROR("The matrix file '{}' does not exist", filename.c_str());
     return std::unexpected{bigrig::io_err::ReadError};
   }
   if (!verify_path_is_readable(filename)) {
@@ -443,13 +445,13 @@ read_adjustment_matrix(const std::filesystem::path &filename) {
   bool ok = true;
 
   if (std::filesystem::exists(cli_options.phylip_filename())) {
-    LOG_WARNING("Results file %s exists already",
+    LOG_WARNING("Results file {} exists already",
                 cli_options.phylip_filename().c_str());
     ok = false;
   }
   for (auto results_filename : cli_options.result_filename_vector()) {
     if (std::filesystem::exists(results_filename)) {
-      LOG_WARNING("Results file %s exists already", results_filename.c_str());
+      LOG_WARNING("Results file {} exists already", results_filename.c_str());
       ok = false;
     }
   }
@@ -991,7 +993,7 @@ void write_output_files(const cli_options_t         &cli_options,
   }
 
   if (cli_options.periods.empty()) {
-    MESSAGE_WARNING("Using default period parameters");
+    LOG_WARNING("Using default period parameters");
     cli_options.periods.push_back(cli_options_t::default_period_params());
   }
 
@@ -1003,13 +1005,13 @@ void write_output_files(const cli_options_t         &cli_options,
     if (auto filename = p.adjustment_matrix->matrix_filename; filename) {
       auto res = read_adjustment_matrix(*filename);
       if (!res) {
-        LOG_ERROR("Could not read the matrix file for period %lu", index);
+        LOG_ERROR("Could not read the matrix file for period {}", index);
         ok &= false;
       } else {
         auto &matrix = *res;
         if (!validiate_adjustment_matrix(matrix,
                                          cli_options.root_range->regions())) {
-          LOG_ERROR("The matrix was malformed for period %lu", index);
+          LOG_ERROR("The matrix was malformed for period {}", index);
           ok &= false;
           continue;
         }
@@ -1039,7 +1041,7 @@ bool validate_and_finalize_options(cli_options_t &cli_options) {
           = parse_yaml_options(cli_options.config_filename.value());
       cli_options.merge(cli_options_tmp);
     } catch (const YAML::Exception &e) {
-      LOG_ERROR("Failed to parse the config file: %s", e.what());
+      LOG_ERROR("Failed to parse the config file: {}", e.what());
       return false;
     }
   }
@@ -1051,13 +1053,12 @@ bool validate_and_finalize_options(cli_options_t &cli_options) {
   normalize_paths(cli_options);
 
   if (!validate_cli_options(cli_options)) {
-    MESSAGE_ERROR(
-        "We can't continue with the current options, exiting instead");
+    LOG_ERROR("We can't continue with the current options, exiting instead");
     return false;
   }
 
   if (!finalize_options(cli_options)) {
-    MESSAGE_ERROR("Failed to finalize the setup exiting");
+    LOG_ERROR("Failed to finalize the setup exiting");
     return false;
   };
 
@@ -1065,8 +1066,8 @@ bool validate_and_finalize_options(cli_options_t &cli_options) {
 
   if (!check_existing_results(cli_options)) {
     if (!cli_options.redo.value_or(false)) {
-      MESSAGE_ERROR("Refusing to run with existing results. Please specify the "
-                    "--redo option if you want to overwrite existing results");
+      LOG_ERROR("Refusing to run with existing results. Please specify the "
+                "--redo option if you want to overwrite existing results");
       return false;
     }
   }
@@ -1082,7 +1083,7 @@ bool validate_and_finalize_options(cli_options_t &cli_options) {
   if (cli_options.config_filename.has_value()) {
     auto &config_filename = cli_options.config_filename.value();
     if (!verify_config_file(config_filename)) {
-      LOG_ERROR("There was an issue with the config file %s",
+      LOG_ERROR("There was an issue with the config file {}",
                 config_filename.c_str());
       ok = false;
     }

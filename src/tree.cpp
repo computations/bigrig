@@ -78,11 +78,11 @@ size_t tree_t::leaf_count() const { return _tree->leaf_count(); }
 bool tree_t::is_binary() const { return _tree->is_binary(); }
 bool tree_t::is_valid() const {
   if (!_tree) {
-    MESSAGE_ERROR("The tree provided is not valid");
+    LOG_ERROR("The tree provided is not valid");
     return false;
   }
   if (!is_binary()) {
-    MESSAGE_ERROR("The tree provided is not a binary tree");
+    LOG_ERROR("The tree provided is not a binary tree");
     return false;
   }
   return true;
@@ -107,7 +107,7 @@ preorder_iterator tree_t::end() const { return preorder_iterator(); }
  */
 void tree_t::convert_tree(corax_utree_t *corax_tree) {
   if (corax_tree == nullptr) {
-    LOG_ERROR("We failed to parse the tree: %s", corax_errmsg);
+    LOG_ERROR("We failed to parse the tree: {}", corax_errmsg);
     return;
   }
   _tree = std::make_unique<node_t>();
