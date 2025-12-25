@@ -56,8 +56,10 @@ public:
                       std::uniform_random_bit_generator auto &gen)
       : _region_count{area_names.size()} {
     if (params.adjustments && params.simulate.value_or(false)) {
-      MESSAGE_ERROR(
-          "Both an adjustment graph file {} and the simulate flag were given");
+      auto m_file = params.matrix_filename.value_or("ERROR");
+      LOG_ERROR(
+          "Both an adjustment graph file {} and the simulate flag were given",
+          params.matrix_filename.value().c_str());
       throw std::runtime_error{"failed to setup adjustment matrix"};
     }
 
@@ -114,7 +116,6 @@ public:
     constexpr double beta_default  = 2.0;
     simulate(alpha_default, beta_default, gen);
   }
-
 
   void simulate(double                                  alpha,
                 double                                  beta,
