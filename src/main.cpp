@@ -18,11 +18,7 @@ inline bigrig::tree_t get_tree(const cli_options_t &cli_options) {
 int main(int argc, char **argv) {
   const auto start_time{std::chrono::high_resolution_clock::now()};
 
-  logger::get_log_states().add_stream(
-      stdout,
-      logger::log_level::info | logger::log_level::warning
-          | logger::log_level::important | logger::log_level::error
-          | logger::log_level::progress);
+  logger::get_log_states().add_stream(stdout, logger::info | logger::defaults);
 
   CLI::App app{"A tool to simulate (ancestal) range distributions under the "
                "DEC[+J] model."};
@@ -135,9 +131,7 @@ int main(int argc, char **argv) {
     LOG_INFO("Logging debug information to %s", debug_filename.c_str());
     logger::get_log_states().add_file_stream(
         debug_filename.c_str(),
-        logger::log_level::info | logger::log_level::warning
-            | logger::log_level::important | logger::log_level::error
-            | logger::log_level::debug);
+        logger::info | logger::debug | logger::defaults);
   }
 
   auto gen = cli_options.get_rng();
