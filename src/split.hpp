@@ -79,6 +79,7 @@ split_type_e roll_split_type(dist_t                                  init_dist,
             jump_weight);
   return split_type_e::invalid;
 }
+
 split_t split_dist(dist_t                                  init_dist,
                    const biogeo_model_t                   &model,
                    std::uniform_random_bit_generator auto &gen,
