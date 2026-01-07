@@ -23,7 +23,6 @@ size_t biogeo_model_t::extinction_count(const dist_t &dist) const {
   return dist.full_region_count();
 }
 
-
 double biogeo_model_t::dispersion_weight(const dist_t &dist) const {
   if (!_has_per_region_params && !_has_adj_matrix) {
     return _rate_params.dis * dispersion_count(dist);
@@ -74,7 +73,6 @@ inline double biogeo_model_t::dispersion_rate(size_t from, size_t to) const {
   double dispersion = dispersion_rate_for_region(to);
   return dispersion * _adjustment_matrix->get_adjustment(from, to);
 }
-
 
 double biogeo_model_t::total_rate_weight(const dist_t &dist) const {
   return extinction_weight(dist) + dispersion_weight(dist);
@@ -250,8 +248,9 @@ biogeo_model_t::set_adjustment_matrix(const adjustment_matrix_t &m) {
 
 bool biogeo_model_t::check_cladogenesis_params_ok(size_t region_count) const {
   bool ok = true;
-  if (total_nonsingleton_weight(make_full_dist(region_count)) == 0.0) {
-    LOG_ERROR("The sympatry, allopatry, or jump weights are invalid");
+  if (total_nonsingleton_weight(make_full_dist(region_count)) == 0.0
+      && region_count != 1) {
+    MESSAGE_ERROR("The sympatry, allopatry, or jump weights are invalid");
     ok = false;
   }
   if (total_singleton_weight(make_singleton_dist(region_count)) == 0.0) {
