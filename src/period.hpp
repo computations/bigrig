@@ -11,8 +11,8 @@
 namespace bigrig {
 
 struct period_params_t {
-  bigrig::rate_params_t                             rates;
-  bigrig::cladogenesis_params_t                     clado;
+  std::optional<bigrig::rate_params_t>              rates;
+  std::optional<bigrig::cladogenesis_params_t>      clado;
   double                                            start = 0.0;
   std::optional<bigrig::tree_params_t>              tree;
   std::vector<per_region_params_t>                  per_region_params;
@@ -124,8 +124,8 @@ public:
     size_t index = 0;
     for (auto &param : params) {
       biogeo_model_t model{};
-      model.set_rate_params(param.rates)
-          .set_cladogenesis_params(param.clado)
+      model.set_rate_params(param.rates.value_or({}))
+          .set_cladogenesis_params(param.clado.value_or({}))
           .set_two_region_duplicity(false);
       if (param.tree) { model.set_tree_params(param.tree.value()); }
       if (param.extinction) { model.set_extinction(param.extinction.value()); }

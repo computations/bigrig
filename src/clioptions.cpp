@@ -477,8 +477,8 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
     }
     if (ok) {
       return {bigrig::period_params_t{
-          .rates             = rates.value_or({}),
-          .clado             = clado_params.value_or({}),
+          .rates             = rates,
+          .clado             = clado_params,
           .start             = 0.0,
           .tree              = tree_params,
           .per_region_params = per_region_params.value_or({}),
@@ -491,9 +491,9 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
 }
 
 bigrig::period_params_t cli_options_t::default_period_params() {
-  return {.rates = {.dis = 1.0, .ext = 1.0},
+  return {.rates = {{.dis = 1.0, .ext = 1.0}},
           .clado
-          = {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0},
+          = {{.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 1.0}},
           .start             = 0,
           .tree              = {},
           .per_region_params = {},

@@ -18,62 +18,97 @@ using namespace std::string_view_literals; // for the 'sv' suffix
 
 constexpr size_t MAX_REGIONS = 64;
 
-void print_periods(const std::vector<bigrig::period_params_t> &periods) {
-  LOG_INFO("   Running with {} periods:", periods.size());
-  for (const auto &p : periods) {
-    LOG_INFO("      - Start time: {:.2f}", p.start);
-    LOG_INFO("        Rate parameters:");
-    LOG_INFO("          Dispersion(d): {:.2f}, Extinction(e): {:.2f}",
-             p.rates.dis,
-             p.rates.ext);
-    LOG_INFO("        Cladogenesis parameters:");
-    LOG_INFO(
-        "          Allopatry(v): {:.2f}, Sympatry(s): {:.2f}, Copy(y): {:.2f}, "
-        "Jump(j): {:.2f}",
-        p.clado.allopatry,
-        p.clado.sympatry,
-        p.clado.copy,
-        p.clado.jump);
+void print_rate_parameters(const bigrig::rate_params_t &rates, size_t spacing) {
+  constexpr auto tab_size = 3;
+  LOG_INFO("{:{}}Rate parameters:", " ", spacing);
+  LOG_INFO("{:{}}Dispersion(d): {:.2f}, Extinction(e): {:.2f}",
+           " ",
+           spacing + tab_size,
+           rates.dis,
+           rates.ext);
+}
+
+void print_clado_parameters(const bigrig::cladogenesis_params_t &clado,
+                            size_t                               spacing) {
+  constexpr auto tab_size = 3;
+  LOG_INFO("{:{}}Cladogenesis parameters:", " ", spacing);
+  LOG_INFO("{:{}}Allopatry(v): {:.2f}, Sympatry(s): {:.2f}, Copy(y): {:.2f}, "
+           "Jump(j): {:.2f}",
+           " ",
+           spacing + tab_size,
+           clado.allopatry,
+           clado.sympatry,
+           clado.copy,
+           clado.jump);
+}
+
+void print_model_parameters(const bigrig::period_params_t &period,
+                            size_t                         spacing) {
+  constexpr auto tab_size = 2;
+  LOG_INFO("{:{}}Model Parameters:", " ", spacing);
+  if (period.rates) {
+    print_rate_parameters(period.rates.value(), spacing + tab_size);
+  }
+  if (period.clado) {
+    print_clado_parameters(period.clado.value(), spacing + tab_size);
+  }
+  if (!period.per_region_params.empty()) {
+    LOG_INFO("{:{}}Per region params:", " ", spacing + tab_size);
+    for (const auto &pr : period.per_region_params) {
+      if (pr.rates || pr.cladogenesis) {
+        LOG_INFO("{:{}}- Region index: {}",
+                 " ",
+                 spacing + tab_size,
+                 std::get<3>(pr.region_id));
+      }
+      if (pr.rates) {
+        print_rate_parameters(pr.rates.value(), spacing + 2 * tab_size);
+      }
+      if (pr.cladogenesis) {
+        print_clado_parameters(pr.cladogenesis.value(), spacing + 2 * tab_size);
+      }
+    }
   }
 }
 
-void print_model_parameters(const bigrig::period_params_t &period) {
-  LOG_INFO("   Model Parameters:");
-  LOG_INFO("     Rate parameters:");
-  LOG_INFO("       Dispersion(d): {:.2f}, Extinction(e): {:.2f}",
-           period.rates.dis,
-           period.rates.ext);
-  LOG_INFO("     Cladogenesis parameters:");
-  LOG_INFO(
-      "          Allopatry(v): {:.2f}, Sympatry(s): {:.2f}, Copy(y): {:.2f}, "
-      "Jump(j): {:.2f}",
-      period.clado.allopatry,
-      period.clado.sympatry,
-      period.clado.copy,
-      period.clado.jump);
+void print_periods(const std::vector<bigrig::period_params_t> &periods,
+                   size_t                                      spacing) {
+  constexpr auto tab_size = 2;
+  if (periods.size() > 1) {
+    LOG_INFO("{:>{}}Running with {} periods:", " ", spacing, periods.size());
+    for (const auto &p : periods) {
+      LOG_INFO("{:{}}- Start time: {:.2f}", " ", spacing, p.start);
+      print_model_parameters(p, spacing + tab_size);
+    }
+  } else {
+    print_model_parameters(periods.at(0), spacing);
+  }
 }
 
 /**
  * Print the message at the start of the run.
  */
 void write_header(const cli_options_t &cli_options) {
+  constexpr size_t spacing = 3;
   LOG_INFO("Running simulation with the following options:");
   if (cli_options.tree_filename.has_value()) {
-    LOG_INFO("   Tree file: {}", cli_options.tree_filename.value().c_str());
+    LOG_INFO("{:{}}Tree file: {}",
+             " ",
+             spacing,
+             cli_options.tree_filename.value().c_str());
   } else {
-    LOG_INFO("   Tree: Simulate");
+    LOG_INFO("{:{}}Tree: Simulate", " ", spacing);
   }
-  LOG_INFO("   Prefix: {}", cli_options.prefix.value().c_str());
-  LOG_INFO("   Root range: {}",
+  LOG_INFO("{:{}}Prefix: {}", " ", spacing, cli_options.prefix.value().c_str());
+  LOG_INFO("{:{}}Root range: {}",
+           " ",
+           spacing,
            cli_options.root_range.value().to_str().c_str());
-  LOG_INFO("   Region count: {}", cli_options.root_range->regions());
-  if (cli_options.periods.size() == 1) {
-    print_model_parameters(cli_options.periods.front());
-  } else {
-    print_periods(cli_options.periods);
-  }
+  LOG_INFO(
+      "{:{}}Region count: {}", " ", spacing, cli_options.root_range->regions());
+  print_periods(cli_options.periods, spacing);
   if (cli_options.rng_seed.has_value()) {
-    LOG_INFO("   Seed: {}", cli_options.rng_seed.value());
+    LOG_INFO("{:{}}Seed: {}", " ", spacing, cli_options.rng_seed.value());
   }
   if (cli_options.mode.has_value()
       && cli_options.mode.value() == bigrig::operation_mode_e::SIM) {
@@ -340,13 +375,17 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
   ok &= validate_root_region(cli_options.root_range, cli_options.region_count);
 
   for (const auto &p : cli_options.periods) {
-    ok &= validate_model_parameter(p.rates.dis, "dispersion");
-    ok &= validate_model_parameter(p.rates.ext, "extinction");
+    if (p.rates) {
+      ok &= validate_model_parameter(p.rates->dis, "dispersion");
+      ok &= validate_model_parameter(p.rates->ext, "extinction");
+    }
 
-    ok &= validate_model_parameter(p.clado.allopatry, "allopatry");
-    ok &= validate_model_parameter(p.clado.sympatry, "sympatry");
-    ok &= validate_model_parameter(p.clado.copy, "copy");
-    ok &= validate_model_parameter(p.clado.jump, "jump");
+    if (p.clado) {
+      ok &= validate_model_parameter(p.clado->allopatry, "allopatry");
+      ok &= validate_model_parameter(p.clado->sympatry, "sympatry");
+      ok &= validate_model_parameter(p.clado->copy, "copy");
+      ok &= validate_model_parameter(p.clado->jump, "jump");
+    }
 
     ok &= validate_adjustment_matrix_params(p.adjustment_matrix);
   }
