@@ -464,20 +464,21 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
     auto per_region_params = get_per_region_params_list(yaml);
     bool ok                = true;
 
-    if (!rates.has_value()) {
-      ok = false;
-      LOG_ERROR("Failed to find rates in the config file");
-    }
+    if (!per_region_params.has_value()) {
+      if (!rates.has_value()) {
+        ok = false;
+        LOG_ERROR("Failed to find rates in the config file");
+      }
 
-    if (!clado_params.has_value()) {
-      ok = false;
-      LOG_ERROR("Failed to find cladogensis parameters in the config file");
+      if (!clado_params.has_value()) {
+        ok = false;
+        LOG_ERROR("Failed to find cladogensis parameters in the config file");
+      }
     }
-
     if (ok) {
       return {bigrig::period_params_t{
-          .rates             = rates.value(),
-          .clado             = clado_params.value(),
+          .rates             = rates.value_or({}),
+          .clado             = clado_params.value_or({}),
           .start             = 0.0,
           .tree              = tree_params,
           .per_region_params = per_region_params.value_or({}),

@@ -266,7 +266,9 @@ bool biogeo_model_t::check_per_region_params_ok(size_t region_count) const {
   if (!_per_region_params.empty()
       && _per_region_params.size() != region_count) {
     ok = false;
-    LOG_ERROR("There are too few per region params provided");
+    LOG_ERROR("Config file has too few per region parameters.");
+    LOG_ERROR(
+        "Please specify all region parameters or specify global parameters");
   }
 
   return ok;
@@ -275,8 +277,8 @@ bool biogeo_model_t::check_per_region_params_ok(size_t region_count) const {
 bool biogeo_model_t::check_ok(size_t region_count) const {
   bool OllKorrect = true;
 
-  OllKorrect &= check_cladogenesis_params_ok(region_count);
   OllKorrect &= check_per_region_params_ok(region_count);
+  if (OllKorrect) { OllKorrect &= check_cladogenesis_params_ok(region_count); }
 
   return OllKorrect;
 }

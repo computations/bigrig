@@ -60,7 +60,6 @@ inline transition_t
 spread_flip_region(dist_t                                  init_dist,
                    const biogeo_model_t                   &model,
                    std::uniform_random_bit_generator auto &gen) {
-  auto [d, e]         = model.rates();
   double total_weight = model.total_rate_weight(init_dist);
 
   std::uniform_real_distribution<double> region_dist(0, total_weight);
@@ -69,7 +68,7 @@ spread_flip_region(dist_t                                  init_dist,
   for (size_t i = 0; i < init_dist.regions(); ++i) {
     if (init_dist[i]) {
       if (!init_dist.singleton() || model.extinction_allowed()) {
-        region_roll -= e;
+        region_roll -= model.extinction_rate_for_index(i);
       }
     } else {
       region_roll -= model.dispersion_weight_for_index(init_dist, i);

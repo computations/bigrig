@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 
   auto periods = cli_options.make_periods(gen);
   if (!periods.validate(cli_options.compute_region_count())) {
-    LOG_ERROR("There was an issue with the periods");
+    LOG_ERROR("There was an issue with the specified periods");
     ok = false;
   }
 

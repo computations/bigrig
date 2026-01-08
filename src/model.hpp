@@ -232,6 +232,12 @@ public:
              : _rate_params.dis;
   }
 
+  constexpr double extinction_rate_for_index(size_t region_index) const {
+    return _has_per_region_params && _per_region_params[region_index].rates
+             ? _per_region_params[region_index].rates->ext
+             : _rate_params.ext;
+  }
+
   inline bool extinction_allowed() const { return _extinction; }
 
   double total_rate_weight(const dist_t &dist) const;

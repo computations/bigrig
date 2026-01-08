@@ -316,7 +316,7 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
   if (params.exponent.has_value()) {
     double &exponent = params.exponent.value();
     if (!std::isfinite(exponent)) {
-      LOG_ERROR("There is an issue with the adjustment matrix exponent");
+      LOG_ERROR("There was an issue with the adjustment matrix exponent");
       ok &= false;
     }
   }

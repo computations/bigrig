@@ -133,9 +133,12 @@ public:
         for (auto p : param.per_region_params) {
           auto region_id = std::get<size_t>(p.region_id);
           if (p.cladogenesis) {
-            model.set_per_region_cladogenesis_params(region_id, *p.cladogenesis);
+            model.set_per_region_cladogenesis_params(region_id,
+                                                     *p.cladogenesis);
           }
-          if (p.rates) { model.set_per_region_rate_params(region_id, *p.rates); }
+          if (p.rates) {
+            model.set_per_region_rate_params(region_id, *p.rates);
+          }
         }
       }
 
@@ -180,9 +183,9 @@ public:
     for (auto &p : _periods) {
       if (!p.model().check_ok(region_count)) {
         ok = false;
-        LOG_ERROR("There is an issue with the model for period '{}', we can't "
-                  "continue",
-                  p.index());
+        LOG_ERROR(
+            "There was an issue with the model for the period with index '{}'",
+            p.index());
       }
     }
 
