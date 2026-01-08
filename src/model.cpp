@@ -41,10 +41,10 @@ double biogeo_model_t::dispersion_weight(const dist_t &dist) const {
 }
 
 double biogeo_model_t::extinction_weight(const dist_t &dist) const {
+  if (dist.singleton() && !_extinction) { return 0.0; }
+
   if (!_has_per_region_params) {
-    return dist.singleton() && !_extinction
-             ? 0.0
-             : _rate_params.ext * extinction_count(dist);
+    return _rate_params.ext * extinction_count(dist);
   }
 
   double sum = 0.0;
