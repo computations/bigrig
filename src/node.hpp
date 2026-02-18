@@ -53,6 +53,8 @@ public:
       _final_state = _transitions.back().final_state;
     }
 
+    LOG_ASSERT(!_periods.empty(), "Cannot simulate with no periods");
+
     _split = split_dist(_final_state, _periods.back().model(), gen, mode);
     _split.period_index = _periods.back().index();
 

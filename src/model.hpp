@@ -91,6 +91,7 @@ private:
    * Actually normalizes the data, as a modification of the current instance.
    */
   void normalize(data_type d) {
+    LOG_ASSERT(d != 0.0, "Cannot normalize by zero");
     auto start = as_ptr();
     for (size_t i = 0; i < size(); ++i) { start[i] /= d; }
   }

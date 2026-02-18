@@ -156,6 +156,7 @@ public:
   constexpr inline bool operator!=(dist_t d) const { return !(d == *this); }
 
   constexpr inline dist_t flip_region(size_t index) const {
+    [[assume(index < 64)]];
     return {_dist ^ (1ull << index), _regions};
   }
 

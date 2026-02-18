@@ -33,6 +33,7 @@ transition_t spread_rejection(dist_t                                  init_dist,
 
   bool       singleton    = init_dist.singleton();
   const auto region_count = init_dist.regions();
+  [[assume(region_count > 0 && region_count < 64)]];
 
   std::exponential_distribution<double> exp_die(e);
 

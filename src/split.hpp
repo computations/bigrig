@@ -221,6 +221,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
 split_t generate_uniform_split(dist_t                                  parent,
                                split_type_e                            type,
                                std::uniform_random_bit_generator auto &gen) {
+  [[assume(parent.regions() < 64)]];
   auto max_dist = (1ul << parent.regions()) - 1;
   std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
   std::uniform_int_distribution<dist_base_t> index_coin(1,
@@ -289,6 +290,7 @@ split_t split_dist_rejection_method_adjusted(
     LOG_DEBUG("Splitting a singleton: {}", init_dist.to_str().c_str());
     return {init_dist, init_dist, init_dist, split_type_e::singleton, 0};
   }
+  [[assume(init_dist.regions() < 64)]];
   auto max_dist = (1ul << init_dist.regions()) - 1;
   std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
 
