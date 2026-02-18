@@ -690,11 +690,13 @@ void write_json_file(std::ostream                &os,
                      const program_stats_t       &program_stats) {
   nlohmann::json j;
 
-  j["tree"]          = tree.to_newick();
-  j["taxa"]          = tree.leaf_count();
-  j["regions"]       = tree.region_count();
-  j["root-range"]    = tree.get_root_range().to_str();
-  j["stats"]["time"] = program_stats.execution_time_in_seconds();
+  j["tree"]                    = tree.to_newick();
+  j["taxa"]                    = tree.leaf_count();
+  j["regions"]                 = tree.region_count();
+  j["root-range"]              = tree.get_root_range().to_str();
+  j["stats"]["execution-time"] = program_stats.execution_time_in_seconds();
+  j["stats"]["config-time"]    = program_stats.config_time_in_seconds();
+  j["stats"]["time"]           = program_stats.total_time_in_seconds();
 
   for (const auto &n : tree) {
     j["align"][n->string_id()] = n->final_state().to_str();
