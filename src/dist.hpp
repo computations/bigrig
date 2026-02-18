@@ -324,10 +324,11 @@ dist_t make_full_dist(size_t regions);
 dist_t make_singleton_dist(size_t regions);
 dist_t make_random_dist(size_t                                  regions,
                         std::uniform_random_bit_generator auto &gen) {
-  if (regions > 64) {
+  if (regions >= 64) {
     throw std::invalid_argument{"Tried to generate a random distribution with "
                                 + std::to_string(regions)};
   }
+
   std::uniform_int_distribution<uint64_t> dis(1ull, (1ull << regions) - 1);
   return {dis(gen), static_cast<uint16_t>(regions)};
 }
