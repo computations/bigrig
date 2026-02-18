@@ -42,18 +42,22 @@ public:
    */
   inline constexpr size_t empty_region_count() const { return unpopcount(); }
 
-  inline constexpr bool singleton() const { return full_region_count() == 1; }
+  [[nodiscard]] inline constexpr bool singleton() const {
+    return full_region_count() == 1;
+  }
 
   /**
    * Returns true if all regions are occupied.
    */
-  inline constexpr bool full() const { return regions() == popcount(); }
+  [[nodiscard]] inline constexpr bool full() const {
+    return regions() == popcount();
+  }
 
   /**
    * Returns true if all regions are empty. Hypothetically, we should never
    * return a region with this being true but it's good to have anyways.
    */
-  inline constexpr bool empty() const { return _dist == 0; }
+  [[nodiscard]] inline constexpr bool empty() const { return _dist == 0; }
 
   /**
    * Returns the highest or last full region (by index) for the current dist.
@@ -69,7 +73,7 @@ public:
   /**
    * Check if the dist is valid, constrained to a given number of regions.
    */
-  inline bool valid_dist(size_t required_regions) {
+  [[nodiscard]] inline bool valid_dist(size_t required_regions) {
     if (required_regions != regions()) { return false; }
     return valid_dist();
   }
@@ -79,7 +83,7 @@ public:
    * function to let us know if the dist is valid. Here valid means there are
    * no regions other than the ones allowed.
    */
-  inline bool valid_dist() const {
+  [[nodiscard]] inline bool valid_dist() const {
     auto mask = valid_region_mask();
     return !static_cast<uint64_t>(*this & (~mask));
   }
@@ -115,12 +119,14 @@ public:
 
   constexpr inline dist_t region_intersection(dist_t d) { return *this & d; }
 
-  constexpr inline bool subset(dist_t d) { return !((*this & ~d)._dist); }
+  [[nodiscard]] constexpr inline bool subset(dist_t d) {
+    return !((*this & ~d)._dist);
+  }
 
   /**
    * Returns true if the difference between two dists is exactly one region.
    */
-  constexpr inline bool one_region_off(dist_t d) {
+  [[nodiscard]] constexpr inline bool one_region_off(dist_t d) {
     return (*this ^ d).popcount() == 1;
   }
 
@@ -166,7 +172,7 @@ public:
    * think about this dist being the ith dist in a a list ordered as if the dist
    * is a binary number, and this function returns i.
    * */
-  constexpr inline size_t index(size_t max_areas) const {
+  [[nodiscard]] constexpr inline size_t index(size_t max_areas) const {
     size_t skips = compute_skips(_dist, max_areas);
     return _dist - skips;
   }
@@ -181,7 +187,7 @@ public:
    * Specifically, it computes the index if we want to turn an empty region into
    * a full region.
    */
-  constexpr inline size_t set_index(size_t index) const {
+  [[nodiscard]] constexpr inline size_t set_index(size_t index) const {
     size_t tmp_index = 0;
     while (true) {
       if (index == 0 && bextr(tmp_index)) { break; }
@@ -200,7 +206,7 @@ public:
    * This is the version of `set_index` if we want to turn a full region into an
    * empty region.
    */
-  constexpr inline size_t unset_index(size_t index) const {
+  [[nodiscard]] constexpr inline size_t unset_index(size_t index) const {
     size_t tmp_index = 0;
     while (true) {
       if (index == 0 && !bextr(tmp_index)) { break; }
