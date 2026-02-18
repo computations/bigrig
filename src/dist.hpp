@@ -305,6 +305,7 @@ private:
   }
 
   constexpr uint64_t valid_region_mask() const {
+    if (regions() == 64) { return std::numeric_limits<uint64_t>::max(); }
     uint64_t mask = (1ull << regions()) - 1;
     return static_cast<uint64_t>(mask);
   }
@@ -321,7 +322,7 @@ dist_t make_random_dist(size_t                                  regions,
     throw std::invalid_argument{"Tried to generate a random distribution with "
                                 + std::to_string(regions)};
   }
-  std::uniform_int_distribution<uint64_t> dis(1ul, (1ul << regions) - 1);
+  std::uniform_int_distribution<uint64_t> dis(1ull, (1ull << regions) - 1);
   return {dis(gen), static_cast<uint16_t>(regions)};
 }
 

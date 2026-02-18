@@ -102,7 +102,7 @@ public:
   }
 
 private:
-  void convert_tree(corax_utree_t *corax_tree);
+  void convert_tree(corax_utree_t *corax_tree) noexcept;
 
   std::shared_ptr<node_t> _tree;
   operation_mode_e        _mode = operation_mode_e::FAST;

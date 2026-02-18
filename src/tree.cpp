@@ -105,7 +105,7 @@ preorder_iterator tree_t::end() const { return preorder_iterator(); }
  * Importantly, we don't try to resolve polytomies in this function. In reality,
  * once a tree is converted, we still need to check that it is binary.
  */
-void tree_t::convert_tree(corax_utree_t *corax_tree) {
+void tree_t::convert_tree(corax_utree_t *corax_tree) noexcept{
   if (corax_tree == nullptr) {
     LOG_ERROR("We failed to parse the tree: {}", corax_errmsg);
     return;

@@ -176,7 +176,7 @@ struct cli_options_t {
   bigrig::rng_wrapper_t &get_rng_wrapper();
 
   size_t compute_region_count() const {
-    if (root_range.value()) { return root_range->regions(); }
+    if (root_range) { return root_range->regions(); }
     if (region_count && region_names) {
       if (region_count != region_names->size()) {
         LOG_ERROR("The number of regions provided in names differs from the "

@@ -172,7 +172,7 @@ split_dist_rejection_method(dist_t                                  init_dist,
     LOG_DEBUG("Splitting a singleton: {}", init_dist.to_str().c_str());
     return {init_dist, init_dist, init_dist, split_type_e::singleton, 0};
   }
-  auto max_dist = (1ul << init_dist.regions()) - 1;
+  auto max_dist = (1ull << init_dist.regions()) - 1;
   std::uniform_int_distribution<dist_base_t> dist_gen(1, max_dist);
 
   auto model_params = model.cladogenesis_params();
