@@ -465,6 +465,7 @@ TEST_CASE("split index chi2 test", "[sample]") {
       num        *= num;
       chi2       += num / expected_count;
     }
+    CHECK(chi2 < chi2_lut[df]);
   }
 
   SECTION("allopatry") {
