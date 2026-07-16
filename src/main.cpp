@@ -70,27 +70,30 @@ int main(int argc, char **argv) {
                cli_options.debug_log,
                "Create a file in the prefix that contains the debug "
                "log. Don't enable this without a good reason.");
-  app.add_flag(
+  auto *json_option = app.add_flag(
       "--json",
       [&cli_options](std::int64_t count) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::JSON;
       },
       "Output results in a JSON file.");
-  app.add_flag(
+  auto *yaml_option = app.add_flag(
       "--yaml",
       [&cli_options](std::int64_t count) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::YAML;
       },
       "Output results in a YAML file.");
-  app.add_flag(
+  auto *csv_option = app.add_flag(
       "--csv",
       [&cli_options](std::int64_t count) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::CSV;
       },
       "Output results in a CSV file.");
+  json_option->excludes(yaml_option, csv_option);
+  yaml_option->excludes(json_option, csv_option);
+  csv_option->excludes(json_option, yaml_option);
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
