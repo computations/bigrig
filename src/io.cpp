@@ -370,7 +370,13 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
 [[nodiscard]] bool validate_cli_options(const cli_options_t &cli_options) {
   bool ok = true;
 
-  ok &= validate_tree_filename(cli_options.tree_filename);
+  if (!cli_options.simulate_tree.value_or(false)
+      && !cli_options.tree_filename.has_value()) {
+    LOG_ERROR("No tree file was provided");
+    ok = false;
+  } else {
+    ok &= validate_tree_filename(cli_options.tree_filename);
+  }
   ok &= validate_and_make_prefix(cli_options.prefix);
   ok &= validate_root_region(cli_options.root_range, cli_options.region_count);
 
@@ -416,23 +422,27 @@ bool normalize_paths(cli_options_t &cli_options) {
   // std::filesystem::canonical will throw an error here, and we might want to
   // make the paths later on. So we instead call absolute and then
   // weakly canonicalize them
-  try {
-    cli_options.tree_filename = std::filesystem::weakly_canonical(
-        std::filesystem::absolute(cli_options.tree_filename.value()));
-  } catch (const std::filesystem::filesystem_error &err) {
-    LOG_ERROR("Failed to canonicalize '{}' because '{}'",
-              cli_options.tree_filename.value().c_str(),
-              err.what());
-    ok = false;
-  } catch (const std::bad_optional_access &err) { return false; }
-  try {
-    cli_options.prefix = std::filesystem::weakly_canonical(
-        std::filesystem::absolute(cli_options.prefix.value()));
-  } catch (const std::filesystem::filesystem_error &err) {
-    LOG_ERROR("Failed to canonicalize '{}' because '{}'",
-              cli_options.prefix.value().c_str(),
-              err.what());
-    ok = false;
+  if (cli_options.tree_filename.has_value()) {
+    try {
+      cli_options.tree_filename = std::filesystem::weakly_canonical(
+          std::filesystem::absolute(cli_options.tree_filename.value()));
+    } catch (const std::filesystem::filesystem_error &err) {
+      LOG_ERROR("Failed to canonicalize '{}' because '{}'",
+                cli_options.tree_filename.value().c_str(),
+                err.what());
+      ok = false;
+    }
+  }
+  if (cli_options.prefix.has_value()) {
+    try {
+      cli_options.prefix = std::filesystem::weakly_canonical(
+          std::filesystem::absolute(cli_options.prefix.value()));
+    } catch (const std::filesystem::filesystem_error &err) {
+      LOG_ERROR("Failed to canonicalize '{}' because '{}'",
+                cli_options.prefix.value().c_str(),
+                err.what());
+      ok = false;
+    }
   }
   return ok;
 }
@@ -1091,7 +1101,7 @@ bool validate_and_finalize_options(cli_options_t &cli_options) {
     cli_options.prefix = cli_options.tree_filename;
   }
 
-  normalize_paths(cli_options);
+  if (!normalize_paths(cli_options)) { return false; }
 
   if (!validate_cli_options(cli_options)) {
     LOG_ERROR("We can't continue with the current options, exiting instead");
