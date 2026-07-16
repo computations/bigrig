@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (cli_options.debug_log) {
+  if (cli_options.debug_log.value_or(false)) {
     std::filesystem::path debug_filename  = cli_options.prefix.value();
     debug_filename                       += ".debug.log";
     LOG_INFO("Logging debug information to {}", debug_filename.c_str());
