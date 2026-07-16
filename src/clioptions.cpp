@@ -613,7 +613,7 @@ cli_options_t::convert_cli_parameters(std::optional<double> dis,
     period.start = 0.0;
     period.rates = {.dis = dis.value(), .ext = ext.value()};
     period.clado = {.allopatry = allo.value(),
-                    .sympatry  = ext.value(),
+                    .sympatry  = symp.value(),
                     .copy      = copy.value(),
                     .jump      = jump.value()};
     periods.push_back(period);

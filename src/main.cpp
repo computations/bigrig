@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
         (void)(count); // Silence a warning
         cli_options.output_format_type = output_format_type_e::CSV;
       },
-      "Output results in a YAML file.");
+      "Output results in a CSV file.");
   app.add_flag("--two-region-duplicity",
                cli_options.two_region_duplicity,
                "[Optional] Allow for outcome duplicity in the case of 2 region "
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
   auto gen = cli_options.get_rng();
 
   if (cli_options.simulate_tree.value_or(false)) {
-    LOG_INFO("Parsing tree");
+    LOG_INFO("Simulating tree");
   }
 
   auto tree = get_tree(cli_options);
