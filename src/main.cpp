@@ -96,20 +96,22 @@ int main(int argc, char **argv) {
                "[Optional] Allow for outcome duplicity in the case of 2 region "
                "splits. See the README.md for more information.")
       ->group("");
-  app.add_flag(
+  auto *sim_option = app.add_flag(
       "--sim",
       [&cli_options](std::int64_t count) {
         (void)(count);
         cli_options.mode = bigrig::operation_mode_e::SIM;
       },
       "Run in simulation mode (warning: slow).");
-  app.add_flag(
+  auto *fast_option = app.add_flag(
       "--fast",
       [&cli_options](std::int64_t count) {
         (void)(count);
         cli_options.mode = bigrig::operation_mode_e::FAST;
       },
       "Run in fast mode (default on).");
+  sim_option->excludes(fast_option);
+  fast_option->excludes(sim_option);
 
   CLI11_PARSE(app, argc, argv);
 
