@@ -109,7 +109,7 @@ public:
 
   period_list_t(const period_list_t &other, double start, double end) {
     auto period_filter = [&](const period_t &p) {
-      return !((p.end() < start) && (p.start() > end));
+      return !((p.end() < start) || (p.start() > end));
     };
 
     for (auto &p : other._periods | std::ranges::views::filter(period_filter)) {

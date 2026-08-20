@@ -219,3 +219,32 @@ TEST_CASE("simulate tree") {
     }
   }
 }
+
+TEST_CASE("tree simulation crosses finite period boundaries") {
+  constexpr size_t regions = 2;
+  pcg64_fast       gen{42};
+
+  auto first = make_period_params(
+      {.dis = 1.0e-12, .ext = 1.0e-12},
+      {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 0.0},
+      {.cladogenesis = 0.0},
+      false);
+  first.start = 0.0;
+
+  auto second  = first;
+  second.start = 1.0;
+  second.rates = {.dis = 100.0, .ext = 100.0};
+
+  auto third  = first;
+  third.start = 2.0;
+
+  bigrig::period_list_t periods{
+      {first, second, third}, bigrig::util::generate_area_names(regions), gen};
+
+  bigrig::node_t node;
+  node.simulate_tree(bigrig::dist_t{0b01, regions}, 1.5, periods, gen);
+
+  REQUIRE_FALSE(node.transitions().empty());
+  CHECK(node.transitions().front().period_index == 1);
+  CHECK(node.transitions().front().waiting_time >= 1.0);
+}

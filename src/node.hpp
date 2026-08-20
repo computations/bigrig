@@ -69,8 +69,8 @@ public:
                      const period_list_t &periods,
                      std::uniform_random_bit_generator auto &gen,
                      operation_mode_e mode = operation_mode_e::FAST) {
-    auto   dist     = initial_distribution;
-    double leftover = 0.0;
+    auto   dist                  = initial_distribution;
+    double elapsed_without_event = 0.0;
 
     while (true) {
       /*
@@ -98,21 +98,22 @@ public:
 
       std::exponential_distribution<double> waiting_time_die(total_rate);
 
-      double waiting_time = waiting_time_die(gen) + leftover;
-      leftover            = 0.0;
+      const double waiting_time     = waiting_time_die(gen);
+      const double branch_time_left = time_left - _brlen;
+      const double period_time_left = period.end() - (_abs_time + _brlen);
 
-      if (waiting_time + _brlen > time_left) {
+      /* check if the period is over */
+      if (period_time_left < branch_time_left
+          && period_time_left < waiting_time) {
+        elapsed_without_event += period_time_left;
+        _brlen                += period_time_left;
+        continue;
+      }
+
+      if (waiting_time > branch_time_left) {
         _brlen       = time_left;
         _final_state = dist;
         return;
-      }
-
-      /* check if the period is over */
-      double period_time_left = period.length() - (_abs_time + _brlen);
-      if (period_time_left < waiting_time) {
-        leftover  = period_time_left;
-        _brlen   += period_time_left;
-        continue;
       }
 
       _brlen += waiting_time;
@@ -140,10 +141,12 @@ public:
         return;
       } else {
         LOG_DEBUG("Rolled a transition event. Time left {}", time_left);
-        auto res         = spread_flip_region(dist, model, gen);
-        res.period_index = period.index();
-        res.waiting_time = waiting_time;
+        auto res              = spread_flip_region(dist, model, gen);
+        res.period_index      = period.index();
+        res.waiting_time      = waiting_time + elapsed_without_event;
+        elapsed_without_event = 0.0;
         _transitions.push_back(res);
+        dist = res.final_state;
 
         if (res.final_state.empty()) {
           _final_state = _transitions.back().final_state;

@@ -110,6 +110,35 @@ TEST_CASE("spread", "[spread]") {
   };
 }
 
+TEST_CASE("transition clocks restart at period boundaries",
+          "[spread][period]") {
+  constexpr size_t regions = 2;
+  pcg64_fast       gen{42};
+
+  bigrig::period_params_t first;
+  first.start = 0.0;
+  first.rates = {.dis = 1.0e-12, .ext = 1.0e-12};
+  first.clado = {.allopatry = 1.0, .sympatry = 1.0, .copy = 1.0, .jump = 0.0};
+
+  auto second  = first;
+  second.start = 1.0;
+  second.rates = {.dis = 100.0, .ext = 100.0};
+
+  bigrig::period_list_t all_periods{
+      {first, second}, bigrig::util::generate_area_names(regions), gen};
+  bigrig::period_list_t branch_periods{all_periods, 0.0, 2.0};
+
+  auto transitions
+      = bigrig::simulate_transitions(bigrig::dist_t{0b01, regions},
+                                     branch_periods,
+                                     gen,
+                                     bigrig::operation_mode_e::FAST);
+
+  REQUIRE_FALSE(transitions.empty());
+  CHECK(transitions.front().period_index == 1);
+  CHECK(transitions.front().waiting_time >= 1.0);
+}
+
 TEST_CASE("stats for spread", "[spread][stats]") {
   constexpr size_t regions = 4;
 

@@ -117,23 +117,24 @@ simulate_transitions(dist_t                                  init_dist,
                      operation_mode_e                        mode) {
   std::vector<transition_t> results;
   results.reserve(util::VECTOR_INITIAL_RESERVE_COUNT);
-  double remainder = 0;
+  double elapsed_without_event = 0;
   for (const auto &current_period : periods) {
     double brlen = current_period.length();
     while (true) {
-      auto r          = spread(init_dist, current_period.model(), gen, mode);
-      r.period_index  = current_period.index();
-      r.waiting_time += remainder;
-      remainder       = 0;
-      auto tmp_brlen  = brlen - r.waiting_time;
+      auto r         = spread(init_dist, current_period.model(), gen, mode);
+      r.period_index = current_period.index();
+      const auto period_wait = r.waiting_time;
+      const auto tmp_brlen   = brlen - period_wait;
 
       if (tmp_brlen < 0.0) {
-        remainder = brlen;
+        elapsed_without_event += brlen;
         break;
       }
 
-      brlen     = tmp_brlen;
-      init_dist = r.final_state;
+      brlen                  = tmp_brlen;
+      init_dist              = r.final_state;
+      r.waiting_time        += elapsed_without_event;
+      elapsed_without_event  = 0;
       results.push_back(r);
     }
   }

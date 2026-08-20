@@ -12,11 +12,34 @@
 #include <filesystem>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <string_view>
+#include <unordered_set>
 
 using namespace std::string_view_literals; // for the 'sv' suffix
 
 constexpr size_t MAX_REGIONS = 64;
+
+std::filesystem::path phylip_all_filename(const cli_options_t &cli_options) {
+  auto filename  = cli_options.prefix.value();
+  filename      += ".all";
+  filename      += bigrig::util::PHYILP_EXT;
+  return filename;
+}
+
+std::filesystem::path clean_tree_filename(const cli_options_t &cli_options) {
+  auto filename  = cli_options.prefix.value();
+  filename      += ".clean";
+  filename      += bigrig::util::NEWICK_EXT;
+  return filename;
+}
+
+std::filesystem::path annotated_tree_filename(const cli_options_t &cli_options) {
+  auto filename  = cli_options.prefix.value();
+  filename      += ".annotated";
+  filename      += bigrig::util::NEWICK_EXT;
+  return filename;
+}
 
 void print_rate_parameters(const bigrig::rate_params_t &rates, size_t spacing) {
   constexpr auto tab_size = 3;
@@ -265,38 +288,32 @@ validate_root_region(const std::optional<bigrig::dist_t> &root_range,
 [[nodiscard]] bigrig::adjustment_matrix_symmetry
 determine_matrix_symmetry(const std::vector<bigrig::adjacency_arc_t> &matrix,
                           size_t region_count) {
-  size_t symmetric_size = (region_count * (region_count + 1)) / 2;
+  const size_t symmetric_size = (region_count * (region_count - 1)) / 2;
 
   if (matrix.size() == symmetric_size) {
     return bigrig::adjustment_matrix_symmetry::symmetric;
   }
 
-  size_t nonsymmetric_size = (region_count - 1) * region_count;
+  const size_t nonsymmetric_size = (region_count - 1) * region_count;
 
   if (matrix.size() == nonsymmetric_size) {
+    const bool values_are_symmetric
+        = std::ranges::all_of(matrix, [&](const auto &arc) {
+            return std::ranges::any_of(matrix, [&](const auto &reverse) {
+              return arc.reverse(reverse) && arc.value == reverse.value;
+            });
+          });
+    if (values_are_symmetric) {
+      return bigrig::adjustment_matrix_symmetry::symmetric;
+    }
     return bigrig::adjustment_matrix_symmetry::nonsymmetric;
   }
   return bigrig::adjustment_matrix_symmetry::unknown;
 }
 
-/**
- * Checks that a matrix is symmetric
- */
 [[nodiscard]] bool
-validate_matrix_symmetry(const bigrig::adjacency_graph_t &matrix) {
-  auto &adjacencies = matrix.adjacencies;
-  for (auto a : adjacencies) {
-    if (!std::ranges::any_of(
-            adjacencies, [&](const auto &b) -> bool { return a.reverse(b); })) {
-      return false;
-    }
-  }
-  return true;
-}
-
-[[nodiscard]] bool
-validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
-                            size_t                           region_count) {
+validiate_adjustment_matrix(bigrig::adjacency_graph_t &matrix,
+                            size_t                      region_count) {
   /*
    * there are two cases:
    *  - Symmetric adjustment matrix
@@ -304,24 +321,43 @@ validiate_adjustment_matrix(const bigrig::adjacency_graph_t &matrix,
    * In both of these cases, the diagonal does nothing, so we should not include
    * it. Therfore, the two formulas are
    *  - n(n-1)
-   *  - n(n+1)/2
+   *  - n(n-1)/2
    * So, we need to determine which case it is, and then check the matrix size.
    *
    * This data structure at this moment is a list of tuples:
    *  (from, to, value)
-   * So, to check if the matrix is intended to be symmetric, we need to check if
-   * (a, b, _) and (b, a, _) are in the list.
+   * A full matrix with matching reverse values is also accepted as symmetric.
    */
 
   auto symmetry = determine_matrix_symmetry(matrix.adjacencies, region_count);
+  if (symmetry == bigrig::adjustment_matrix_symmetry::unknown) { return false; }
+
+  std::unordered_set<std::string> region_names;
+  std::set<std::pair<std::string, std::string>> directed_arcs;
+  std::set<std::pair<std::string, std::string>> undirected_arcs;
+  const bool compact_symmetric
+      = matrix.adjacencies.size() == region_count * (region_count - 1) / 2;
+
+  for (const auto &arc : matrix.adjacencies) {
+    if (arc.from == arc.to) { return false; }
+    region_names.insert(arc.from);
+    region_names.insert(arc.to);
+    if (!directed_arcs.emplace(arc.from, arc.to).second) { return false; }
+
+    if (compact_symmetric) {
+      auto pair = std::minmax(arc.from, arc.to);
+      if (!undirected_arcs.emplace(pair.first, pair.second).second) {
+        return false;
+      }
+    }
+  }
+
+  if (region_count > 1 && region_names.size() != region_count) { return false; }
+
+  matrix.type = symmetry;
 
   switch (symmetry) {
   case bigrig::adjustment_matrix_symmetry::symmetric:
-    if (!validate_matrix_symmetry(matrix)) {
-      LOG_ERROR(
-          "A matrix is not fully symmetric, despite being the correct size");
-      return false;
-    }
     return true;
 
   case bigrig::adjustment_matrix_symmetry::nonsymmetric:
@@ -469,19 +505,8 @@ read_adjustment_matrix(const std::filesystem::path &filename) {
     });
   }
 
-  std::sort(rows.begin(), rows.end(), [](const auto &a, const auto &b) {
-    return a.from < b.from && a.to < b.to;
-  });
-
-  size_t estimated_region_count
-      = (rows | std::views::transform([](const auto &a) -> std::string {
-           return a.from;
-         })
-         | std::ranges::to<std::unordered_set<std::string>>())
-            .size();
-
   return {{.adjacencies = rows,
-           .type = determine_matrix_symmetry(rows, estimated_region_count)}};
+           .type = bigrig::adjustment_matrix_symmetry::unknown}};
 }
 
 /**
@@ -493,12 +518,20 @@ read_adjustment_matrix(const std::filesystem::path &filename) {
 [[nodiscard]] bool check_existing_results(const cli_options_t &cli_options) {
   bool ok = true;
 
-  if (std::filesystem::exists(cli_options.phylip_filename())) {
-    LOG_WARNING("Results file {} exists already",
-                cli_options.phylip_filename().c_str());
-    ok = false;
+  std::vector<std::filesystem::path> output_filenames{
+      cli_options.phylip_filename(),
+      phylip_all_filename(cli_options),
+      annotated_tree_filename(cli_options)};
+
+  if (cli_options.simulate_tree.value_or(false)) {
+    output_filenames.push_back(clean_tree_filename(cli_options));
   }
+
   for (auto results_filename : cli_options.result_filename_vector()) {
+    output_filenames.push_back(results_filename);
+  }
+
+  for (const auto &results_filename : output_filenames) {
     if (std::filesystem::exists(results_filename)) {
       LOG_WARNING("Results file {} exists already", results_filename.c_str());
       ok = false;
@@ -958,10 +991,7 @@ void write_clean_tree_file(const cli_options_t  &cli_options,
     os << ":" << n.brlen();
   };
 
-  auto clean_tree_filename  = cli_options.prefix.value();
-  clean_tree_filename      += ".clean";
-  clean_tree_filename      += bigrig::util::NEWICK_EXT;
-  std::ofstream clean_tree_file(clean_tree_filename);
+  std::ofstream clean_tree_file(clean_tree_filename(cli_options));
   clean_tree_file << tree.to_newick(clean_cb) << std::endl;
 }
 
@@ -979,10 +1009,7 @@ void write_annotated_tree_file(const cli_options_t  &cli_options,
     os << "]";
   };
 
-  auto annotated_tree_filename  = cli_options.prefix.value();
-  annotated_tree_filename      += ".annotated";
-  annotated_tree_filename      += bigrig::util::NEWICK_EXT;
-  std::ofstream annotated_tree_file(annotated_tree_filename);
+  std::ofstream annotated_tree_file(annotated_tree_filename(cli_options));
   annotated_tree_file << tree.to_newick(annotated_cb) << std::endl;
 }
 
@@ -1000,9 +1027,7 @@ void write_output_files(const cli_options_t         &cli_options,
   std::ofstream phylip_file(phylip_filename);
   phylip_file << to_phylip(tree);
 
-  auto phylip_all_filename  = cli_options.prefix.value();
-  phylip_all_filename      += ".all.phy";
-  std::ofstream phylip_all_file(phylip_all_filename);
+  std::ofstream phylip_all_file(phylip_all_filename(cli_options));
   phylip_all_file << to_phylip_all_nodes(tree);
 
   write_annotated_tree_file(cli_options, tree);

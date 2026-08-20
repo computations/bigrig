@@ -65,10 +65,17 @@ public:
 
     if (auto matrix = params.adjustments; matrix) {
       _type = matrix->type;
-      if (matrix_size() != matrix->size()) {
+      const auto symmetric_arc_count
+          = (_region_count * (_region_count - 1)) / 2;
+      const auto nonsymmetric_arc_count = _region_count * (_region_count - 1);
+      const bool valid_arc_count
+          = is_symmetric() ? matrix->size() == symmetric_arc_count
+                                 || matrix->size() == nonsymmetric_arc_count
+                           : matrix->size() == nonsymmetric_arc_count;
+      if (!valid_arc_count) {
         throw std::runtime_error{"The matrix is not the correct size"};
       }
-      _map.resize(matrix_size());
+      _map.assign(matrix_size(), 0.0);
       auto area_name_inverse_map
           = std::views::enumerate(area_names)
           | std::views::transform(
@@ -82,8 +89,10 @@ public:
         auto from_idx = area_name_inverse_map.at(arc.from);
         auto to_idx   = area_name_inverse_map.at(arc.to);
 
-        _map[get_index(from_idx, to_idx)] = arc.value;
-        if (is_symmetric()) { _map[get_index(to_idx, from_idx)] = arc.value; }
+        _map[from_idx * _region_count + to_idx] = arc.value;
+        if (is_symmetric()) {
+          _map[to_idx * _region_count + from_idx] = arc.value;
+        }
       }
     }
 
@@ -96,7 +105,7 @@ public:
   adjustment_matrix_t &operator=(const adjustment_matrix_t &) = default;
 
   double get_adjustment(size_t from, size_t to) const {
-    return _map[from * _region_count + to];
+    return _map.at(from * _region_count + to);
   }
 
   void apply_exponent(double exponent) {
@@ -120,6 +129,7 @@ public:
   void simulate(double                                  alpha,
                 double                                  beta,
                 std::uniform_random_bit_generator auto &gen) {
+    _type = adjustment_matrix_symmetry::symmetric;
     _map.resize(_region_count * _region_count);
 
     std::gamma_distribution<> dis(alpha, beta);
@@ -135,12 +145,7 @@ public:
     apply_exponent(-1.0);
   }
 
-  size_t matrix_size() const {
-    if (_type == adjustment_matrix_symmetry::symmetric) {
-      return (_region_count * (_region_count - 1)) / 2;
-    }
-    return _region_count * _region_count;
-  }
+  size_t matrix_size() const { return _region_count * _region_count; }
 
   bool is_symmetric() const {
     return _type == adjustment_matrix_symmetry::symmetric;
@@ -149,30 +154,9 @@ public:
   size_t get_row_size() const { return _region_count; }
 
 private:
-  size_t get_index(size_t from, size_t to) const {
-    if (from == to) { return 0.0; }
-    if (is_symmetric() && from > to) { std::swap(from, to); }
-    size_t triangle_adjustment = (_type == adjustment_matrix_symmetry::symmetric
-                                      ? (from + 1) * (from + 2) / 2
-                                      : 0);
-    return from * _region_count + to - triangle_adjustment;
-  }
-
-  /**
-   * We are going to use this function to setup a n(n-1)/2 vector representing
-   * the upper triangular form.
-   */
-  void set_symmetric_map(const adjacency_graph_t &) {
-    throw std::runtime_error{"Not implemented"};
-  }
-
-  void set_unsymmetric_map(const adjacency_graph_t &) {
-    throw std::runtime_error{"Not implemented"};
-  }
-
   region_adjustment_map_t    _map;
-  adjustment_matrix_symmetry _type;
-  size_t                     _region_count;
+  adjustment_matrix_symmetry _type = adjustment_matrix_symmetry::symmetric;
+  size_t                     _region_count = 0;
 };
 
 } // namespace bigrig
