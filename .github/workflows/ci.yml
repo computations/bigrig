@@ -29,6 +29,21 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install C++23 compiler
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install --yes g++-14
+            echo "CC=gcc-14" >> "$GITHUB_ENV"
+            echo "CXX=g++-14" >> "$GITHUB_ENV"
+          else
+            brew install gcc
+            compiler=$(find "$(brew --prefix gcc)/bin" -name 'g++-*' -type f | sort -V | tail -n 1)
+            echo "CC=${compiler/g++/gcc}" >> "$GITHUB_ENV"
+            echo "CXX=$compiler" >> "$GITHUB_ENV"
+          fi
+
       - name: Configure
         run: >-
           cmake
