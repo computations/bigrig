@@ -19,31 +19,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            shell: bash
-          - os: macos-latest
-            shell: bash
-          - os: windows-latest
-            shell: 'msys2 {0}'
+        os:
+          - ubuntu-latest
+          - macos-latest
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up MSYS2
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-ninja
-
       - name: Check out submodules
-        shell: ${{ matrix.shell }}
+        shell: bash
         run: |
           git submodule sync --recursive
           for attempt in 1 2 3; do
@@ -55,8 +40,7 @@ jobs:
           done
 
       - name: Install C++23 compiler
-        if: runner.os != 'Windows'
-        shell: ${{ matrix.shell }}
+        shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get update
@@ -71,8 +55,7 @@ jobs:
           fi
 
       - name: Configure
-        if: runner.os != 'Windows'
-        shell: ${{ matrix.shell }}
+        shell: bash
         run: >-
           cmake
           -S .
@@ -80,9 +63,47 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DENABLE_NATIVE_FLAGS=OFF
 
-      - name: Configure (Windows)
-        if: runner.os == 'Windows'
-        shell: ${{ matrix.shell }}
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --parallel 2
+
+      - name: Test
+        shell: bash
+        run: ctest --test-dir build --build-config Release --output-on-failure
+
+  build-and-test-windows:
+    name: windows-latest
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-ninja
+
+      - name: Check out submodules
+        shell: 'msys2 {0}'
+        run: |
+          git submodule sync --recursive
+          for attempt in 1 2 3; do
+            git submodule update --init --recursive && exit 0
+            if [[ "$attempt" == 3 ]]; then
+              exit 1
+            fi
+            sleep 15
+          done
+
+      - name: Configure
+        shell: 'msys2 {0}'
         run: >-
           cmake
           -S .
@@ -92,9 +113,9 @@ jobs:
           -DENABLE_NATIVE_FLAGS=OFF
 
       - name: Build
-        shell: ${{ matrix.shell }}
+        shell: 'msys2 {0}'
         run: cmake --build build --config Release --parallel 2
 
       - name: Test
-        shell: ${{ matrix.shell }}
+        shell: 'msys2 {0}'
         run: ctest --test-dir build --build-config Release --output-on-failure
