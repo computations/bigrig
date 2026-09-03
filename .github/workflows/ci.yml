@@ -25,7 +25,7 @@ jobs:
           - os: macos-latest
             shell: bash
           - os: windows-latest
-            shell: msys2 {0}
+            shell: 'msys2 {0}'
 
     steps:
       - name: Check out source
