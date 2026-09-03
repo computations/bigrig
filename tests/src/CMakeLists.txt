@@ -23,5 +23,6 @@ target_compile_definitions(bigrig_test PRIVATE
   "D_RIGOROUS=$<BOOL:${RIGOROUS_TESTS}>")
 
 catch_discover_tests(bigrig_test
-  EXTRA_ARGS --skip-benchmarks
+  # Keep statistical tests reproducible so CI failures can be replayed locally.
+  EXTRA_ARGS --skip-benchmarks --rng-seed 123456789
 )
