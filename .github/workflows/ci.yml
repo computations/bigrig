@@ -26,8 +26,18 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Check out submodules
+        shell: bash
+        run: |
+          git submodule sync --recursive
+          for attempt in 1 2 3; do
+            git submodule update --init --recursive && exit 0
+            if [[ "$attempt" == 3 ]]; then
+              exit 1
+            fi
+            sleep 15
+          done
 
       - name: Install C++23 compiler
         shell: bash
