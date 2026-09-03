@@ -432,7 +432,8 @@ cli_options_t::get_period(const YAML::Node &yaml) {
   period_params.adjustment_matrix = get_adjustment_matrix_parameters(yaml);
 
   period_params.per_region_params
-      = get_per_region_params_list(yaml).value_or({});
+      = get_per_region_params_list(yaml).value_or(
+          std::vector<bigrig::per_region_params_t>{});
 
   if (ok) { return period_params; }
   return {};
@@ -481,7 +482,8 @@ cli_options_t::get_periods(const YAML::Node &yaml) {
           .clado             = clado_params,
           .start             = 0.0,
           .tree              = tree_params,
-          .per_region_params = per_region_params.value_or({}),
+          .per_region_params = per_region_params.value_or(
+              std::vector<bigrig::per_region_params_t>{}),
           .extinction        = extinction,
           .adjustment_matrix = {},
       }};

@@ -124,8 +124,9 @@ public:
     size_t index = 0;
     for (auto &param : params) {
       biogeo_model_t model{};
-      model.set_rate_params(param.rates.value_or({}))
-          .set_cladogenesis_params(param.clado.value_or({}))
+      model.set_rate_params(param.rates.value_or(rate_params_t{}))
+          .set_cladogenesis_params(
+              param.clado.value_or(cladogenesis_params_t{}))
           .set_two_region_duplicity(false);
       if (param.tree) { model.set_tree_params(param.tree.value()); }
       if (param.extinction) { model.set_extinction(param.extinction.value()); }
